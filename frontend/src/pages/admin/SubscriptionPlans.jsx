@@ -1,11 +1,5 @@
-import { useState } from 'react';
 import CrudTable from './CrudTable.jsx';
-
-const initialRows = [
-  { id: 1, name: 'Starter Monthly', billingCycle: 'Monthly', price: 9.99, proration: 'Enabled', cancellation: 'End of cycle', refund: 'None' },
-  { id: 2, name: 'Pro Quarterly', billingCycle: 'Quarterly', price: 24.99, proration: 'Enabled', cancellation: 'Immediate', refund: 'Prorated' },
-  { id: 3, name: 'Enterprise Yearly', billingCycle: 'Yearly', price: 199.0, proration: 'Disabled', cancellation: 'End of cycle', refund: 'Full within 14 days' },
-];
+import { adminApi } from '../../api.js';
 
 const fields = [
   { key: 'name', label: 'Plan name', required: true },
@@ -17,15 +11,13 @@ const fields = [
 ];
 
 export default function SubscriptionPlans() {
-  const [rows, setRows] = useState(initialRows);
-
   return (
     <CrudTable
       title="Subscription Plans"
       subtitle="Define billing cycles with proration, cancellation and refund policies."
+      entityLabel="subscription plan"
       fields={fields}
-      rows={rows}
-      setRows={setRows}
+      resource={adminApi.subscriptionPlans}
       searchKeys={['name', 'billingCycle']}
     />
   );

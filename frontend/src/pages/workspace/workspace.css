@@ -1,0 +1,244 @@
+.ws-shell {
+  min-height: 100vh;
+  background: #f2f4f7;
+}
+
+.ws-topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #eaecf0;
+  padding: 0.75rem 1.75rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ws-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #4338ca;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.ws-nav-links {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.ws-nav-links a {
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  color: #4b5563;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  position: relative;
+}
+
+.ws-nav-links a:hover {
+  background: #f2f4f7;
+}
+
+.ws-nav-links a.active {
+  background: #eef0ff;
+  color: #4338ca;
+}
+
+.ws-nav-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  background: #b42318;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+}
+
+.ws-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ws-actions button,
+.ws-actions .ws-profile {
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ws-actions button:hover {
+  background: #f9fafb;
+}
+
+.ws-actions .ws-backend-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9aa1b1;
+}
+
+.ws-dot.online {
+  background: #17b26a;
+}
+
+.ws-dot.offline {
+  background: #b42318;
+}
+
+.ws-main {
+  padding: 1.75rem 2.5rem;
+}
+
+.ws-main h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+  color: #1a1a1a;
+}
+
+.ws-subtitle {
+  margin: 0 0 1.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Pipeline board */
+.pipeline-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, 1fr);
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.pipeline-col {
+  background: #eef0f6;
+  border-radius: 12px;
+  padding: 0.85rem;
+  min-width: 230px;
+}
+
+.pipeline-col h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #374151;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pipeline-col h3 span {
+  color: #9aa1b1;
+  font-weight: 500;
+}
+
+.deal-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.6rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.deal-card .deal-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  margin-bottom: 0.2rem;
+}
+
+.deal-card .deal-meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  justify-content: space-between;
+}
+
+.deal-card select {
+  margin-top: 0.5rem;
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #d0d5dd;
+}
+
+/* Task list */
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.task-row.done .task-title {
+  text-decoration: line-through;
+  color: #9aa1b1;
+}
+
+.task-title {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #1a1a1a;
+}
+
+.task-due {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* Notifications */
+.notif-row {
+  display: flex;
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  align-items: flex-start;
+}
+
+.notif-row.unread {
+  border-left: 3px solid #4f46e5;
+}
+
+.notif-icon {
+  font-size: 1.1rem;
+}
+
+.notif-body {
+  flex: 1;
+}
+
+.notif-title {
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.notif-time {
+  font-size: 0.75rem;
+  color: #9aa1b1;
+  margin-top: 0.15rem;
+}

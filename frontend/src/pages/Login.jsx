@@ -21,7 +21,7 @@ function Login() {
     try {
       const data = await api.login({ username, password });
       login(data.accessToken);
-      navigate('/portal');
+      navigate('/workspace');
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
     } finally {

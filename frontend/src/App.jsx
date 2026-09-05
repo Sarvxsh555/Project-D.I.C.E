@@ -15,6 +15,12 @@ import Warehouses from './pages/admin/Warehouses.jsx';
 import SubscriptionPlans from './pages/admin/SubscriptionPlans.jsx';
 import RecommendationRules from './pages/admin/RecommendationRules.jsx';
 import Analytics from './pages/admin/Analytics.jsx';
+import WorkspaceLayout from './pages/workspace/WorkspaceLayout.jsx';
+import Quotations from './pages/workspace/Quotations.jsx';
+import Pipeline from './pages/workspace/Pipeline.jsx';
+import Customers from './pages/workspace/Customers.jsx';
+import Tasks from './pages/workspace/Tasks.jsx';
+import Notifications from './pages/workspace/Notifications.jsx';
 
 function App() {
   return (
@@ -51,6 +57,21 @@ function App() {
             <Route path="subscription-plans" element={<SubscriptionPlans />} />
             <Route path="recommendation-rules" element={<RecommendationRules />} />
             <Route path="analytics" element={<Analytics />} />
+          </Route>
+          <Route
+            path="/workspace"
+            element={
+              <ProtectedRoute>
+                <WorkspaceLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="quotations" replace />} />
+            <Route path="quotations" element={<Quotations />} />
+            <Route path="pipeline" element={<Pipeline />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
         </Routes>
       </BrowserRouter>

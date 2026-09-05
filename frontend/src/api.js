@@ -52,6 +52,16 @@ export function adminResource(path) {
   };
 }
 
+export async function pingBackend() {
+  try {
+    const res = await fetch(`${API_BASE}/portal/me`, { credentials: 'include' });
+    // Any HTTP response (even 401) means the backend process is reachable.
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 export const adminApi = {
   products: adminResource('products'),
   priceLists: adminResource('price-lists'),

@@ -1,30 +1,6 @@
-const stats = [
-  { label: 'Revenue (30d)', value: '$482,300' },
-  { label: 'Quotes generated', value: '1,204' },
-  { label: 'Orders placed', value: '918' },
-  { label: 'Approval rate', value: '87%' },
-];
-
-const discountDistribution = [
-  { label: '0-10%', value: 42 },
-  { label: '10-20%', value: 31 },
-  { label: '20-30%', value: 18 },
-  { label: '30%+', value: 9 },
-];
-
-const productPerformance = [
-  { label: 'Wireless Mouse', value: 92 },
-  { label: 'Running Shoes', value: 78 },
-  { label: 'Stainless Steel Kettle', value: 54 },
-  { label: 'A4 Copy Paper', value: 40 },
-];
-
-const salesPerformance = [
-  { label: 'North Region', value: 88 },
-  { label: 'West Region', value: 73 },
-  { label: 'South Region', value: 65 },
-  { label: 'East Region', value: 58 },
-];
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../AuthContext.jsx';
+import { adminApi } from '../../api.js';
 
 function BarList({ title, data }) {
   const max = Math.max(...data.map((d) => d.value));
@@ -37,7 +13,10 @@ function BarList({ title, data }) {
           <div className="bar-track">
             <div className="bar-fill" style={{ width: `${(d.value / max) * 100}%` }} />
           </div>
-          <span>{d.value}{title === 'Discount distribution' ? '%' : ''}</span>
+          <span>
+            {d.value}
+            {title === 'Discount distribution' ? '%' : ''}
+          </span>
         </div>
       ))}
     </div>
@@ -45,23 +24,41 @@ function BarList({ title, data }) {
 }
 
 export default function Analytics() {
+  const { token } = useAuth();
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    adminApi
+      .analyticsSummary(token)
+      .then(setSummary)
+      .catch((err) => setError(err.message));
+  }, [token]);
+
   return (
     <div>
       <h1>Analytics</h1>
       <p className="admin-subtitle">Revenue, quotes, orders, approval rate, discount distribution and performance.</p>
 
-      <div className="stat-grid">
-        {stats.map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value">{s.value}</div>
-          </div>
-        ))}
-      </div>
+      {error && <p className="status error">{error}</p>}
+      {!summary && !error && <p className="admin-subtitle">Loading...</p>}
 
-      <BarList title="Discount distribution" data={discountDistribution} />
-      <BarList title="Product performance" data={productPerformance} />
-      <BarList title="Sales performance" data={salesPerformance} />
+      {summary && (
+        <>
+          <div className="stat-grid">
+            {summary.stats.map((s) => (
+              <div className="stat-card" key={s.label}>
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value">{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <BarList title="Discount distribution" data={summary.discountDistribution} />
+          <BarList title="Product performance" data={summary.productPerformance} />
+          <BarList title="Sales performance" data={summary.salesPerformance} />
+        </>
+      )}
     </div>
   );
 }

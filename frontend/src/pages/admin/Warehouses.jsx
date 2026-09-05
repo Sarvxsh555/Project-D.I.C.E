@@ -1,11 +1,5 @@
-import { useState } from 'react';
 import CrudTable from './CrudTable.jsx';
-
-const initialRows = [
-  { id: 1, name: 'North DC', location: 'Chicago, IL', stock: 12500, replenishment: 'Weekly', shippingWeight: 'Standard' },
-  { id: 2, name: 'West Hub', location: 'Reno, NV', stock: 8300, replenishment: 'Bi-weekly', shippingWeight: 'Heavy' },
-  { id: 3, name: 'South Depot', location: 'Atlanta, GA', stock: 15900, replenishment: 'Weekly', shippingWeight: 'Standard' },
-];
+import { adminApi } from '../../api.js';
 
 const fields = [
   { key: 'name', label: 'Name', required: true },
@@ -16,15 +10,13 @@ const fields = [
 ];
 
 export default function Warehouses() {
-  const [rows, setRows] = useState(initialRows);
-
   return (
     <CrudTable
       title="Warehouses"
       subtitle="Manage warehouse locations, stock levels, replenishment schedule and shipping weight class."
+      entityLabel="warehouse"
       fields={fields}
-      rows={rows}
-      setRows={setRows}
+      resource={adminApi.warehouses}
       searchKeys={['name', 'location']}
     />
   );

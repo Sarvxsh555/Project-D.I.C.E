@@ -1,17 +1,11 @@
 import { useState } from 'react';
 import CrudTable from './CrudTable.jsx';
+import { adminApi } from '../../api.js';
 import './admin.css';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum'];
 const CATEGORIES = ['Electronics', 'Apparel', 'Home & Kitchen', 'Sporting Goods', 'Office Supplies'];
 const RISK_LEVELS = ['low', 'medium', 'high'];
-
-const initialRules = [
-  { id: 1, customerTier: 'Gold', category: 'Electronics', minDiscount: 5, maxDiscount: 15, riskLevel: 'low', approvalLevel: 'Sales Manager' },
-  { id: 2, customerTier: 'Platinum', category: 'Apparel', minDiscount: 10, maxDiscount: 30, riskLevel: 'medium', approvalLevel: 'Finance' },
-  { id: 3, customerTier: 'Silver', category: 'Home & Kitchen', minDiscount: 0, maxDiscount: 10, riskLevel: 'low', approvalLevel: 'Sales Manager' },
-  { id: 4, customerTier: 'Bronze', category: 'Sporting Goods', minDiscount: 15, maxDiscount: 40, riskLevel: 'high', approvalLevel: 'Finance' },
-];
 
 const ruleFields = [
   { key: 'customerTier', label: 'Customer tier', type: 'select', options: TIERS, required: true },
@@ -44,7 +38,6 @@ function ApprovalChain() {
 }
 
 export default function DiscountPolicies() {
-  const [rows, setRows] = useState(initialRules);
   const [tab, setTab] = useState('rules');
 
   return (
@@ -65,7 +58,12 @@ export default function DiscountPolicies() {
       </div>
 
       {tab === 'rules' ? (
-        <CrudTable fields={ruleFields} rows={rows} setRows={setRows} searchKeys={['customerTier', 'category']} title="" />
+        <CrudTable
+          entityLabel="discount rule"
+          fields={ruleFields}
+          resource={adminApi.discountRules}
+          searchKeys={['customerTier', 'category']}
+        />
       ) : (
         <ApprovalChain />
       )}
