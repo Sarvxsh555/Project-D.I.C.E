@@ -9,6 +9,8 @@ const fields = [
   { key: 'category', label: 'Category', type: 'select', options: CATEGORIES, required: true },
   { key: 'variant', label: 'Variant', required: true },
   { key: 'taxRate', label: 'Tax rate (%)', type: 'number', required: true },
+  { key: 'unitPrice', label: 'List price', type: 'number', required: true },
+  { key: 'costPrice', label: 'Cost', type: 'number', required: true },
   { key: 'unit', label: 'Unit', type: 'select', options: UNITS, required: true },
   { key: 'description', label: 'Description', type: 'textarea' },
   {

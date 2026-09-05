@@ -23,6 +23,7 @@ import { customersRoutes } from './routes/customers.routes.js';
 import { oeegRoutes } from './routes/oeeg.routes.js';
 import { diceRoutes } from './routes/dice.routes.js';
 import { governanceRoutes } from './routes/governance.routes.js';
+import { dataRoutes } from './routes/data.routes.js';
 import { mountProxy } from './proxy/forward.js';
 
 const register = new client.Registry();
@@ -98,6 +99,7 @@ export async function buildApp() {
   await billingRoutes(app);
   await oeegRoutes(app);
   await governanceRoutes(app);
+  await dataRoutes(app);
   mountProxy(app, '/api/inventory', 'inventory');
 
   return app;

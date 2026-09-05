@@ -10,6 +10,7 @@ export type ServiceName =
   | 'recommendation'
   | 'dealHealth'
   | 'billing'
-  | 'oeeg';
+  | 'oeeg'
+  | 'data';
 
 export type ServiceRegistry = Record<ServiceName, string>;

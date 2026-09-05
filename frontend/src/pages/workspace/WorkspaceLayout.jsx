@@ -1,25 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext.jsx';
 import { api, pingBackend } from '../../api.js';
+import { workspaceApi } from '../../workspaceApi.js';
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext.jsx';
-import { UNREAD_NOTIFICATION_COUNT } from './mockData.js';
 import './workspace.css';
 
-const NAV_ITEMS = [
+const NAV = [
   { to: '/workspace/quotations', label: 'Quotations' },
   { to: '/workspace/pipeline', label: 'Pipeline' },
   { to: '/workspace/customers', label: 'Customers' },
   { to: '/workspace/tasks', label: 'Tasks' },
-  { to: '/workspace/notifications', label: 'Notifications', badge: UNREAD_NOTIFICATION_COUNT },
+  { to: '/workspace/notifications', label: 'Notifications', badgeKey: 'unread' },
 ];
 
 function TopNav() {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
-  const { reload } = useWorkspace();
-  const [backendStatus, setBackendStatus] = useState(null); // null | 'online' | 'offline'
+  const { reload, reloadKey } = useWorkspace();
+  const [backendStatus, setBackendStatus] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    workspaceApi.unreadCount(token).then((d) => setUnread(d.count || 0)).catch(() => setUnread(0));
+  }, [token, reloadKey]);
 
   const handleCheckBackend = async () => {
     setChecking(true);
@@ -43,10 +49,10 @@ function TopNav() {
     <header className="ws-topnav">
       <div className="ws-brand">DealFlow360</div>
       <nav className="ws-nav-links">
-        {NAV_ITEMS.map((item) => (
+        {NAV.map((item) => (
           <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
             {item.label}
-            {Boolean(item.badge) && <span className="ws-nav-badge">{item.badge}</span>}
+            {item.badgeKey === 'unread' && unread > 0 && <span className="ws-nav-badge">{unread}</span>}
           </NavLink>
         ))}
       </nav>

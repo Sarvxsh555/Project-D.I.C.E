@@ -3,6 +3,8 @@ package com.example.quotation.controller;
 import com.example.quotation.model.Customer;
 import com.example.quotation.repository.CustomerRepository;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,5 +23,10 @@ public class CustomerController {
     @GetMapping
     public List<Customer> list() {
         return repository.findAll();
+    }
+
+    @PostMapping
+    public Customer create(@RequestBody Customer customer) {
+        return repository.save(customer);
     }
 }

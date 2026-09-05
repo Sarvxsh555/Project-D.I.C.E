@@ -14,4 +14,5 @@ export const services: ServiceRegistry = {
   dealHealth: env.SERVICE_DEAL_HEALTH,
   billing: env.SERVICE_BILLING,
   oeeg: env.SERVICE_OEEG,
+  data: env.SERVICE_DATA,
 };

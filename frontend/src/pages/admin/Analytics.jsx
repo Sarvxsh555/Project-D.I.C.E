@@ -3,7 +3,15 @@ import { useAuth } from '../../AuthContext.jsx';
 import { adminApi } from '../../api.js';
 
 function BarList({ title, data }) {
-  const max = Math.max(...data.map((d) => d.value));
+  if (!data?.length) {
+    return (
+      <div className="bar-list">
+        <h3>{title}</h3>
+        <p className="admin-subtitle">No data yet.</p>
+      </div>
+    );
+  }
+  const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <div className="bar-list">
       <h3>{title}</h3>

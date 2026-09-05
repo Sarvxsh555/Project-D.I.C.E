@@ -85,6 +85,9 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        if (userRepository.count() == 0) {
+            user.setRole("ADMIN");
+        }
         userRepository.save(user);
 
         String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole(), user.getCustomerId());

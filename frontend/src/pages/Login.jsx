@@ -73,16 +73,6 @@ function Login() {
             <Link to="/signup">Create an account</Link>
           </div>
         </form>
-        <div className="demo-accounts">
-          <p>Demo logins</p>
-          <button type="button" onClick={() => { setUsername('manager'); setPassword('Manager@1234'); }}>Sales Manager — manager</button>
-          <button type="button" onClick={() => { setUsername('finance'); setPassword('Finance@1234'); }}>Finance — finance</button>
-          <button type="button" onClick={() => { setUsername('testuser'); setPassword('Test@1234'); }}>Sales Rep — testuser</button>
-          <button type="button" onClick={() => { setUsername('acme'); setPassword('Acme@1234'); }}>Acme Corp — acme</button>
-          <button type="button" onClick={() => { setUsername('globex'); setPassword('Globex@1234'); }}>Globex — globex</button>
-          <button type="button" onClick={() => { setUsername('initech'); setPassword('Initech@1234'); }}>Initech — initech</button>
-          <button type="button" onClick={() => { setUsername('umbrella'); setPassword('Umbrella@1234'); }}>Umbrella — umbrella</button>
-        </div>
       </div>
     </div>
   );

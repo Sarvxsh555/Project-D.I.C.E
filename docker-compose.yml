@@ -3,6 +3,16 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+  data-service:
+    build: ./data-service
+    ports:
+      - "8093:8093"
+    environment:
+      PORT: 8093
+      DATABASE_URL: postgres://loginuser:loginpass@host.docker.internal:5433/dealflow
+      DATA_SERVICE_KEY: data-demo-key
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   gateway:
     build: ./gateway
     expose:
@@ -26,10 +36,12 @@ services:
       SERVICE_DEAL_HEALTH: http://host.docker.internal:8090
       SERVICE_BILLING: http://host.docker.internal:8091
       SERVICE_OEEG: http://host.docker.internal:8092
+      SERVICE_DATA: http://data-service:8093
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - redis
+      - data-service
   nginx:
     build:
       context: .

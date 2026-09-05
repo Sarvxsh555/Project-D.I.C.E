@@ -28,6 +28,7 @@ const Env = z.object({
   SERVICE_DEAL_HEALTH: z.string().url().default('http://localhost:8090'),
   SERVICE_BILLING: z.string().url().default('http://localhost:8091'),
   SERVICE_OEEG: z.string().url().default('http://localhost:8092'),
+  SERVICE_DATA: z.string().url().default('http://localhost:8093'),
 });
 
 export const env = Env.parse(process.env);

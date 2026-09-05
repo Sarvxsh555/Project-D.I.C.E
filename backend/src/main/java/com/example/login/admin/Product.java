@@ -16,6 +16,8 @@ public class Product implements Identifiable {
     private String category;
     private String variant;
     private double taxRate;
+    private double unitPrice;
+    private double costPrice;
     private String unit;
     private String description;
     private String status;
@@ -30,6 +32,10 @@ public class Product implements Identifiable {
     public void setVariant(String variant) { this.variant = variant; }
     public double getTaxRate() { return taxRate; }
     public void setTaxRate(double taxRate) { this.taxRate = taxRate; }
+    public double getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
+    public double getCostPrice() { return costPrice; }
+    public void setCostPrice(double costPrice) { this.costPrice = costPrice; }
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
     public String getDescription() { return description; }

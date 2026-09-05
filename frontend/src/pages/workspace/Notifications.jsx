@@ -1,27 +1,38 @@
 import { useEffect, useState } from 'react';
-import { initialNotifications } from './mockData.js';
+import { useAuth } from '../../AuthContext.jsx';
+import { workspaceApi } from '../../workspaceApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
 
 export default function Notifications() {
+  const { token } = useAuth();
   const { reloadKey } = useWorkspace();
-  const [items, setItems] = useState(initialNotifications);
+  const [items, setItems] = useState([]);
+
+  const load = async () => {
+    const data = await workspaceApi.notifications(token);
+    setItems(Array.isArray(data) ? data : []);
+  };
 
   useEffect(() => {
-    setItems(initialNotifications);
-  }, [reloadKey]);
+    if (token) load();
+  }, [token, reloadKey]);
 
-  const markRead = (id) => setItems((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+  const markRead = async (id, unread) => {
+    if (!unread) return;
+    await workspaceApi.markNotificationRead(token, id);
+    await load();
+  };
 
   return (
     <div>
       <h1>Notifications</h1>
       <p className="ws-subtitle">{items.filter((n) => n.unread).length} unread.</p>
-
+      {items.length === 0 && <p>No notifications yet.</p>}
       {items.map((n) => (
         <div
           className={`notif-row ${n.unread ? 'unread' : ''}`}
           key={n.id}
-          onClick={() => markRead(n.id)}
+          onClick={() => markRead(n.id, n.unread)}
           style={{ cursor: n.unread ? 'pointer' : 'default' }}
         >
           <span className="notif-icon">{n.icon}</span>

@@ -3,6 +3,7 @@ package com.example.quotation.model;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "quote_approval_step")
 public class ApprovalStep {
 
     @Id

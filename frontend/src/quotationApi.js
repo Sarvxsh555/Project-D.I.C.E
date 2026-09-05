@@ -39,6 +39,7 @@ export const quotationApi = {
     request(`/quotations/${id}/transition`, { method: 'POST', token, body: { toStage } }),
   products: (token, params) => request(`/products${toQuery(params)}`, { token }),
   customers: (token) => request('/customers', { token }),
+  createCustomer: (token, body) => request('/customers', { method: 'POST', token, body }),
   recommendations: (token, productIds) =>
     request(`/recommendations${toQuery({ productIds: productIds.join(',') })}`, { token }),
   approvalChain: (token, id) => request(`/quotations/${id}/approval-chain`, { token }),
