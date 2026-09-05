@@ -35,6 +35,14 @@ public class Warehouse {
     @Builder.Default
     private Integer dispatchDays = 1;
 
+    /**
+     * Relative shipping-cost multiplier used by the allocation engine's
+     * warehouse ranking; 1.00 is baseline, higher is costlier to ship from.
+     */
+    @Column(name = "shipping_cost_factor", precision = 6, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal shippingCostFactor = java.math.BigDecimal.ONE;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;

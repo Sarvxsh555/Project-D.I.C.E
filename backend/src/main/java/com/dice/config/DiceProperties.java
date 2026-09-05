@@ -16,7 +16,8 @@ import java.util.List;
 public record DiceProperties(
         Security security,
         Cors cors,
-        Odoo odoo) {
+        Odoo odoo,
+        Fulfillment fulfillment) {
 
     public record Security(Jwt jwt) {
         public record Jwt(
@@ -28,6 +29,13 @@ public record DiceProperties(
 
     public record Cors(
             @DefaultValue("http://localhost:5173") List<String> allowedOrigins) {
+    }
+
+    /** Deterministic weighting for the allocation engine's warehouse ranking. */
+    public record Fulfillment(
+            @DefaultValue("1.0") double availabilityWeight,
+            @DefaultValue("1.0") double shippingCostWeight,
+            @DefaultValue("0.25") double dispatchDaysWeight) {
     }
 
     public record Odoo(

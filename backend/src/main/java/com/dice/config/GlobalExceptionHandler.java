@@ -3,6 +3,7 @@ package com.dice.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -46,6 +47,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SecurityException.class)
     public ProblemDetail onForbidden(SecurityException e) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+        problem.setTitle("Insufficient authority");
+        problem.setType(TYPE_FORBIDDEN);
+        return problem;
+    }
+
+    /**
+     * {@code @PreAuthorize} denials throw this from Spring Security's method
+     * interceptor, inside the MVC dispatch — never reaching {@code SecurityConfig}'s
+     * filter-chain-level accessDeniedHandler. Without this handler, every
+     * authenticated-but-forbidden request (e.g. a non-CUSTOMER hitting
+     * {@code /api/portal/**}) fell through to {@link #onUnexpected} as a 500.
+     * {@code AuthorizationDeniedException} (the newer, more specific type
+     * {@code @PreAuthorize} actually throws) extends this, so one handler
+     * covers both.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail onAccessDenied(AccessDeniedException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
         problem.setTitle("Insufficient authority");
         problem.setType(TYPE_FORBIDDEN);
         return problem;
