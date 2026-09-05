@@ -35,6 +35,7 @@ public record DealEvent(
         public static final String APPROVAL_REQUESTED = "APPROVAL_REQUESTED";
         public static final String APPROVAL_GRANTED = "APPROVAL_GRANTED";
         public static final String APPROVAL_REJECTED = "APPROVAL_REJECTED";
+        public static final String APPROVAL_RETURNED = "APPROVAL_RETURNED";
         public static final String DEAL_EVALUATED = "DEAL_EVALUATED";
         public static final String DEAL_CONFIRMED = "DEAL_CONFIRMED";
         public static final String FULFILLMENT_PLANNED = "FULFILLMENT_PLANNED";
