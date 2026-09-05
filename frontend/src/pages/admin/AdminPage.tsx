@@ -144,7 +144,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200">
           {tabs.map((t) => {
             const Icon = t.icon
             const isActive = activeTab === t.id
@@ -152,10 +152,10 @@ export default function AdminPage() {
               <button
                 key={t.id}
                 onClick={() => setSearchParams({ tab: t.id })}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
                   isActive
-                    ? 'bg-white shadow-xs text-[#5E2A52] font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#5E2A52] font-semibold border border-slate-200/80 shadow-none'
+                    : 'text-slate-600 hover:text-slate-900 border border-transparent'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -170,12 +170,12 @@ export default function AdminPage() {
       {activeTab === 'reporting' && reports && (
         <div className="space-y-6">
           {/* KPI Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
                 Total Closed Pipeline
               </span>
-              <div className="text-2xl font-bold text-slate-900 font-mono">
+              <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatCurrency(reports.totalDealValue)}
               </div>
               <span className="text-[11px] text-emerald-700 mt-1 block font-medium">
@@ -183,11 +183,11 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
                 Average Gross Margin
               </span>
-              <div className="text-2xl font-bold text-emerald-700 font-mono">
+              <div className="text-xl font-bold text-emerald-700 font-mono">
                 {formatPercent(reports.averageMargin)}
               </div>
               <span className="text-[11px] text-slate-500 mt-1 block">
@@ -195,11 +195,11 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
                 Governance SLA Velocity
               </span>
-              <div className="text-2xl font-bold text-[#5E2A52] font-mono">
+              <div className="text-xl font-bold text-[#5E2A52] font-mono">
                 {reports.averageApprovalHours}h
               </div>
               <span className="text-[11px] text-slate-500 mt-1 block">
@@ -207,11 +207,11 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
                 Cash Collection Rate
               </span>
-              <div className="text-2xl font-bold text-slate-900 font-mono">
+              <div className="text-xl font-bold text-slate-900 font-mono">
                 {reports.invoiceCollectionRate}%
               </div>
               <span className="text-[11px] text-slate-500 mt-1 block">
@@ -221,43 +221,43 @@ export default function AdminPage() {
           </div>
 
           {/* Restrained Analytics Breakdown Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white border border-slate-200 rounded p-4">
               <h3 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">
                 Deal Performance Distribution
               </h3>
-              <div className="space-y-3 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">Enterprise Hardware Pipeline</span>
-                  <span className="font-bold text-slate-900 font-mono">₹28,50,000 (58.7%)</span>
+                  <span className="font-semibold text-slate-900 font-mono">₹28,50,000 (58.7%)</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">Recurring 24/7 Support Contracts</span>
-                  <span className="font-bold text-slate-900 font-mono">₹12,40,000 (25.5%)</span>
+                  <span className="font-semibold text-slate-900 font-mono">₹12,40,000 (25.5%)</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">Implementation Professional Services</span>
-                  <span className="font-bold text-slate-900 font-mono">₹7,60,000 (15.8%)</span>
+                  <span className="font-semibold text-slate-900 font-mono">₹7,60,000 (15.8%)</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
+            <div className="bg-white border border-slate-200 rounded p-4">
               <h3 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">
                 Governance Exception Analytics
               </h3>
-              <div className="space-y-3 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">Automated Direct Approvals</span>
-                  <span className="font-bold text-emerald-700 font-mono">82%</span>
+                  <span className="font-semibold text-emerald-700 font-mono">82%</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">Sales Manager Reviews</span>
-                  <span className="font-bold text-amber-700 font-mono">14%</span>
+                  <span className="font-semibold text-amber-700 font-mono">14%</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="text-slate-600">VP & Finance Dual Signoffs</span>
-                  <span className="font-bold text-rose-700 font-mono">4%</span>
+                  <span className="font-semibold text-rose-700 font-mono">4%</span>
                 </div>
               </div>
             </div>
@@ -276,47 +276,47 @@ export default function AdminPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsAddProductOpen(true)}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5"
+              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 rounded"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Product
             </Button>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50/75 text-[11px] uppercase font-semibold text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th className="py-2.5 px-4">Product Name</th>
-                  <th className="py-2.5 px-3">SKU</th>
-                  <th className="py-2.5 px-3">Category</th>
-                  <th className="py-2.5 px-3 text-right">Base Price</th>
-                  <th className="py-2.5 px-3 text-right">Cost Price</th>
-                  <th className="py-2.5 px-3">Billing Type</th>
-                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2 px-3">Product Name</th>
+                  <th className="py-2 px-3">SKU</th>
+                  <th className="py-2 px-3">Category</th>
+                  <th className="py-2 px-3 text-right">Base Price</th>
+                  <th className="py-2 px-3 text-right">Cost Price</th>
+                  <th className="py-2 px-3">Billing Type</th>
+                  <th className="py-2 px-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {products.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 font-medium text-slate-900">
+                    <td className="py-2 px-3 font-medium text-slate-900">
                       <div>{p.name}</div>
                       <div className="text-[10px] text-slate-400">{p.description}</div>
                     </td>
-                    <td className="py-3 px-3 font-mono text-slate-500">{p.sku}</td>
-                    <td className="py-3 px-3">{p.category}</td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-900 font-mono">
+                    <td className="py-2 px-3 font-mono text-slate-500">{p.sku}</td>
+                    <td className="py-2 px-3">{p.category}</td>
+                    <td className="py-2 px-3 text-right font-medium text-slate-900 font-mono">
                       {formatCurrency(p.basePrice)}
                     </td>
-                    <td className="py-3 px-3 text-right text-slate-400 font-mono">
+                    <td className="py-2 px-3 text-right text-slate-400 font-mono">
                       {formatCurrency(p.costPrice)}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-2 px-3">
                       <Badge variant={p.billingType === 'RECURRING' ? 'info' : 'neutral'}>
                         {p.billingType === 'RECURRING' ? 'Recurring' : 'One-Time'}
                       </Badge>
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-2 px-3">
                       <Badge variant="success">{p.status}</Badge>
                     </td>
                   </tr>
@@ -336,29 +336,29 @@ export default function AdminPage() {
             </h3>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50/75 text-[11px] uppercase font-semibold text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th className="py-2.5 px-4">Customer Tier</th>
-                  <th className="py-2.5 px-4">Product Name</th>
-                  <th className="py-2.5 px-3">SKU</th>
-                  <th className="py-2.5 px-3 text-right">Negotiated Tier Price</th>
-                  <th className="py-2.5 px-3">Effective From</th>
-                  <th className="py-2.5 px-3">Effective To</th>
+                  <th className="py-2 px-3">Customer Tier</th>
+                  <th className="py-2 px-3">Product Name</th>
+                  <th className="py-2 px-3">SKU</th>
+                  <th className="py-2 px-3 text-right">Negotiated Tier Price</th>
+                  <th className="py-2 px-3">Effective From</th>
+                  <th className="py-2 px-3">Effective To</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {pricelists.map((pl) => (
                   <tr key={pl.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 font-bold text-[#5E2A52]">{pl.tier} Tier</td>
-                    <td className="py-3 px-4 font-medium text-slate-900">{pl.productName}</td>
-                    <td className="py-3 px-3 font-mono text-slate-500">{pl.sku}</td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-900 font-mono">
+                    <td className="py-2 px-3 font-semibold text-[#5E2A52]">{pl.tier} Tier</td>
+                    <td className="py-2 px-3 font-medium text-slate-900">{pl.productName}</td>
+                    <td className="py-2 px-3 font-mono text-slate-500">{pl.sku}</td>
+                    <td className="py-2 px-3 text-right font-medium text-slate-900 font-mono">
                       {formatCurrency(pl.tierPrice)}
                     </td>
-                    <td className="py-3 px-3 font-mono text-slate-500">{pl.effectiveFrom}</td>
-                    <td className="py-3 px-3 font-mono text-slate-500">{pl.effectiveTo}</td>
+                    <td className="py-2 px-3 font-mono text-slate-500">{pl.effectiveFrom}</td>
+                    <td className="py-2 px-3 font-mono text-slate-500">{pl.effectiveTo}</td>
                   </tr>
                 ))}
               </tbody>
@@ -383,51 +383,51 @@ export default function AdminPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsAddRuleOpen(true)}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5"
+              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 rounded"
             >
               <Plus className="w-3.5 h-3.5" />
               Create Rule
             </Button>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50/75 text-[11px] uppercase font-semibold text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th className="py-2.5 px-4">Rule Name</th>
-                  <th className="py-2.5 px-3">Customer Tier</th>
-                  <th className="py-2.5 px-3">Category</th>
-                  <th className="py-2.5 px-3 text-right">Max Discount</th>
-                  <th className="py-2.5 px-3 text-right">Risk Threshold</th>
-                  <th className="py-2.5 px-4">Required Approval Level</th>
-                  <th className="py-2.5 px-3">Version</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-4 text-right">Toggle</th>
+                  <th className="py-2 px-3">Rule Name</th>
+                  <th className="py-2 px-3">Customer Tier</th>
+                  <th className="py-2 px-3">Category</th>
+                  <th className="py-2 px-3 text-right">Max Discount</th>
+                  <th className="py-2 px-3 text-right">Risk Threshold</th>
+                  <th className="py-2 px-3">Required Approval Level</th>
+                  <th className="py-2 px-3">Version</th>
+                  <th className="py-2 px-3">Status</th>
+                  <th className="py-2 px-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {discountRules.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 font-semibold text-slate-900">{r.ruleName}</td>
-                    <td className="py-3 px-3 font-medium text-[#5E2A52]">{r.customerTier}</td>
-                    <td className="py-3 px-3 text-slate-700">{r.category}</td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-900 font-mono">
+                    <td className="py-2 px-3 font-semibold text-slate-900">{r.ruleName}</td>
+                    <td className="py-2 px-3 font-medium text-[#5E2A52]">{r.customerTier}</td>
+                    <td className="py-2 px-3 text-slate-700">{r.category}</td>
+                    <td className="py-2 px-3 text-right font-medium text-slate-900 font-mono">
                       {formatPercent(r.maxDiscountPercent)}
                     </td>
-                    <td className="py-3 px-3 text-right font-mono text-slate-600">{r.riskThreshold}</td>
-                    <td className="py-3 px-4 font-medium text-slate-800">{r.approvalLevel}</td>
-                    <td className="py-3 px-3 font-mono text-[10px] text-slate-400">{r.version}</td>
-                    <td className="py-3 px-3">
+                    <td className="py-2 px-3 text-right font-mono text-slate-600">{r.riskThreshold}</td>
+                    <td className="py-2 px-3 font-medium text-slate-800">{r.approvalLevel}</td>
+                    <td className="py-2 px-3 font-mono text-[10px] text-slate-400">{r.version}</td>
+                    <td className="py-2 px-3">
                       <Badge variant={r.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {r.status}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-2 px-3 text-right">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleToggleRuleStatus(r)}
-                        className="text-xs text-slate-600"
+                        className="text-xs text-slate-600 py-0.5 px-2 rounded"
                       >
                         {r.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                       </Button>

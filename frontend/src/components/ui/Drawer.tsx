@@ -48,7 +48,7 @@ export function Drawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div
-        className="fixed inset-0 bg-slate-900/30 transition-opacity backdrop-blur-xs"
+        className="fixed inset-0 bg-slate-900/30 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -58,7 +58,7 @@ export function Drawer({
           role="dialog"
           aria-modal="true"
           className={cn(
-            'w-screen bg-white shadow-2xl border-l border-slate-200 flex flex-col',
+            'w-screen bg-white shadow-lg border-l border-slate-200 flex flex-col',
             sizeStyles[size],
             className
           )}

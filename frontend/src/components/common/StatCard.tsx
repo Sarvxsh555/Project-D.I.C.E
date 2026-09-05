@@ -27,8 +27,8 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        'transition-all hover:border-slate-300',
-        highlight && 'border-[#5E2A52]/30 bg-gradient-to-b from-[#FAF5F9]/50 to-white',
+        'border border-slate-200 bg-white transition-colors',
+        highlight && 'border-[#5E2A52] bg-[#FAF5F9]',
         className
       )}
     >

@@ -35,7 +35,11 @@ function delay(ms = 80): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+import { DEMO_ACCOUNTS } from '../constants/roles'
+import type { RegisterRequest, UserSession, TokenResponse } from '../types/auth'
+
 // In-memory state for mutations during session
+const usersStore: UserSession[] = JSON.parse(JSON.stringify(DEMO_ACCOUNTS))
 const dealsStore: DealSummary[] = JSON.parse(JSON.stringify(MOCK_DEAL_SUMMARIES))
 const dealDetailsStore: Record<string, DealDetail> = {
   'd-1042': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_Q1042)),
@@ -58,6 +62,39 @@ const customersStore: Customer[] = JSON.parse(JSON.stringify(MOCK_CUSTOMERS))
 const policiesStore: Policy[] = JSON.parse(JSON.stringify(MOCK_POLICIES))
 
 export const mockAdapter = {
+  // AUTHENTICATION & STAKEHOLDERS
+  registerUser: async (req: RegisterRequest): Promise<TokenResponse> => {
+    await delay()
+    const token = `jwt-${req.username.toLowerCase()}-${Date.now()}`
+    const newUser: UserSession = {
+      username: req.username,
+      name: req.fullName || req.username,
+      email: req.email || `${req.username}@dealflow360.com`,
+      role: req.role,
+      token,
+      departmentOrCompany: req.departmentOrCompany,
+      territory: req.territory,
+      warehouseDepot: req.warehouseDepot,
+    }
+    usersStore.push(newUser)
+    return {
+      token,
+      username: req.username,
+      roles: [req.role],
+      expiresInMs: 86400000,
+    }
+  },
+
+  listUsers: async (): Promise<UserSession[]> => {
+    await delay()
+    return usersStore
+  },
+
+  findUser: async (username: string): Promise<UserSession | undefined> => {
+    await delay()
+    return usersStore.find((u) => u.username.toLowerCase() === username.toLowerCase())
+  },
+
   // DASHBOARD
   getDashboardSummary: async () => {
     await delay()
@@ -771,3 +808,5 @@ export const mockAdapter = {
     return policiesStore
   },
 }
+
+

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { invoiceService } from '../../services/invoiceService'
 import { formatCurrency } from '../../utils/currency'
 import type { Invoice } from '../../types/billing'
-import { CheckCircle2, ArrowLeft, Ban, DollarSign } from 'lucide-react'
+import { ArrowLeft, Ban, DollarSign, Download, Printer } from 'lucide-react'
 
 export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -86,172 +87,184 @@ export default function InvoicesPage() {
   }
 
   // ==========================================
-  // RENDER: INVOICE DETAIL
+  // RENDER: INVOICE DETAIL (ENTERPRISE RECORD)
   // ==========================================
   if (invoiceIdParam) {
     if (detailLoading || !activeInvoice) {
-      return <LoadingState message="Loading invoice statement..." rows={5} />
+      return <LoadingState message="Loading tax invoice statement..." rows={6} />
     }
 
-    const steps = ['DRAFT', 'ISSUED', 'PAID']
     const isOverdue = activeInvoice.status === 'OVERDUE'
+    const statusVariant =
+      activeInvoice.status === 'PAID'
+        ? 'success'
+        : activeInvoice.status === 'OVERDUE'
+        ? 'danger'
+        : 'warning'
 
     return (
-      <div className="space-y-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSearchParams({})}
-          className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Invoices
-        </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchParams({})}
+            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Invoices Ledger</span>
+          </Button>
 
-        {/* Invoice Statement Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => alert(`Downloading official PDF statement for ${activeInvoice.invoiceNumber}...`)}
+              className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Tax Invoice (PDF)</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Invoice Statement Sheet */}
+        <div className="bg-white border border-slate-200 rounded p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400">
+                <span className="text-[10px] uppercase font-mono font-bold text-slate-400">
                   Tax Invoice
                 </span>
-                <Badge
-                  variant={
-                    activeInvoice.status === 'PAID'
-                      ? 'success'
-                      : activeInvoice.status === 'OVERDUE'
-                      ? 'danger'
-                      : 'warning'
-                  }
-                >
+                <Badge variant={statusVariant} size="sm">
                   {activeInvoice.status}
                 </Badge>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 mt-1">
+              <h1 className="text-2xl font-bold font-mono text-slate-900 mt-1">
                 {activeInvoice.invoiceNumber}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Customer: <strong className="text-slate-800">{activeInvoice.customerName}</strong> • Deal: <strong className="font-mono text-[#5E2A52]">{activeInvoice.dealNumber}</strong>
+                Client: <strong className="text-slate-900">{activeInvoice.customerName}</strong> • Quotation: <strong className="font-mono text-[#5E2A52]">{activeInvoice.dealNumber}</strong>
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               {activeInvoice.status === 'DRAFT' && (
-                <Button variant="primary" size="sm" onClick={handleIssue} className="bg-[#5E2A52] hover:bg-[#4d2243]">
+                <Button variant="primary" size="sm" onClick={handleIssue} className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs">
                   Issue Invoice
                 </Button>
               )}
               {activeInvoice.status === 'ISSUED' && (
-                <Button variant="primary" size="sm" onClick={handleMarkPaid} className="bg-emerald-700 hover:bg-emerald-800">
-                  <DollarSign className="w-3.5 h-3.5 mr-1" />
+                <Button variant="primary" size="sm" onClick={handleMarkPaid} className="bg-emerald-700 hover:bg-emerald-800 text-xs flex items-center gap-1">
+                  <DollarSign className="w-3.5 h-3.5" />
                   Mark as Paid
                 </Button>
               )}
               {activeInvoice.status !== 'PAID' && activeInvoice.status !== 'CANCELLED' && (
-                <Button variant="outline" size="sm" onClick={handleCancel} className="text-rose-600 border-rose-200 hover:bg-rose-50">
-                  <Ban className="w-3.5 h-3.5 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleCancel} className="text-xs text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1">
+                  <Ban className="w-3.5 h-3.5" />
                   Cancel Invoice
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Lifecycle Stepper */}
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <h4 className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mb-3">
-              Invoice Payment Progression
-            </h4>
-            <div className="flex items-center justify-between relative">
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
-              {(isOverdue ? ['DRAFT', 'ISSUED', 'OVERDUE'] : steps).map((s, idx) => {
-                const isCurrent = activeInvoice.status === s
-                const isDone = (activeInvoice.status === 'PAID' && idx < 2) || (s === 'DRAFT')
-
-                return (
-                  <div key={s} className="relative z-10 flex flex-col items-center bg-slate-50 px-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isCurrent
-                          ? s === 'OVERDUE'
-                            ? 'bg-rose-600 text-white'
-                            : 'bg-[#5E2A52] text-white'
-                          : isDone
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-white border-2 border-slate-300 text-slate-400'
-                      }`}
-                    >
-                      {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
-                    </div>
-                    <span className="text-[11px] font-semibold mt-1 text-slate-700">{s}</span>
-                  </div>
-                )
-              })}
+          {/* Tax Invoice Parties */}
+          <div className="grid grid-cols-2 gap-6 text-xs border-b border-slate-100 pb-4">
+            <div>
+              <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Billed By:</span>
+              <strong className="text-slate-900 block text-sm">DealFlow360 Technologies India Pvt Ltd</strong>
+              <p className="text-slate-600 mt-0.5">BKC Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra 400051</p>
+              <span className="font-mono text-slate-500 text-[11px] block mt-1">GSTIN: 27AAACD1234F1Z8</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Billed To:</span>
+              <strong className="text-slate-900 block text-sm">{activeInvoice.customerName}</strong>
+              <p className="text-slate-600 mt-0.5">Plot 45, MIDC Industrial Area, Andheri East, Mumbai 400093</p>
+              <span className="font-mono text-slate-500 text-[11px] block mt-1">GSTIN: 27AABCA1234F1Z5 • Payment Terms: Net-30</span>
             </div>
           </div>
 
-          {/* Invoice Financial Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          {/* Dates & Reference Grid */}
+          <div className="grid grid-cols-4 gap-4 text-xs border-b border-slate-100 pb-4">
             <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1">
-                Billed Amount
-              </span>
-              <span className="text-lg font-bold text-slate-900 font-mono">
-                {formatCurrency(activeInvoice.amount)}
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Invoice Date</span>
+              <span className="font-mono text-slate-900">{activeInvoice.issueDate || '2026-03-01'}</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Due Date</span>
+              <span className={`font-mono font-bold ${isOverdue ? 'text-rose-700' : 'text-slate-900'}`}>
+                {activeInvoice.dueDate || '2026-03-31'}
               </span>
             </div>
             <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1">
-                Issue Date
-              </span>
-              <span className="text-sm font-semibold text-slate-800 font-mono">
-                {activeInvoice.issueDate || activeInvoice.issuedDate}
-              </span>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Milestone Trigger</span>
+              <span className="text-slate-700">Kickoff Advance (50%)</span>
             </div>
             <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1">
-                Due Date
-              </span>
-              <span className="text-sm font-semibold text-slate-800 font-mono">
-                {activeInvoice.dueDate}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1">
-                Settled Date
-              </span>
-              <span className="text-sm font-semibold text-slate-800 font-mono">
-                {activeInvoice.paidDate || 'Pending Settlement'}
-              </span>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Currency</span>
+              <span className="font-mono text-slate-900">INR (₹)</span>
             </div>
           </div>
 
-          {/* Line Items */}
-          <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="w-full text-xs text-left text-slate-700">
-              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3">Description</th>
-                  <th className="py-2.5 px-3 text-right">Quantity</th>
-                  <th className="py-2.5 px-3 text-right">Unit Rate</th>
-                  <th className="py-2.5 px-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {activeInvoice.lines.map((l, i) => (
-                  <tr key={i}>
-                    <td className="py-3 px-3 text-slate-900">{l.description}</td>
-                    <td className="py-3 px-3 text-right">{l.quantity}</td>
-                    <td className="py-3 px-3 text-right text-slate-600 font-mono">
-                      {formatCurrency(l.unitPrice)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-900 font-mono">
-                      {formatCurrency(l.total)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Billed Items Table */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">#</TableHead>
+                <TableHead>Description of Goods / Services</TableHead>
+                <TableHead className="w-20" align="right">Qty</TableHead>
+                <TableHead className="w-32" align="right">Unit Price</TableHead>
+                <TableHead className="w-28" align="right">Tax (18%)</TableHead>
+                <TableHead className="w-32" align="right">Total Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-slate-400">01</TableCell>
+                <TableCell className="font-medium text-slate-900">
+                  <div>Enterprise Cloud Platform (Core) — Kickoff Milestone</div>
+                  <div className="text-[10px] text-slate-400 font-mono">HSN/SAC: 998313 (Software as a Service)</div>
+                </TableCell>
+                <TableCell align="right">20</TableCell>
+                <TableCell align="right">₹20,000</TableCell>
+                <TableCell align="right" className="text-slate-500">₹33,102</TableCell>
+                <TableCell align="right" className="font-bold text-slate-900 font-mono">
+                  {formatCurrency(activeInvoice.amount)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+
+          {/* Financial Breakdown Total */}
+          <div className="flex justify-end pt-2 text-xs">
+            <div className="w-72 space-y-1.5 text-slate-700">
+              <div className="flex justify-between">
+                <span>Taxable Subtotal:</span>
+                <span className="font-mono">{formatCurrency(activeInvoice.amount / 1.18)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>CGST (9.0%):</span>
+                <span className="font-mono">{formatCurrency((activeInvoice.amount / 1.18) * 0.09)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>SGST (9.0%):</span>
+                <span className="font-mono">{formatCurrency((activeInvoice.amount / 1.18) * 0.09)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-slate-900 text-sm pt-2 border-t border-slate-200">
+                <span>Total Invoice Value:</span>
+                <span className="font-mono text-base">{formatCurrency(activeInvoice.amount)}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -259,29 +272,30 @@ export default function InvoicesPage() {
   }
 
   // ==========================================
-  // RENDER: INVOICE LIST
+  // RENDER: INVOICES LEDGER (TABLE-FIRST)
   // ==========================================
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Invoices & Revenue Ledger
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            Invoices & Accounts Receivable
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Track billed milestones, customer receivables, and payment reconciliation
+            Audit billed quotation milestones, track Net-30 aging, and monitor cash reconciliation
           </p>
         </div>
 
         {/* Filter Controls */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200 text-xs">
           {['ALL', 'PAID', 'ISSUED', 'DRAFT'].map((filter) => (
             <button
               key={filter}
+              type="button"
               onClick={() => setStatusFilter(filter)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded font-medium transition-colors ${
                 statusFilter === filter
-                  ? 'bg-white shadow-xs text-[#5E2A52] font-semibold'
+                  ? 'bg-white text-slate-900 font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -292,74 +306,77 @@ export default function InvoicesPage() {
       </div>
 
       {loading ? (
-        <LoadingState message="Loading invoice records..." rows={4} />
+        <LoadingState message="Loading accounts receivable ledger..." rows={6} />
       ) : error ? (
         <ErrorState title="Error" message={error} onRetry={loadInvoices} />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4">Invoice #</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4 text-right">Amount</th>
-                <th className="py-3 px-3">Issue Date</th>
-                <th className="py-3 px-3">Due Date</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50/50">
-                  <td className="py-3.5 px-4 font-mono font-bold text-[#5E2A52]">
-                    <button
-                      onClick={() => setSearchParams({ id: inv.id })}
-                      className="hover:underline cursor-pointer text-left"
-                    >
-                      {inv.invoiceNumber}
-                    </button>
-                  </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-900">
-                    <div>{inv.customerName}</div>
-                    <div className="text-[10px] text-slate-400 font-mono">{inv.dealNumber}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-bold font-mono text-slate-900">
-                    {formatCurrency(inv.amount)}
-                  </td>
-                  <td className="py-3.5 px-3 font-mono text-slate-500">
-                    {inv.issueDate || inv.issuedDate}
-                  </td>
-                  <td className="py-3.5 px-3 font-mono text-slate-900 font-medium">
-                    {inv.dueDate}
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <Badge
-                      variant={
-                        inv.status === 'PAID'
-                          ? 'success'
-                          : inv.status === 'OVERDUE'
-                          ? 'danger'
-                          : 'warning'
-                      }
-                    >
-                      {inv.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSearchParams({ id: inv.id })}
-                    >
-                      View Invoice
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-32">Invoice #</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="w-28 font-mono">Quotation</TableHead>
+              <TableHead className="w-32" align="right">Amount</TableHead>
+              <TableHead className="w-28">Issue Date</TableHead>
+              <TableHead className="w-28">Due Date</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="w-24" align="right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invoices.map((inv) => (
+              <TableRow key={inv.id}>
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams({ id: inv.id })}
+                    className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
+                  >
+                    {inv.invoiceNumber}
+                  </button>
+                </TableCell>
+                <TableCell className="font-medium text-slate-900">
+                  {inv.customerName}
+                </TableCell>
+                <TableCell className="font-mono text-slate-600 text-xs">
+                  {inv.dealNumber}
+                </TableCell>
+                <TableCell align="right" className="font-bold font-mono text-slate-900">
+                  {formatCurrency(inv.amount)}
+                </TableCell>
+                <TableCell className="font-mono text-slate-500 text-xs">
+                  {inv.issueDate || inv.issuedDate || '2026-03-01'}
+                </TableCell>
+                <TableCell className="font-mono text-slate-800 text-xs">
+                  {inv.dueDate}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      inv.status === 'PAID'
+                        ? 'success'
+                        : inv.status === 'OVERDUE'
+                        ? 'danger'
+                        : 'warning'
+                    }
+                    size="sm"
+                  >
+                    {inv.status}
+                  </Badge>
+                </TableCell>
+                <TableCell align="right">
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams({ id: inv.id })}
+                    className="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Statement
+                  </button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   )

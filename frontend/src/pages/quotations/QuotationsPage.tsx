@@ -1,37 +1,33 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
-import { Tabs } from '../../components/ui/Tabs'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
 import {
   DealHeader,
   DealLineTable,
   PricingSummary,
   DiceDecisionBlock,
   DiceSimulationDrawer,
-  ApprovalSnapshotView,
   WarehouseAllocationView,
   HybridBillingView,
-  AuditTimeline,
 } from '../../components/domain'
 import { quotationService } from '../../services/quotationService'
-import { approvalService } from '../../services/approvalService'
 import { fulfillmentService } from '../../services/fulfillmentService'
 import { billingService } from '../../services/billingService'
-import { auditService } from '../../services/auditService'
 import { productService } from '../../services/productService'
 import { formatCurrency, formatPercent } from '../../utils/currency'
-import type { DealSummary, DealDetail, DealStatus } from '../../types/deal'
+import type { DealSummary, DealDetail, DealStatus, DealLineItem } from '../../types/deal'
 import type { DiceDecision } from '../../types/dice'
 import type { ApprovalView } from '../../types/approval'
 import type { FulfillmentPlan, WarehouseStock } from '../../types/fulfillment'
 import type { HybridBillingDetail } from '../../types/billing'
-import type { AuditEvent } from '../../types/audit'
 import type { Product, Customer } from '../../types/product'
+import { approvalService } from '../../services/approvalService'
 import {
   Table as TableIcon,
   Columns,
@@ -39,6 +35,9 @@ import {
   Search,
   ArrowLeft,
   ExternalLink,
+  Clock,
+  Building2,
+  CheckCircle2,
 } from 'lucide-react'
 
 export default function QuotationsPage() {
@@ -51,18 +50,19 @@ export default function QuotationsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [customerFilter, setCustomerFilter] = useState<string>('ALL')
+  const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
+  const [riskFilter, setRiskFilter] = useState<string>('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Deal Workspace State
   const [activeDeal, setActiveDeal] = useState<DealDetail | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
   const [diceDecision, setDiceDecision] = useState<DiceDecision | null>(null)
   const [approval, setApproval] = useState<ApprovalView | null>(null)
   const [fulfillment, setFulfillment] = useState<FulfillmentPlan | null>(null)
   const [stock, setStock] = useState<WarehouseStock[]>([])
   const [billing, setBilling] = useState<HybridBillingDetail | null>(null)
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
 
   // Simulation Drawer
@@ -104,43 +104,36 @@ export default function QuotationsPage() {
       return
     }
 
-    let active = true
-    async function loadWorkspace() {
+    const loadWorkspace = async () => {
       setWorkspaceLoading(true)
       try {
-        const [dealRes, decRes, appRes, fulRes, stRes, billRes, audRes] = await Promise.all([
-          quotationService.get(dealParam!),
-          quotationService.getDecision(dealParam!),
-          approvalService.get(dealParam!),
-          fulfillmentService.get(dealParam!),
-          fulfillmentService.getStock(),
-          billingService.get(dealParam!),
-          auditService.getEvents('DEAL', dealParam!),
-        ])
+        const [dealData, decisionData, appData, fulData, stockData, billData] =
+          await Promise.all([
+            quotationService.get(dealParam),
+            quotationService.getDecision(dealParam).catch(() => null),
+            approvalService.get(dealParam).catch(() => null),
+            fulfillmentService.get(dealParam).catch(() => null),
+            fulfillmentService.getStock().catch(() => []),
+            billingService.get(dealParam).catch(() => null),
+          ])
 
-        if (active) {
-          setActiveDeal(dealRes)
-          setDiceDecision(decRes)
-          setApproval(appRes)
-          setFulfillment(fulRes)
-          setStock(stRes)
-          setBilling(billRes)
-          setAuditEvents(audRes)
-        }
+        setActiveDeal(dealData)
+        setDiceDecision(decisionData)
+        setApproval(appData)
+        setFulfillment(fulData)
+        setStock(stockData)
+        setBilling(billData)
       } catch (err) {
-        console.error('Error loading deal workspace:', err)
+        console.error('Failed to load deal detail', err)
       } finally {
-        if (active) setWorkspaceLoading(false)
+        setWorkspaceLoading(false)
       }
     }
 
     loadWorkspace()
-    return () => {
-      active = false
-    }
   }, [dealParam])
 
-  // Open Create Modal if ?action=new
+  // Open create modal if action=new
   useEffect(() => {
     if (actionParam === 'new') {
       handleOpenCreate()
@@ -185,6 +178,34 @@ export default function QuotationsPage() {
     }
   }
 
+  const handleUpdateLine = (lineId: string, updates: Partial<DealLineItem>) => {
+    if (!activeDeal) return
+    const updatedLines = activeDeal.lines.map((l) => {
+      if (l.id === lineId) {
+        const newLine = { ...l, ...updates }
+        const unit = newLine.unitPrice || 20000
+        const q = newLine.quantity || 1
+        const d = newLine.discountPercent || 0
+        const sub = unit * q * (1 - d / 100)
+        newLine.lineTotal = sub
+        newLine.netAmount = sub * 1.18
+        return newLine
+      }
+      return l
+    })
+
+    const total = updatedLines.reduce((acc, l) => acc + (l.netAmount || l.lineTotal || 0), 0)
+    const cost = updatedLines.reduce((acc, l) => acc + (l.costPrice || 15000) * l.quantity, 0)
+    const margin = total > 0 ? ((total - cost) / total) * 100 : 20
+
+    setActiveDeal({
+      ...activeDeal,
+      lines: updatedLines,
+      totalAmount: total,
+      marginPercent: Math.round(margin * 10) / 10,
+    })
+  }
+
   const handleApplySimulatedChanges = async (changes: {
     discount: number
     quantity: number
@@ -208,62 +229,52 @@ export default function QuotationsPage() {
       const matchesSearch =
         d.dealNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-      return matchesSearch
-    })
-  }, [deals, searchQuery])
+      const matchesStatus = statusFilter === 'ALL' || d.status === statusFilter
+      const matchesCustomer = customerFilter === 'ALL' || d.customerName.toLowerCase().includes(customerFilter.toLowerCase())
+      const matchesOwner = ownerFilter === 'ALL' || (d.owner && d.owner.toLowerCase().includes(ownerFilter.toLowerCase()))
+      const matchesRisk =
+        riskFilter === 'ALL' ||
+        (riskFilter === 'LOW' && d.riskScore < 50) ||
+        (riskFilter === 'MEDIUM' && d.riskScore >= 50 && d.riskScore <= 75) ||
+        (riskFilter === 'HIGH' && d.riskScore > 75)
 
-  // KANBAN GROUPING
-  const kanbanColumns = [
-    { id: 'DRAFT', title: 'Draft' },
-    { id: 'SUBMITTED', title: 'Submitted' },
-    { id: 'APPROVAL_REQUIRED', title: 'Approval Required' },
-    { id: 'APPROVED', title: 'Approved' },
-    { id: 'REJECTED', title: 'Rejected' },
-  ]
+      return matchesSearch && matchesStatus && matchesCustomer && matchesOwner && matchesRisk
+    })
+  }, [deals, searchQuery, statusFilter, customerFilter, ownerFilter, riskFilter])
 
   // ==========================================
-  // RENDER: DEAL WORKSPACE (Quotation Detail)
+  // RENDER: DEAL RECORD WORKSPACE (DETAIL VIEW)
   // ==========================================
   if (dealParam) {
     if (workspaceLoading || !activeDeal) {
-      return <LoadingState message={`Loading Quotation ${dealParam} Workspace...`} rows={6} />
+      return <LoadingState message={`Loading Quotation ${dealParam} Record...`} rows={6} />
     }
 
-    const tabsList = [
-      { id: 'overview', label: 'Quotation Overview' },
-      { id: 'dice', label: 'DICE Intelligence' },
-      { id: 'approval', label: 'Governance Approval' },
-      { id: 'fulfillment', label: 'WMS Fulfillment' },
-      { id: 'billing', label: 'Hybrid Billing' },
-      { id: 'audit', label: 'Audit Trail' },
-    ]
-
     return (
-      <div className="space-y-6">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between">
+      <div className="space-y-4">
+        {/* Top Navigation Row */}
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setSearchParams({})}
-            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900"
+            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Quotations List
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Quotations</span>
           </Button>
 
-          {/* Quick link to Customer Portal */}
           <Link
             to={`/portal/quotes/${activeDeal.portalToken || 'portal-token-q1042-acme'}`}
             target="_blank"
             className="text-xs font-semibold text-[#5E2A52] flex items-center gap-1 hover:underline"
           >
-            <span>Customer Portal View</span>
+            <span>Customer Portal Proposal</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {/* Central Deal Header */}
+        {/* Real Quotation Record Header */}
         <DealHeader
           deal={activeDeal}
           onSimulate={() => setIsSimOpen(true)}
@@ -277,116 +288,121 @@ export default function QuotationsPage() {
           }}
         />
 
-        {/* Tabbed Workspace Content */}
-        <Tabs tabs={tabsList} activeTab={activeTab} onChange={setActiveTab} />
-
-        <div className="pt-2">
-          {/* TAB 1: OVERVIEW */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Highlight DICE Decision Banner at the top of overview */}
-              {diceDecision && (
-                <DiceDecisionBlock
-                  decision={diceDecision}
-                  onSimulate={() => setIsSimOpen(true)}
-                />
-              )}
-
-              {/* Product Line Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs uppercase tracking-wider font-bold text-slate-700">
-                    Product & Service Quotation Lines
-                  </h3>
-                  <span className="text-xs text-slate-400">
-                    {activeDeal.lines.length} Line Items
-                  </span>
-                </div>
-                <DealLineTable lines={activeDeal.lines} />
+        {/* STRUCTURED TWO-COLUMN ENTERPRISE RECORD LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* LEFT COLUMN: Customer, Lines, Pricing, Fulfillment, Billing */}
+          <div className="lg:col-span-8 space-y-5">
+            {/* 1. Customer & Account Specifications */}
+            <div className="border border-slate-200 rounded bg-white p-3.5 text-xs">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                  Customer Information & Credit Terms
+                </span>
+                <Badge variant="neutral" size="sm">
+                  {activeDeal.customerTier || 'Enterprise'} Tier
+                </Badge>
               </div>
-
-              {/* Grid: Pricing Summary + Customer Notes */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-                  <h4 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">
-                    Contractual Notes & Governance Directives
-                  </h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {activeDeal.notes ||
-                      'Standard commercial terms applicable. Multi-depot fulfillment authorized subject to manager approval of services discount ceiling.'}
-                  </p>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-4 text-[11px] text-slate-500">
-                    <span>Account Credit Limit: <strong>₹10,00,000</strong></span>
-                    <span>•</span>
-                    <span>Credit Utilization: <strong>43.4%</strong></span>
-                    <span>•</span>
-                    <span>Tax Regime: <strong>GST Dual Interstate</strong></span>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-1">
-                  <PricingSummary deal={activeDeal} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: DICE DECISION */}
-          {activeTab === 'dice' && (
-            <div className="space-y-6">
-              {diceDecision ? (
-                <DiceDecisionBlock
-                  decision={diceDecision}
-                  onSimulate={() => setIsSimOpen(true)}
-                />
-              ) : (
-                <EmptyState
-                  title="DICE Engine Evaluation Pending"
-                  description="Submit quotation lines to trigger multi-factor margin and risk scoring."
-                />
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: APPROVAL */}
-          {activeTab === 'approval' && (
-            <div className="space-y-6">
-              {approval?.snapshot ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700">
                 <div>
-                  <h3 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3">
-                    Authorized Approval Snapshot
-                  </h3>
-                  <ApprovalSnapshotView snapshot={approval.snapshot} />
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Client</span>
+                  <strong className="text-slate-900">{activeDeal.customerName}</strong>
                 </div>
-              ) : (
-                <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] uppercase tracking-wider font-bold text-amber-700 block">
-                        Approval Request Pending
-                      </span>
-                      <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                        Required Role: {approval?.requiredRole || 'SALES_MANAGER'}
-                      </h3>
-                    </div>
-                    <Badge variant="warning">Awaiting Sign-off</Badge>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    {approval?.reason || 'Service line item discount exceeds default tier ceiling.'}
-                  </p>
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Requested by: Vikram Sharma</span>
-                    <span>SLA Target: 8 Hours</span>
-                  </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Payment Terms</span>
+                  <span className="font-mono text-slate-900">{activeDeal.paymentTerms || 'Net-30 Days'}</span>
                 </div>
-              )}
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Credit Limit</span>
+                  <span className="font-mono text-slate-900">₹10,00,000</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Credit Utilization</span>
+                  <span className="font-mono text-slate-900">43.4% (Healthy)</span>
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* TAB 4: FULFILLMENT */}
-          {activeTab === 'fulfillment' && (
-            <div className="space-y-6">
-              {fulfillment ? (
+            {/* 2. Quotation Lines Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs uppercase tracking-wider font-bold text-slate-800">
+                  Quotation Product & Service Lines
+                </h3>
+                <span className="text-xs text-slate-500 font-mono">
+                  {activeDeal.lines.length} Line Items
+                </span>
+              </div>
+              <DealLineTable
+                lines={activeDeal.lines}
+                editable={true}
+                onUpdateLine={handleUpdateLine}
+                onAddLine={() => {
+                  const newLine: DealLineItem = {
+                    id: `line-${Date.now()}`,
+                    lineNumber: activeDeal.lines.length + 1,
+                    product: 'Enterprise Consulting Hours',
+                    productName: 'Enterprise Consulting Hours',
+                    sku: 'SVC-CNS-002',
+                    quantity: 10,
+                    unitPrice: 5000,
+                    discountPercent: 10,
+                    taxPercent: 18,
+                    lineTotal: 45000,
+                    netAmount: 53100,
+                    costPrice: 3000,
+                    marginPercent: 33.3,
+                    billingType: 'ONE_TIME',
+                  }
+                  setActiveDeal({
+                    ...activeDeal,
+                    lines: [...activeDeal.lines, newLine],
+                    totalAmount: activeDeal.totalAmount + 53100,
+                  })
+                }}
+                onRemoveLine={(lineId) => {
+                  if (activeDeal.lines.length <= 1) return
+                  const remaining = activeDeal.lines.filter((l) => l.id !== lineId)
+                  setActiveDeal({
+                    ...activeDeal,
+                    lines: remaining,
+                    totalAmount: remaining.reduce((acc, l) => acc + (l.netAmount || l.lineTotal || 0), 0),
+                  })
+                }}
+              />
+            </div>
+
+            {/* 3. Pricing Summary & Financial Notes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="border border-slate-200 rounded bg-white p-3.5 space-y-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-800 block">
+                  Contractual Notes & Governance Directives
+                </span>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {activeDeal.notes ||
+                    'Standard commercial terms. Multi-depot fulfillment authorized subject to manager approval of services discount ceiling. Net-30 invoicing with Net-45 counteroffer request recorded.'}
+                </p>
+                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-mono">
+                  Tax Regime: GST 18% Dual Interstate • Currency: INR (₹)
+                </div>
+              </div>
+
+              <div>
+                <PricingSummary deal={activeDeal} />
+              </div>
+            </div>
+
+            {/* 4. Fulfillment & Warehouse Allocation Preview */}
+            {fulfillment && (
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs uppercase tracking-wider font-bold text-slate-800">
+                    WMS Fulfillment Depot Allocation
+                  </h3>
+                  <Badge variant="neutral" size="sm">
+                    Depot Status: Ready for Dispatch
+                  </Badge>
+                </div>
                 <WarehouseAllocationView
                   plan={fulfillment}
                   stock={stock}
@@ -399,19 +415,20 @@ export default function QuotationsPage() {
                     setFulfillment(updated)
                   }}
                 />
-              ) : (
-                <EmptyState
-                  title="Fulfillment Order Not Created"
-                  description="Fulfillment allocations are generated once the deal is approved."
-                />
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* TAB 5: BILLING */}
-          {activeTab === 'billing' && (
-            <div className="space-y-6">
-              {billing ? (
+            {/* 5. Billing Schedule Table Preview */}
+            {billing && (
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs uppercase tracking-wider font-bold text-slate-800">
+                    Billing Milestones & Revenue Schedule
+                  </h3>
+                  <Badge variant="info" size="sm">
+                    Milestone Schedule
+                  </Badge>
+                </div>
                 <HybridBillingView
                   billing={billing}
                   onGenerateInvoice={async () => {
@@ -419,21 +436,121 @@ export default function QuotationsPage() {
                     alert('Milestone Invoice generated successfully! View in Invoices tab.')
                   }}
                 />
-              ) : (
-                <EmptyState
-                  title="No Billing Schedule"
-                  description="Hybrid billing schedules are attached upon quote confirmation."
-                />
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: DICE DECISION, Approval Status, Financial Summary */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* DICE DECISION Panel */}
+            {diceDecision ? (
+              <DiceDecisionBlock
+                decision={diceDecision}
+                onSimulate={() => setIsSimOpen(true)}
+              />
+            ) : (
+              <div className="border border-slate-200 rounded p-4 bg-white text-xs text-slate-500">
+                DICE Decision pending line calculation.
+              </div>
+            )}
+
+            {/* Approval Status Card */}
+            <div className="border border-slate-200 rounded bg-white p-3.5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-800">
+                  Governance Signoff
+                </span>
+                <Badge
+                  variant={
+                    activeDeal.status === 'APPROVED'
+                      ? 'success'
+                      : activeDeal.status === 'APPROVAL_REQUIRED'
+                      ? 'warning'
+                      : 'neutral'
+                  }
+                  size="sm"
+                >
+                  {activeDeal.status.replace('_', ' ')}
+                </Badge>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Required Role:</span>
+                  <strong className="text-slate-800">{approval?.requiredRole || 'Sales Manager'}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">SLA Countdown:</span>
+                  <span className="font-mono font-semibold text-amber-800 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    03h : 48m remaining
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Trigger:</span>
+                  <span className="text-slate-700 text-right">{approval?.reason || 'Service discount (22%) > 15%'}</span>
+                </div>
+                {approval && (
+                  <div className="text-[11px] bg-slate-50 border border-slate-200 rounded p-2 text-slate-600">
+                    <span className="font-semibold text-slate-800">Policy: {approval.policyCode}</span>
+                  </div>
+                )}
+              </div>
+
+              {activeDeal.status === 'APPROVAL_REQUIRED' && (
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center justify-center gap-1.5"
+                    onClick={async () => {
+                      const res = await quotationService.update(activeDeal.id, { status: 'APPROVED' })
+                      setActiveDeal(res)
+                    }}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Approve Exception
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs text-rose-700 border-slate-300 hover:bg-rose-50"
+                    onClick={async () => {
+                      const res = await quotationService.update(activeDeal.id, { status: 'DRAFT' })
+                      setActiveDeal(res)
+                    }}
+                  >
+                    Request Changes
+                  </Button>
+                </div>
               )}
             </div>
-          )}
 
-          {/* TAB 6: AUDIT TRAIL */}
-          {activeTab === 'audit' && (
-            <div className="space-y-6">
-              <AuditTimeline events={auditEvents} />
+            {/* Financial Summary Box */}
+            <div className="border border-slate-200 rounded bg-white p-3.5 text-xs space-y-2">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-slate-800 block">
+                Deal Financial Snapshot
+              </span>
+              <div className="space-y-1.5 text-slate-700">
+                <div className="flex justify-between">
+                  <span>Gross Value:</span>
+                  <span className="font-mono font-medium">{formatCurrency(activeDeal.totalAmount * 1.15)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Concessions (Discounts):</span>
+                  <span className="font-mono text-amber-700 font-medium">- {formatCurrency(activeDeal.totalAmount * 0.15)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100">
+                  <span>Net Proposal:</span>
+                  <span className="font-mono">{formatCurrency(activeDeal.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-800">
+                  <span>Blended Margin:</span>
+                  <span className="font-mono font-bold">{formatPercent(activeDeal.marginPercent)}</span>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Simulation Drawer */}
@@ -448,43 +565,43 @@ export default function QuotationsPage() {
   }
 
   // ==========================================
-  // RENDER: QUOTATIONS LIST (Table & Kanban)
+  // RENDER: QUOTATIONS LIST (TABLE-FIRST)
   // ==========================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Quotations & Deals
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            Quotations
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage enterprise sales pipeline, review margins, and evaluate DICE governance
+            Manage commercial proposals, line item pricing, and DICE governance approvals
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View Switcher */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200">
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-md text-xs font-medium flex items-center gap-1 transition-colors ${
-                viewMode === 'table' ? 'bg-white shadow-xs text-[#5E2A52] font-semibold' : 'text-slate-600'
+              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                viewMode === 'table' ? 'bg-white text-[#5E2A52] font-semibold' : 'text-slate-600'
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Table</span>
+              <span>Table</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-md text-xs font-medium flex items-center gap-1 transition-colors ${
-                viewMode === 'kanban' ? 'bg-white shadow-xs text-[#5E2A52] font-semibold' : 'text-slate-600'
+              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                viewMode === 'kanban' ? 'bg-white text-[#5E2A52] font-semibold' : 'text-slate-600'
               }`}
             >
               <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Kanban</span>
+              <span>Kanban</span>
             </button>
           </div>
 
@@ -492,33 +609,33 @@ export default function QuotationsPage() {
             variant="primary"
             size="sm"
             onClick={handleOpenCreate}
-            className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5"
+            className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            New Quotation
+            <span>New Quotation</span>
           </Button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-xs">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+      {/* Search and Filters Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-2.5 rounded border border-slate-200">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search quotation ID or customer..."
+            placeholder="Search quotations by ID, customer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+            className="w-full pl-8 pr-3 py-1 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:border-[#5E2A52]"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-slate-500 hidden sm:inline">Status:</span>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-2.5 py-1.5 border border-slate-200 rounded text-xs bg-white text-slate-700 focus:ring-1 focus:ring-[#5E2A52]"
+            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
           >
             <option value="ALL">All Statuses</option>
             <option value="DRAFT">Draft</option>
@@ -528,11 +645,50 @@ export default function QuotationsPage() {
             <option value="NEGOTIATION">In Negotiation</option>
             <option value="CONFIRMED">Confirmed</option>
           </select>
+
+          {/* Customer Filter */}
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+          >
+            <option value="ALL">All Customers</option>
+            <option value="Acme">Acme Corporation</option>
+            <option value="Globex">Globex Logistics</option>
+            <option value="Stark">Stark Industries</option>
+            <option value="Apex">Apex Corp</option>
+            <option value="Zenith">Zenith Tech</option>
+          </select>
+
+          {/* Owner Filter */}
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+          >
+            <option value="ALL">All Owners</option>
+            <option value="Sarah">Sarah Jenkins</option>
+            <option value="Arun">Arun</option>
+            <option value="Priya">Priya</option>
+            <option value="Marcus">Marcus Vance</option>
+          </select>
+
+          {/* Risk Filter */}
+          <select
+            value={riskFilter}
+            onChange={(e) => setRiskFilter(e.target.value)}
+            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+          >
+            <option value="ALL">All Risk Levels</option>
+            <option value="LOW">Low Risk (&lt;50)</option>
+            <option value="MEDIUM">Medium Risk (50-75)</option>
+            <option value="HIGH">High Risk (&gt;75)</option>
+          </select>
         </div>
       </div>
 
       {loading ? (
-        <LoadingState message="Loading quotation pipeline..." rows={5} />
+        <LoadingState message="Loading quotation pipeline..." rows={6} />
       ) : error ? (
         <ErrorState title="Error" message={error} onRetry={loadDeals} />
       ) : filteredDeals.length === 0 ? (
@@ -541,142 +697,122 @@ export default function QuotationsPage() {
           description="Try adjusting your search criteria or create a new quotation."
         />
       ) : viewMode === 'table' ? (
-        /* TABLE VIEW */
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4">Quotation</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4 text-right">Total Deal</th>
-                <th className="py-3 px-3 text-right">Margin</th>
-                <th className="py-3 px-3 text-right">DICE Risk</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Owner</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredDeals.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-bold text-[#5E2A52]">
+        /* TABLE VIEW - PRIORITIZED ENTERPRISE DATA TABLE */
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-28">Quotation</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="w-32" align="right">Amount</TableHead>
+              <TableHead className="w-24" align="right">Margin</TableHead>
+              <TableHead className="w-20" align="right">Risk</TableHead>
+              <TableHead className="w-40">Status</TableHead>
+              <TableHead className="w-32">Owner</TableHead>
+              <TableHead className="w-28">Last Updated</TableHead>
+              <TableHead className="w-24" align="right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDeals.map((d) => {
+              const statusVariant =
+                d.status === 'APPROVED' || d.status === 'CONFIRMED'
+                  ? 'success'
+                  : d.status === 'APPROVAL_REQUIRED' || d.status === 'NEGOTIATION'
+                  ? 'warning'
+                  : d.status === 'REJECTED'
+                  ? 'danger'
+                  : 'neutral'
+
+              const statusLabel =
+                d.status === 'APPROVAL_REQUIRED'
+                  ? 'Approval Required'
+                  : d.status === 'NEGOTIATION'
+                  ? 'In Negotiation'
+                  : d.status === 'CUSTOMER_REVIEW'
+                  ? 'Customer Review'
+                  : d.status
+
+              return (
+                <TableRow key={d.id}>
+                  <TableCell>
                     <button
+                      type="button"
                       onClick={() => setSearchParams({ id: d.id })}
-                      className="hover:underline text-left cursor-pointer"
+                      className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
                     >
                       {d.dealNumber}
                     </button>
-                  </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-900">
+                  </TableCell>
+                  <TableCell className="font-medium text-slate-900">
                     {d.customerName}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">
+                  </TableCell>
+                  <TableCell align="right" className="font-bold text-slate-900 font-mono">
                     {formatCurrency(d.totalAmount)}
-                  </td>
-                  <td className="py-3.5 px-3 text-right">
+                  </TableCell>
+                  <TableCell align="right">
                     <span
-                      className={`font-semibold px-1.5 py-0.5 rounded text-[11px] ${
-                        d.marginPercent >= 20
-                          ? 'text-emerald-700'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      className={`font-mono ${
+                        d.marginPercent >= 20 ? 'text-emerald-700' : 'text-rose-700 font-semibold'
                       }`}
                     >
                       {formatPercent(d.marginPercent)}
                     </span>
-                  </td>
-                  <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-800">
+                  </TableCell>
+                  <TableCell align="right">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[11px] ${
-                        d.riskScore >= 70
-                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                          : 'text-slate-600'
+                      className={`font-mono font-bold ${
+                        d.riskScore >= 75 ? 'text-rose-700' : d.riskScore >= 50 ? 'text-amber-700' : 'text-slate-700'
                       }`}
                     >
                       {d.riskScore}
                     </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge
-                      variant={
-                        d.status === 'APPROVED' || d.status === 'CONFIRMED'
-                          ? 'success'
-                          : d.status === 'APPROVAL_REQUIRED' || d.status === 'NEGOTIATION'
-                          ? 'warning'
-                          : 'neutral'
-                      }
-                    >
-                      {d.status.replace('_', ' ')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant} size="sm">
+                      {statusLabel}
                     </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-500">{d.owner}</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  </TableCell>
+                  <TableCell className="text-slate-600">
+                    {d.owner || 'Arun'}
+                  </TableCell>
+                  <TableCell className="text-slate-500 font-mono text-xs">
+                    {d.dealNumber === 'Q-1042' ? 'Today' : 'Yesterday'}
+                  </TableCell>
+                  <TableCell align="right">
+                    <button
+                      type="button"
                       onClick={() => setSearchParams({ id: d.id })}
+                      className="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700 hover:bg-slate-100 cursor-pointer"
                     >
-                      Open Workspace
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      Open
+                    </button>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       ) : (
-        /* KANBAN VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
-          {kanbanColumns.map((col) => {
-            const colDeals = filteredDeals.filter((d) => {
-              if (col.id === 'APPROVAL_REQUIRED') {
-                return d.status === 'APPROVAL_REQUIRED' || d.status === 'PENDING_APPROVAL'
-              }
-              return d.status === col.id
-            })
-
+        /* KANBAN VIEW (Secondary View) */
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {['DRAFT', 'SUBMITTED', 'APPROVAL_REQUIRED', 'APPROVED', 'REJECTED'].map((colStatus) => {
+            const colDeals = filteredDeals.filter((d) => d.status === colStatus)
             return (
-              <div
-                key={col.id}
-                className="bg-slate-100/60 border border-slate-200 rounded-lg p-3 min-h-[400px]"
-              >
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 text-xs font-bold text-slate-700">
-                  <span>{col.title}</span>
-                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">
-                    {colDeals.length}
-                  </span>
+              <div key={colStatus} className="border border-slate-200 bg-slate-50 rounded p-2.5 flex flex-col gap-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase">
+                  <span>{colStatus.replace('_', ' ')}</span>
+                  <span className="font-mono text-slate-400">({colDeals.length})</span>
                 </div>
-
                 <div className="space-y-2">
-                  {colDeals.map((deal) => (
+                  {colDeals.map((d) => (
                     <div
-                      key={deal.id}
-                      onClick={() => setSearchParams({ id: deal.id })}
-                      className="bg-white border border-slate-200 rounded-md p-3 shadow-xs hover:border-[#5E2A52]/50 cursor-pointer transition-all space-y-2"
+                      key={d.id}
+                      onClick={() => setSearchParams({ id: d.id })}
+                      className="p-2.5 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#5E2A52] text-xs space-y-1"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-xs text-[#5E2A52]">
-                          {deal.dealNumber}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          Risk: {deal.riskScore}
-                        </span>
-                      </div>
-                      <div className="text-xs font-medium text-slate-900">
-                        {deal.customerName}
-                      </div>
-                      <div className="text-sm font-bold text-slate-800 font-mono">
-                        {formatCurrency(deal.totalAmount)}
-                      </div>
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
-                        <span className="text-slate-500">Margin: {formatPercent(deal.marginPercent)}</span>
-                        <Badge
-                          variant={
-                            deal.status === 'APPROVED' ? 'success' : 'warning'
-                          }
-                        >
-                          {deal.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
+                      <div className="font-mono font-bold text-[#5E2A52]">{d.dealNumber}</div>
+                      <div className="font-medium text-slate-900">{d.customerName}</div>
+                      <div className="font-mono font-bold">{formatCurrency(d.totalAmount)}</div>
                     </div>
                   ))}
                 </div>
@@ -687,89 +823,74 @@ export default function QuotationsPage() {
       )}
 
       {/* New Quotation Modal */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Create New Quotation"
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Select Customer:
-            </label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
-            >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.segment})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Initial Product Line:
-            </label>
-            <select
-              value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.sku}) — {formatCurrency(p.basePrice)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+      {isCreateOpen && (
+        <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create New Commercial Quotation">
+          <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Quantity:
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={qty}
-                onChange={(e) => setQty(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
-              />
+              <label className="block font-semibold text-slate-700 mb-1">Select Client Organization:</label>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs"
+              >
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.segment})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Proposed Discount %:
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={50}
-                value={disc}
-                onChange={(e) => setDisc(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
-              />
-            </div>
-          </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
-            <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              className="bg-[#5E2A52] hover:bg-[#4d2243]"
-            >
-              Create Quotation
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Primary Product Line:</label>
+              <select
+                value={selectedProductId}
+                onChange={(e) => setSelectedProductId(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs"
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} - {formatCurrency(p.basePrice)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Quantity:</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={qty}
+                  onChange={(e) => setQty(parseInt(e.target.value) || 1)}
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Initial Discount %:</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={disc}
+                  onChange={(e) => setDisc(parseFloat(e.target.value) || 0)}
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" size="sm" className="bg-[#5E2A52] hover:bg-[#4B2141]">
+                Initialize Proposal
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   )
 }
