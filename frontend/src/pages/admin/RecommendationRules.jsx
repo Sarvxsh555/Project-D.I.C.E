@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import { adminApi } from '../../api.js';
 
@@ -14,6 +15,7 @@ export default function RecommendationRules() {
   return (
     <CrudTable
       title="Recommendation Rules"
+      icon={Sparkles}
       subtitle="Map product-to-product recommendations with co-purchase score, promotion and margin guardrails."
       entityLabel="recommendation rule"
       fields={fields}

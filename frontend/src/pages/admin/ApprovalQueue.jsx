@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckSquare, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr } from '../../quotationApi.js';
 
@@ -20,7 +21,12 @@ export default function ApprovalQueue() {
 
   return (
     <div>
-      <h1 className="page-title">Approvals</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <CheckSquare size={20} />
+        </span>
+        Approvals
+      </h1>
       <p className="page-subtitle">Quotations awaiting sign-off, oldest first.</p>
 
       {error && <p className="status-banner-error mb-4">{error}</p>}
@@ -28,7 +34,11 @@ export default function ApprovalQueue() {
       {loading ? (
         <div className="empty-state">Loading...</div>
       ) : data.content.length === 0 ? (
-        <div className="empty-state">Nothing waiting on approval.</div>
+        <div className="empty-state">
+          <CheckCircle2 className="mx-auto text-gray-300 mb-2" size={36} />
+          <p className="font-medium text-gray-500">Nothing waiting on approval.</p>
+          <p className="text-xs text-gray-400 mt-0.5">The queue is clear — new quotes will appear here.</p>
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="table-base">

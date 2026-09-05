@@ -1,3 +1,4 @@
+import { Tags } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
@@ -24,6 +25,7 @@ export default function PriceLists() {
   return (
     <CrudTable
       title="Price Lists"
+      icon={Tags}
       subtitle="Manage tiered, multi-currency pricing per product with effective dates."
       entityLabel="price list entry"
       fields={fields}

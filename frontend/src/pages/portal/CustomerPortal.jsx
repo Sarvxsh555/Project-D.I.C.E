@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Inbox, FileSearch, Activity } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr } from '../../quotationApi.js';
 import { negotiationApi } from '../../negotiationApi.js';
@@ -144,7 +144,11 @@ export default function CustomerPortal() {
         <aside className="card p-4 h-fit">
           <h2 className="font-bold text-odooink mb-3">My Quotations</h2>
           {quotes.length === 0 ? (
-            <div className="empty-state">No quotations yet.</div>
+            <div className="empty-state">
+              <Inbox className="mx-auto text-gray-300 mb-2" size={36} />
+              <p className="font-medium text-gray-500">No quotations yet.</p>
+              <p className="text-xs text-gray-400 mt-0.5">New quotes from your sales rep will show up here.</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {quotes.map((q) => (
@@ -167,7 +171,11 @@ export default function CustomerPortal() {
         <section>
           {error && <p className="status-banner-error mb-4">{error}</p>}
           {!selected ? (
-            <div className="empty-state">Select a quotation to view details.</div>
+            <div className="empty-state">
+              <FileSearch className="mx-auto text-gray-300 mb-2" size={36} />
+              <p className="font-medium text-gray-500">Select a quotation to view details.</p>
+              <p className="text-xs text-gray-400 mt-0.5">Pick one from the list on the left.</p>
+            </div>
           ) : (
             <>
               <h1 className="page-title">{selected.quoteNo}</h1>
@@ -260,9 +268,16 @@ export default function CustomerPortal() {
               </div>
 
               <div className="panel mt-4">
-                <h2 className="font-bold text-odooink mb-4">Activity</h2>
+                <h2 className="font-bold text-odooink mb-4 flex items-center gap-2">
+                  <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5"><Activity size={16} /></span>
+                  Activity
+                </h2>
                 {events.length === 0 ? (
-                  <div className="empty-state">No activity yet.</div>
+                  <div className="empty-state">
+                    <Activity className="mx-auto text-gray-300 mb-2" size={32} />
+                    <p className="font-medium text-gray-500">No activity yet.</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Comments and negotiation events will appear here.</p>
+                  </div>
                 ) : (
                   <div className="relative pl-5">
                     <div className="absolute left-[5px] top-1 bottom-1 w-px bg-gray-200" />

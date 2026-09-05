@@ -62,7 +62,9 @@ export default function AdminLayout() {
           <div className="h-8 w-8 rounded-lg bg-odoo-600 text-white flex items-center justify-center font-extrabold text-sm">
             D
           </div>
-          <span className="font-extrabold text-odoo-700 tracking-tight">Admin Console</span>
+          <span className="font-extrabold text-odoo-700 tracking-tight">
+            Admin <span className="accent-script text-[1.3em] align-middle">Console</span>
+          </span>
         </div>
         <p className="text-xs text-gray-400 px-5 mb-4">{ROLE_LABEL[role] || role}</p>
         <nav className="flex flex-col gap-0.5 px-3">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { Search, Plus, Pencil, Archive, ArchiveRestore, Trash2, FolderOpen } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 
 function emptyRecord(fields) {
@@ -108,6 +108,7 @@ function renderCell(field, row) {
 export default function CrudTable({
   title,
   subtitle,
+  icon: Icon,
   entityLabel,
   fields,
   resource,
@@ -189,7 +190,16 @@ export default function CrudTable({
 
   return (
     <div>
-      {title && <h1 className="page-title">{title}</h1>}
+      {title && (
+        <h1 className="page-title flex items-center gap-2.5">
+          {Icon && (
+            <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+              <Icon size={20} />
+            </span>
+          )}
+          {title}
+        </h1>
+      )}
       {subtitle && <p className="page-subtitle">{subtitle}</p>}
 
       <div className="toolbar">
@@ -214,7 +224,13 @@ export default function CrudTable({
         {loading ? (
           <div className="empty-state">Loading...</div>
         ) : filtered.length === 0 ? (
-          <div className="empty-state">No records found.</div>
+          <div className="empty-state">
+            <FolderOpen className="mx-auto text-gray-300 mb-2" size={36} />
+            <p className="font-medium text-gray-500">No {label}s found.</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {query.trim() ? 'Try a different search.' : `Click "Add new" to create your first ${label}.`}
+            </p>
+          </div>
         ) : (
           <table className="table-base">
             <thead>

@@ -35,7 +35,11 @@ function Login() {
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Welcome back. Enter your details to continue."
+      subtitle={
+        <>
+          Welcome <span className="accent-script text-[1.3em]">back</span>. Enter your details to continue.
+        </>
+      }
       footer={
         <>
           <Link to="/forgot-password" className="text-odoo-600 hover:text-odoo-700 font-medium">

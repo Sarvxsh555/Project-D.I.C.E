@@ -34,7 +34,13 @@ function Portal() {
   };
 
   return (
-    <AuthShell title="Customer portal">
+    <AuthShell
+      title={
+        <>
+          Customer <span className="accent-script text-[1.3em]">portal</span>
+        </>
+      }
+    >
       <StatusMessage status={error ? { type: 'error', message: error } : null} />
 
       {profile && (

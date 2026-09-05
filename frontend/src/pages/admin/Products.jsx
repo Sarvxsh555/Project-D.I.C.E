@@ -1,3 +1,4 @@
+import { Package } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
@@ -27,6 +28,7 @@ export default function Products() {
   return (
     <CrudTable
       title="Products"
+      icon={Package}
       subtitle="Manage catalog items: create, edit, archive, categories, variants, tax, unit and description."
       entityLabel="product"
       fields={fields}

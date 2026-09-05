@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Flame, X } from 'lucide-react';
+import { Flame, X, FileText, ShoppingCart, PackageSearch } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, stageLabel, formatInr } from '../../quotationApi.js';
 
@@ -193,7 +193,12 @@ export default function QuotationBuilder() {
     <div>
       <div className="toolbar">
         <div>
-          <h1 className="page-title">{isNew ? 'New Quotation' : quoteNo}</h1>
+          <h1 className="page-title flex items-center gap-2.5">
+            <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+              <FileText size={20} />
+            </span>
+            {isNew ? 'New Quotation' : quoteNo}
+          </h1>
           <p className="page-subtitle mb-0">
             {isNew ? 'Build a quote for a customer.' : `Stage: ${stageLabel(stage)}`}
           </p>
@@ -227,6 +232,12 @@ export default function QuotationBuilder() {
               </option>
             ))}
           </select>
+          {filteredProducts.length === 0 && (
+            <div className="empty-state py-6">
+              <PackageSearch className="mx-auto text-gray-300 mb-2" size={28} />
+              <p className="text-sm text-gray-400">No products match.</p>
+            </div>
+          )}
           <div className="divide-y divide-gray-100">
             {filteredProducts.map((p) => (
               <div className="flex justify-between items-center py-2.5 text-sm" key={p.id}>
@@ -247,7 +258,11 @@ export default function QuotationBuilder() {
         <div className="panel">
           <h2 className="font-bold text-odooink mb-3">Cart</h2>
           {lines.length === 0 ? (
-            <div className="empty-state">No products added yet.</div>
+            <div className="empty-state">
+              <ShoppingCart className="mx-auto text-gray-300 mb-2" size={36} />
+              <p className="font-medium text-gray-500">No products added yet.</p>
+              <p className="text-xs text-gray-400 mt-0.5">Add items from the product selector on the left.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">

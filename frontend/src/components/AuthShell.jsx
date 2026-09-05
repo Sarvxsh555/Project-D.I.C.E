@@ -1,6 +1,8 @@
 export default function AuthShell({ title, subtitle, children, footer }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-odoo-50 via-white to-odoo-100 px-4 py-12">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-odoo-50 via-white to-odoo-100 px-4 py-12">
+      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-odoo-300/30 blur-3xl -z-10" />
+      <div className="pointer-events-none absolute -bottom-32 -right-16 h-80 w-80 rounded-full bg-odoo-200/40 blur-3xl -z-10" />
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="h-10 w-10 rounded-xl bg-odoo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-card">

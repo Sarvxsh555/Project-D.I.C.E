@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, FileText, SearchX } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, PIPELINE_STAGES, stageLabel, formatInr } from '../../quotationApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
@@ -76,7 +76,12 @@ export default function Quotations() {
     <div>
       <div className="toolbar">
         <div>
-          <h1 className="page-title">Quotations</h1>
+          <h1 className="page-title flex items-center gap-2.5">
+            <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+              <FileText size={20} />
+            </span>
+            Quotations
+          </h1>
           <p className="page-subtitle mb-0">Track quotes from draft through approval.</p>
         </div>
         <button className="btn-primary" onClick={() => navigate('/workspace/quotations/new')}>
@@ -154,7 +159,11 @@ export default function Quotations() {
       {loading ? (
         <div className="empty-state">Loading...</div>
       ) : data.content.length === 0 ? (
-        <div className="empty-state">No quotations match these filters.</div>
+        <div className="empty-state">
+          <SearchX className="mx-auto text-gray-300 mb-2" size={36} />
+          <p className="font-medium text-gray-500">No quotations match these filters.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Try widening your search or clearing a filter.</p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.content.map((quote) => (

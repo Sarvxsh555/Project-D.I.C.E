@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Bell } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { workspaceApi } from '../../workspaceApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
@@ -25,9 +26,20 @@ export default function Notifications() {
 
   return (
     <div>
-      <h1 className="page-title">Notifications</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Bell size={20} />
+        </span>
+        Notifications
+      </h1>
       <p className="page-subtitle">{items.filter((n) => n.unread).length} unread.</p>
-      {items.length === 0 && <p className="empty-state">No notifications yet.</p>}
+      {items.length === 0 && (
+        <div className="empty-state">
+          <Bell className="mx-auto text-gray-300 mb-2" size={36} />
+          <p className="font-medium text-gray-500">No notifications yet.</p>
+          <p className="text-xs text-gray-400 mt-0.5">You're all caught up.</p>
+        </div>
+      )}
       <div className="space-y-2">
         {items.map((n) => (
           <div

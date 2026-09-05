@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Receipt } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { billingApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
@@ -76,7 +76,12 @@ export default function Billing() {
 
   return (
     <div>
-      <h1 className="page-title">Billing</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Receipt size={20} />
+        </span>
+        Billing
+      </h1>
       <p className="page-subtitle">One-time and recurring lines, billing schedule, proration, credits and refunds.</p>
 
       <div className="toolbar">

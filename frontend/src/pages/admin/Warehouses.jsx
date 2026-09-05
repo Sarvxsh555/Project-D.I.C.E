@@ -1,3 +1,4 @@
+import { Warehouse } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import { adminApi } from '../../api.js';
 
@@ -13,6 +14,7 @@ export default function Warehouses() {
   return (
     <CrudTable
       title="Warehouses"
+      icon={Warehouse}
       subtitle="Manage warehouse locations, stock levels, replenishment schedule and shipping weight class."
       entityLabel="warehouse"
       fields={fields}

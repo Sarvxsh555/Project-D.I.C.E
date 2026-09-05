@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { workspaceApi } from '../../workspaceApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
@@ -38,7 +38,12 @@ export default function Tasks() {
 
   return (
     <div>
-      <h1 className="page-title">Tasks</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <ClipboardList size={20} />
+        </span>
+        Tasks
+      </h1>
       <p className="page-subtitle">
         {pending.length} open, {done.length} completed.
       </p>
@@ -52,7 +57,13 @@ export default function Tasks() {
         </button>
       </form>
 
-      {tasks.length === 0 && <p className="empty-state">No tasks yet.</p>}
+      {tasks.length === 0 && (
+        <div className="empty-state">
+          <ClipboardList className="mx-auto text-gray-300 mb-2" size={36} />
+          <p className="font-medium text-gray-500">No tasks yet.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Add one above to get started.</p>
+        </div>
+      )}
       <div className="space-y-2">
         {[...pending, ...done].map((t) => (
           <div className="card flex items-center gap-3 px-4 py-3" key={t.id}>

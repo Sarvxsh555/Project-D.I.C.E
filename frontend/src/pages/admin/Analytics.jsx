@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BarChart3 } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { adminApi } from '../../api.js';
 
@@ -50,7 +51,12 @@ export default function Analytics() {
 
   return (
     <div>
-      <h1 className="page-title">Analytics</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <BarChart3 size={20} />
+        </span>
+        Analytics
+      </h1>
       <p className="page-subtitle">Revenue, quotes, orders, approval rate, discount distribution and performance.</p>
 
       {error && <p className="status-banner-error mb-4">{error}</p>}

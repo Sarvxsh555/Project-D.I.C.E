@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Activity } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { dealHealthApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
@@ -28,7 +28,12 @@ export default function DealHealthDashboard() {
     <div>
       <div className="toolbar">
         <div>
-          <h1 className="page-title">Deal Health</h1>
+          <h1 className="page-title flex items-center gap-2.5">
+            <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+              <Activity size={20} />
+            </span>
+            Deal Health
+          </h1>
           <p className="page-subtitle mb-0">Computed live from approval delay, discount deviation, inventory, negotiation count and margin.</p>
         </div>
         <button className="btn-secondary" onClick={load}>

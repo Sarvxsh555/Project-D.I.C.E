@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, UserPlus, X } from 'lucide-react';
+import { KeyRound, UserPlus, X, Users } from 'lucide-react';
 import { quotationApi } from '../../quotationApi.js';
 import { adminApi } from '../../api.js';
 import { useAuth } from '../../AuthContext.jsx';
@@ -102,7 +102,12 @@ export default function Customers() {
 
   return (
     <div>
-      <h1 className="page-title">Customers</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Users size={20} />
+        </span>
+        Customers
+      </h1>
       <p className="page-subtitle">Customers are created here only. Each one gets a CUSTOMER-role login automatically.</p>
 
       {error && <p className="status-banner-error mb-4">{error}</p>}
@@ -159,7 +164,11 @@ export default function Customers() {
           <tbody>
             {customers.length === 0 && (
               <tr>
-                <td colSpan={6} className="empty-state">No customers yet.</td>
+                <td colSpan={6} className="empty-state">
+                  <Users className="mx-auto text-gray-300 mb-2" size={36} />
+                  <p className="font-medium text-gray-500">No customers yet.</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Add one above to auto-provision their login.</p>
+                </td>
               </tr>
             )}
             {customers.map((c) => {

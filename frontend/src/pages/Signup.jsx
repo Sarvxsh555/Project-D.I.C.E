@@ -32,7 +32,11 @@ function Signup() {
   return (
     <AuthShell
       title="Create account"
-      subtitle="Set up your workspace access in a minute."
+      subtitle={
+        <>
+          Set up your <span className="accent-script text-[1.3em]">workspace</span> access in a minute.
+        </>
+      }
       footer={
         <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
           Already have an account? Sign in

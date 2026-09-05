@@ -26,7 +26,11 @@ function ForgotPassword() {
   return (
     <AuthShell
       title="Forgot password"
-      subtitle="Enter your email and we'll send you a reset link."
+      subtitle={
+        <>
+          Enter your email and we'll send you a <span className="accent-script text-[1.3em]">reset</span> link.
+        </>
+      }
       footer={
         <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
           Back to sign in

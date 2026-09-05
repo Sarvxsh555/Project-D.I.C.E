@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Percent } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
@@ -43,7 +43,12 @@ export default function DiscountPolicies() {
 
   return (
     <div>
-      <h1 className="page-title">Discount Policies</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Percent size={20} />
+        </span>
+        Discount Policies
+      </h1>
       <p className="page-subtitle">
         Configure discount rules by customer tier and category, and view the approval chain for
         discounts that exceed policy limits.

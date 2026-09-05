@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, X, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, X, RotateCcw, FileText } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr, stageLabel } from '../../quotationApi.js';
 import Badge from '../../components/Badge.jsx';
@@ -66,7 +66,12 @@ export default function ApprovalReview() {
         Back to queue
       </button>
 
-      <h1 className="page-title">Quote #{quote.quoteNo}</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <FileText size={20} />
+        </span>
+        Quote #{quote.quoteNo}
+      </h1>
       <p className="page-subtitle">Stage: {stageLabel(quote.stage)}</p>
 
       {error && <p className="status-banner-error mb-4">{error}</p>}

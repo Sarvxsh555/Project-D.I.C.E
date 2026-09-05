@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
 import { adminApi } from '../../api.js';
 
@@ -14,6 +15,7 @@ export default function SubscriptionPlans() {
   return (
     <CrudTable
       title="Subscription Plans"
+      icon={RefreshCw}
       subtitle="Define billing cycles with proration, cancellation and refund policies."
       entityLabel="subscription plan"
       fields={fields}

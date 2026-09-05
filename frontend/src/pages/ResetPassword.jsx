@@ -29,7 +29,11 @@ function ResetPassword() {
   return (
     <AuthShell
       title="Reset password"
-      subtitle="Choose a new password for your account."
+      subtitle={
+        <>
+          Choose a <span className="accent-script text-[1.3em]">fresh</span> password for your account.
+        </>
+      }
       footer={
         <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
           Back to sign in

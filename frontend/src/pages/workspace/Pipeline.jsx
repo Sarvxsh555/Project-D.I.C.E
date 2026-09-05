@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Kanban } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, PIPELINE_STAGES, stageLabel, formatInr } from '../../quotationApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
@@ -45,7 +46,12 @@ export default function Pipeline() {
 
   return (
     <div>
-      <h1 className="page-title">Pipeline</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Kanban size={20} />
+        </span>
+        Pipeline
+      </h1>
       <p className="page-subtitle">
         Drag a card to move it forward. Illegal transitions are rejected by the backend and snap back.
       </p>

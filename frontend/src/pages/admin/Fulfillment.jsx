@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Truck } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { fulfillmentApi, dealApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
@@ -79,7 +79,12 @@ export default function Fulfillment() {
 
   return (
     <div>
-      <h1 className="page-title">Fulfillment</h1>
+      <h1 className="page-title flex items-center gap-2.5">
+        <span className="rounded-lg bg-odoo-50 text-odoo-600 p-1.5">
+          <Truck size={20} />
+        </span>
+        Fulfillment
+      </h1>
       <p className="page-subtitle">Warehouse split, shipment estimate and backorders for an order.</p>
 
       <div className="toolbar">
