@@ -25,12 +25,13 @@ public class JwtService {
         this.accessExpirationMinutes = accessExpirationMinutes;
     }
 
-    public String generateAccessToken(String username) {
+    public String generateAccessToken(String username, String role) {
         Instant now = Instant.now();
         Instant expiry = now.plusSeconds(accessExpirationMinutes * 60);
         return Jwts.builder()
                 .subject(username)
                 .id(UUID.randomUUID().toString())
+                .claim("role", role)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(key)

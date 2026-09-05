@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserDataSeeder implements CommandLineRunner {
 
-    private static final String TEST_USERNAME = "testuser";
-    private static final String TEST_EMAIL = "testuser@example.com";
-    private static final String TEST_PASSWORD = "Test@1234";
-
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
 
@@ -23,14 +19,20 @@ public class UserDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (users.existsByUsername(TEST_USERNAME)) {
+        seed("testuser", "testuser@example.com", "Test@1234", "SALES_REP");
+        seed("admin", "admin@example.com", "Admin@1234", "ADMIN");
+    }
+
+    private void seed(String username, String email, String password, String role) {
+        if (users.existsByUsername(username)) {
             return;
         }
 
         User user = new User();
-        user.setUsername(TEST_USERNAME);
-        user.setEmail(TEST_EMAIL);
-        user.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setRole(role);
         users.save(user);
     }
 }

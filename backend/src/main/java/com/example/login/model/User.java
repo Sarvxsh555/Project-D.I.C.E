@@ -22,6 +22,9 @@ public class User {
     private String passwordHash;
 
     @Column(nullable = false)
+    private String role = "SALES_REP";
+
+    @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
     @Column(nullable = false)
@@ -55,6 +58,14 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public Instant getCreatedAt() {

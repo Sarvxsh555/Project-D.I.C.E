@@ -3,13 +3,21 @@ import { api } from './api.js';
 
 const AuthContext = createContext(null);
 
-function decodeExpiry(token) {
+function decodePayload(token) {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.exp ? payload.exp * 1000 : null;
+    return JSON.parse(atob(token.split('.')[1]));
   } catch {
     return null;
   }
+}
+
+function decodeExpiry(token) {
+  const payload = decodePayload(token);
+  return payload?.exp ? payload.exp * 1000 : null;
+}
+
+function decodeRole(token) {
+  return decodePayload(token)?.role ?? null;
 }
 
 export function AuthProvider({ children }) {
@@ -74,6 +82,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         token,
+        role: token ? decodeRole(token) : null,
         isAuthenticated: Boolean(token),
         initializing,
         login,

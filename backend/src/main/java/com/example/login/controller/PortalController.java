@@ -31,6 +31,7 @@ public class PortalController {
         return ResponseEntity.ok(Map.of(
                 "username", user.getUsername(),
                 "email", user.getEmail(),
+                "role", user.getRole(),
                 "memberSince", user.getCreatedAt().toString()));
     }
 }

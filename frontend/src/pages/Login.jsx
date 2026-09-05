@@ -21,7 +21,8 @@ function Login() {
     try {
       const data = await api.login({ username, password });
       login(data.accessToken);
-      navigate('/workspace');
+      const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
+      navigate(payload.role === 'ADMIN' ? '/admin' : '/workspace');
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
     } finally {

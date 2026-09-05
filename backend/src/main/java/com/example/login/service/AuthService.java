@@ -87,7 +87,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
 
-        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole());
         String refreshToken = refreshTokenService.issue(user.getId());
         return new AuthResult(accessToken, refreshToken, "Account created");
     }
@@ -114,7 +114,7 @@ public class AuthService {
         user.setLockedUntil(null);
         userRepository.save(user);
 
-        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole());
         String refreshToken = refreshTokenService.issue(user.getId());
         return new AuthResult(accessToken, refreshToken, "Login successful");
     }
@@ -133,7 +133,7 @@ public class AuthService {
         User user = userRepository.findById(rotation.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
 
-        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole());
         return new AuthResult(accessToken, rotation.rawToken(), "Token refreshed");
     }
 
