@@ -9,10 +9,9 @@
 -- This migration was originally landed as V13__hardening_from_dbinit.sql
 -- (PR #4, commit 44f21cf) but was silently dropped from dev during a later
 -- migration renumbering pass (PR #7) that reused V13 for approval-snapshots
--- work. Restored here at the next free version during dev consolidation,
--- with idx_approval_snapshots_evaluation corrected to idx_approval_snapshots_approval
--- (approval_snapshots (evaluation_id) does not exist on the schema that shipped
--- in the interim — the table keys off approval_id instead).
+-- work. Restored here at the next free version during dev consolidation.
+-- idx_approval_snapshots_evaluation already exists (added in V8), so it's
+-- dropped from this file entirely rather than duplicated.
 --
 -- Not carried forward: JSONB GIN indexes (no JSONB columns exist here — the
 -- audit/decision payload columns are TEXT, not jsonb), the inventory
@@ -26,7 +25,6 @@
 CREATE INDEX IF NOT EXISTS idx_deal_lines_product ON deal_lines (product_id);
 CREATE INDEX IF NOT EXISTS idx_deal_lines_warehouse ON deal_lines (warehouse_id);
 CREATE INDEX IF NOT EXISTS idx_price_list_items_price_list ON price_list_items (price_list_id);
-CREATE INDEX IF NOT EXISTS idx_approval_snapshots_approval ON approval_snapshots (approval_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_evaluation ON approvals (evaluation_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_installments_schedule ON invoice_installments (schedule_id);
 CREATE INDEX IF NOT EXISTS idx_shipments_deal_line ON shipments (deal_line_id);
@@ -65,5 +63,12 @@ CREATE TRIGGER trg_users_set_updated_at
 -- 3. EMAIL FORMAT VALIDATION
 -- customers has no email column on this schema — only users does.
 -- ------------------------------------------------------------------------------
-ALTER TABLE users ADD CONSTRAINT chk_users_email_format
-    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_users_email_format'
+    ) THEN
+        ALTER TABLE users ADD CONSTRAINT chk_users_email_format
+            CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+    END IF;
+END $$;
