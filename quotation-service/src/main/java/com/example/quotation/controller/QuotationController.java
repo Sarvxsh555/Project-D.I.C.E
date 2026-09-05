@@ -1,13 +1,17 @@
 package com.example.quotation.controller;
 
+import com.example.quotation.model.ApprovalStep;
+import com.example.quotation.model.AuditEvent;
 import com.example.quotation.model.PipelineStage;
 import com.example.quotation.model.Quotation;
 import com.example.quotation.repository.QuotationRepository;
 import com.example.quotation.service.QuotationService;
 import com.example.quotation.service.QuotationSpecifications;
+import com.example.quotation.web.ApprovalActionRequest;
 import com.example.quotation.web.QuotationRequest;
 import com.example.quotation.web.TransitionRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -67,7 +71,36 @@ public class QuotationController {
     }
 
     @PostMapping("/{id}/transition")
-    public Quotation transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request) {
-        return quotationService.transition(id, request.getToStage());
+    public Quotation transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request,
+                                 Authentication authentication) {
+        return quotationService.transition(id, request.getToStage(), authentication.getName());
+    }
+
+    @GetMapping("/{id}/approval-chain")
+    public List<ApprovalStep> approvalChain(@PathVariable Long id) {
+        return quotationService.getApprovalChain(id);
+    }
+
+    @GetMapping("/{id}/audit")
+    public List<AuditEvent> audit(@PathVariable Long id) {
+        return quotationService.getAuditHistory(id);
+    }
+
+    @PostMapping("/{id}/approve")
+    public Quotation approve(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
+                              Authentication authentication) {
+        return quotationService.approve(id, authentication.getName(), request.getReason());
+    }
+
+    @PostMapping("/{id}/reject")
+    public Quotation reject(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
+                             Authentication authentication) {
+        return quotationService.reject(id, authentication.getName(), request.getReason());
+    }
+
+    @PostMapping("/{id}/return")
+    public Quotation returnForRevision(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
+                                        Authentication authentication) {
+        return quotationService.returnForRevision(id, authentication.getName(), request.getReason());
     }
 }

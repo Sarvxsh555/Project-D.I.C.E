@@ -17,6 +17,7 @@ import RecommendationRules from './pages/admin/RecommendationRules.jsx';
 import Analytics from './pages/admin/Analytics.jsx';
 import WorkspaceLayout from './pages/workspace/WorkspaceLayout.jsx';
 import Quotations from './pages/workspace/Quotations.jsx';
+import QuotationBuilder from './pages/workspace/QuotationBuilder.jsx';
 import Pipeline from './pages/workspace/Pipeline.jsx';
 import Customers from './pages/workspace/Customers.jsx';
 import Tasks from './pages/workspace/Tasks.jsx';
@@ -68,6 +69,8 @@ function App() {
           >
             <Route index element={<Navigate to="quotations" replace />} />
             <Route path="quotations" element={<Quotations />} />
+            <Route path="quotations/new" element={<QuotationBuilder />} />
+            <Route path="quotations/:id" element={<QuotationBuilder />} />
             <Route path="pipeline" element={<Pipeline />} />
             <Route path="customers" element={<Customers />} />
             <Route path="tasks" element={<Tasks />} />

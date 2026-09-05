@@ -49,7 +49,19 @@ public final class QuotationCalculator {
         quotation.setTaxTotal(round(taxTotal));
         quotation.setTotal(round(total));
         quotation.setGrossMargin(round(grossMargin));
-        quotation.setMarginPercent(total > 0 ? round(grossMargin / total * 100.0) : 0);
+        double marginPercent = total > 0 ? round(grossMargin / total * 100.0) : 0;
+        quotation.setMarginPercent(marginPercent);
+        quotation.setRiskScore(computeRiskScore(subtotal, discountTotal, marginPercent));
+    }
+
+    /**
+     * Heuristic 0-100 risk score: heavier discounting and thinner margin both push risk up.
+     * Not a real ML model - a starting point a manager can eyeball alongside the discount %.
+     */
+    private static double computeRiskScore(double subtotal, double discountTotal, double marginPercent) {
+        double discountPercent = subtotal > 0 ? discountTotal / subtotal * 100.0 : 0;
+        double score = discountPercent * 2.5 + Math.max(0, 20 - marginPercent) * 1.5;
+        return Math.max(0, Math.min(100, round(score)));
     }
 
     private static double round(double value) {

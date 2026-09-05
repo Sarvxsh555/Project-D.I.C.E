@@ -42,6 +42,7 @@ public class Quotation {
     private double total;
     private double grossMargin;
     private double marginPercent;
+    private double riskScore;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -75,4 +76,6 @@ public class Quotation {
     public void setGrossMargin(double grossMargin) { this.grossMargin = grossMargin; }
     public double getMarginPercent() { return marginPercent; }
     public void setMarginPercent(double marginPercent) { this.marginPercent = marginPercent; }
+    public double getRiskScore() { return riskScore; }
+    public void setRiskScore(double riskScore) { this.riskScore = riskScore; }
 }

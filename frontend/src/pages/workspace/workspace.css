@@ -242,3 +242,187 @@
   color: #9aa1b1;
   margin-top: 0.15rem;
 }
+
+/* Quotation cards */
+.quote-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.quote-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  border: 1px solid #eaecf0;
+}
+
+.quote-card:hover {
+  border-color: #4338ca;
+}
+
+.quote-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.quote-no {
+  font-size: 0.75rem;
+  color: #9aa1b1;
+  font-weight: 600;
+}
+
+.quote-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #1a1a1a;
+}
+
+.quote-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.quote-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #9aa1b1;
+}
+
+/* Pipeline drag-and-drop */
+.deal-card[draggable='true'] {
+  cursor: grab;
+}
+
+.pipeline-col.drag-over {
+  outline: 2px dashed #4338ca;
+  outline-offset: -2px;
+}
+
+.deal-card.dragging {
+  opacity: 0.5;
+}
+
+/* Quotation builder */
+.builder-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr minmax(260px, 300px);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.builder-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.builder-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}
+
+.product-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.4rem;
+  border-bottom: 1px solid #f2f4f7;
+  font-size: 0.85rem;
+}
+
+.product-result-meta {
+  color: #9aa1b1;
+  font-size: 0.75rem;
+}
+
+.cart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.cart-table th,
+.cart-table td {
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid #f2f4f7;
+  text-align: left;
+}
+
+.cart-table input {
+  width: 60px;
+  padding: 0.25rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+}
+
+.builder-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-top: 1rem;
+}
+
+.builder-totals .stat-label {
+  font-size: 0.72rem;
+  color: #9aa1b1;
+  text-transform: uppercase;
+}
+
+.builder-totals .stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.builder-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.recommendation-card {
+  background: #fffaf0;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.recommendation-card .rec-title {
+  font-weight: 700;
+  color: #b45309;
+  margin-bottom: 0.35rem;
+}
+
+.recommendation-card .rec-why {
+  color: #6b7280;
+  margin-bottom: 0.35rem;
+}
+
+.recommendation-card .rec-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.recommendation-card .rec-actions {
+  display: flex;
+  gap: 0.5rem;
+}
