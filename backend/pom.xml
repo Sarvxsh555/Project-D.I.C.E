@@ -16,6 +16,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<!-- Where migrations/ and seed/ live, relative to this pom. The Docker
+		     build overrides it with -Ddice.database.dir=/build/database. -->
+		<dice.database.dir>${project.basedir}/../database</dice.database.dir>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -87,6 +90,13 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<!-- The `test` profile runs against in-memory H2 in PostgreSQL mode, so
+		     `mvn test` needs no database container. -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator-test</artifactId>
@@ -124,6 +134,41 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!--
+			  Schema and seed data live in database/ (owned outside this module) but
+			  Flyway loads them from the classpath. Copying at build time keeps one
+			  source of truth without a filesystem: Flyway location that breaks in
+			  a container. `dice.database.dir` is overridden in the Dockerfile,
+			  where the root build context lands the folder elsewhere.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-database-scripts</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/db</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${dice.database.dir}/migrations</directory>
+									<targetPath>migration</targetPath>
+									<filtering>false</filtering>
+								</resource>
+								<resource>
+									<directory>${dice.database.dir}/seed</directory>
+									<targetPath>seed</targetPath>
+									<filtering>false</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

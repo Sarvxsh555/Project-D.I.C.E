@@ -1,0 +1,96 @@
+# Base configuration. Environment variables win over everything here —
+# see .env.example for the full list and docker-compose.yml for how they map.
+spring:
+  application:
+    name: dice-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dice}
+    username: ${SPRING_DATASOURCE_USERNAME:dice}
+    password: ${SPRING_DATASOURCE_PASSWORD:dice}
+    hikari:
+      pool-name: dice-pool
+      maximum-pool-size: 10
+
+  jpa:
+    # Flyway owns the schema. Hibernate must never touch it, or the two
+    # disagree and the migrations stop being the source of truth.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: true
+
+  flyway:
+    enabled: true
+    # Copied in from database/migrations at build time; see pom.xml.
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  error:
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+dice:
+  security:
+    jwt:
+      secret: ${DICE_SECURITY_JWT_SECRET:dev-only-insecure-secret-change-me-at-least-32-bytes-long}
+      expiration-ms: ${DICE_SECURITY_JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${DICE_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  odoo:
+    enabled: ${DICE_ODOO_ENABLED:false}
+    url: ${DICE_ODOO_URL:http://localhost:8069}
+    db: ${DICE_ODOO_DB:odoo}
+    username: ${DICE_ODOO_USERNAME:admin}
+    api-key: ${DICE_ODOO_API_KEY:}
+    webhook-secret: ${DICE_ODOO_WEBHOOK_SECRET:dev-webhook-secret}
+
+logging:
+  level:
+    com.dice: DEBUG
+
+---
+# Local development: seeded demo data and chattier SQL.
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+
+---
+# Tests run against an in-memory H2 in PostgreSQL mode, so no container is
+# needed for `mvn test`. Swap for Testcontainers when the SQL gets Postgres-specific.
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:dice;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
