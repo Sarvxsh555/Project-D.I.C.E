@@ -20,6 +20,10 @@ function decodeRole(token) {
   return decodePayload(token)?.role ?? null;
 }
 
+function decodeCustomerId(token) {
+  return decodePayload(token)?.customerId ?? null;
+}
+
 export function AuthProvider({ children }) {
   // Access token lives only in memory (never localStorage) to limit XSS blast radius.
   // Session continuity across reloads comes from the httpOnly refresh cookie via silent refresh below.
@@ -83,6 +87,7 @@ export function AuthProvider({ children }) {
       value={{
         token,
         role: token ? decodeRole(token) : null,
+        customerId: token ? decodeCustomerId(token) : null,
         isAuthenticated: Boolean(token),
         initializing,
         login,

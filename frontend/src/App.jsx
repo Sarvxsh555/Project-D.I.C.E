@@ -7,7 +7,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Portal from './pages/Portal.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
-import AdminLayout from './pages/admin/AdminLayout.jsx';
+import AdminLayout, { AdminIndexRedirect } from './pages/admin/AdminLayout.jsx';
 import ApprovalQueue from './pages/admin/ApprovalQueue.jsx';
 import ApprovalReview from './pages/admin/ApprovalReview.jsx';
 import DealHealthDashboard from './pages/admin/DealHealthDashboard.jsx';
@@ -27,6 +27,7 @@ import Pipeline from './pages/workspace/Pipeline.jsx';
 import Customers from './pages/workspace/Customers.jsx';
 import Tasks from './pages/workspace/Tasks.jsx';
 import Notifications from './pages/workspace/Notifications.jsx';
+import CustomerPortal from './pages/portal/CustomerPortal.jsx';
 
 function App() {
   return (
@@ -48,14 +49,22 @@ function App() {
             }
           />
           <Route
+            path="/customer-portal"
+            element={
+              <ProtectedRoute roles={['CUSTOMER']}>
+                <CustomerPortal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={['ADMIN', 'SALES_MANAGER', 'FINANCE']}>
                 <AdminLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="products" replace />} />
+            <Route index element={<AdminIndexRedirect />} />
             <Route path="approvals" element={<ApprovalQueue />} />
             <Route path="approvals/:id" element={<ApprovalReview />} />
             <Route path="deal-health" element={<DealHealthDashboard />} />

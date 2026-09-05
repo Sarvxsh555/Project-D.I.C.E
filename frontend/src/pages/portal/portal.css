@@ -1,0 +1,55 @@
+.portal-shell {
+  min-height: 100vh;
+  background: #f2f4f7;
+}
+
+.portal-topnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #eaecf0;
+  padding: 0.85rem 1.75rem;
+}
+
+.portal-brand {
+  font-weight: 700;
+  color: #4338ca;
+}
+
+.portal-main {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.portal-list {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  height: fit-content;
+}
+
+.portal-quote-card {
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+}
+
+.portal-quote-card.selected {
+  border-color: #4338ca;
+  background: #eef0ff;
+}
+
+.portal-quote-no {
+  font-size: 0.75rem;
+  color: #9aa1b1;
+  font-weight: 600;
+}
+
+.portal-detail {
+  background: transparent;
+}
