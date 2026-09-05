@@ -3,6 +3,7 @@ package com.dice.oeeg.scenario;
 import com.dice.oeeg.events.OutboundEvent;
 import com.dice.oeeg.generator.EventGenerator;
 import com.dice.oeeg.publisher.EventPublisher;
+import com.dice.oeeg.setup.DiceApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,10 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Loads a scenario JSON file and replays its steps against the backend webhook,
@@ -31,8 +36,12 @@ import java.nio.file.Path;
 @Slf4j
 public class ScenarioRunner {
 
+    /** Substitute this literal token in a step's payload for the deal {@link #runSetup} creates. */
+    private static final String SETUP_DEAL_ID_TOKEN = "$SETUP_DEAL_ID";
+
     private final EventGenerator eventGenerator;
     private final EventPublisher eventPublisher;
+    private final DiceApiClient diceApiClient;
     private final ObjectMapper objectMapper;
 
     @Value("${dice.oeeg.scenarios-dir:scenarios}")
@@ -50,6 +59,16 @@ public class ScenarioRunner {
             scenario.manualSteps().forEach(step -> log.info("  - {}", step));
         }
 
+        UUID setupDealId = null;
+        if (scenario.setup() != null) {
+            try {
+                setupDealId = runSetup(scenario.setup());
+            } catch (RuntimeException e) {
+                log.error("Scenario setup failed, aborting before any events are sent: {}", e.getMessage());
+                return;
+            }
+        }
+
         int succeeded = 0;
         int failed = 0;
 
@@ -59,7 +78,7 @@ public class ScenarioRunner {
                     i + 1, scenario.steps().size(), step.type(),
                     step.note() == null ? "" : " (" + step.note() + ")");
 
-            if (runStep(step)) {
+            if (runStep(step, setupDealId)) {
                 succeeded++;
             } else {
                 failed++;
@@ -74,11 +93,32 @@ public class ScenarioRunner {
                 scenario.name(), succeeded, failed);
     }
 
+    /**
+     * Creates the scenario's starting deal through the real DICE API — not an
+     * emitted event, see {@link DiceApiClient}'s class doc for why this is a
+     * deliberate, narrow exception to OEEG only speaking the webhook boundary.
+     */
+    private UUID runSetup(ScenarioDefinition.Setup setup) {
+        log.info("--- Setup: creating a deal for {} ---", setup.customerName());
+        String token = diceApiClient.login();
+        UUID customerId = diceApiClient.findCustomerByName(token, setup.customerName());
+
+        List<Map<String, Object>> lines = setup.lines().stream()
+                .<Map<String, Object>>map(line -> Map.of(
+                        "productId", diceApiClient.findProductBySku(token, line.sku()).toString(),
+                        "quantity", line.quantity()))
+                .toList();
+
+        UUID dealId = diceApiClient.createDeal(token, customerId, lines);
+        log.info("Setup complete: deal {} ready for scenario steps", dealId);
+        return dealId;
+    }
+
     /** @return true if the step was generated and published without error */
-    private boolean runStep(ScenarioDefinition.ScenarioStep step) {
+    private boolean runStep(ScenarioDefinition.ScenarioStep step, UUID setupDealId) {
         OutboundEvent event;
         try {
-            event = eventGenerator.generate(step.type(), step.payload());
+            event = eventGenerator.generate(step.type(), substituteDealId(step.payload(), setupDealId));
         } catch (IllegalArgumentException e) {
             log.error("Skipping step: {}", e.getMessage());
             return false;
@@ -86,6 +126,17 @@ public class ScenarioRunner {
 
         EventPublisher.PublishResult result = eventPublisher.publish(event);
         return result.success();
+    }
+
+    /** Replaces {@link #SETUP_DEAL_ID_TOKEN} with the real id from {@link #runSetup}, if any. */
+    private Map<String, Object> substituteDealId(Map<String, Object> payload, UUID setupDealId) {
+        if (setupDealId == null || payload == null) {
+            return payload;
+        }
+        Map<String, Object> substituted = new HashMap<>();
+        payload.forEach((key, value) -> substituted.put(key,
+                SETUP_DEAL_ID_TOKEN.equals(value) ? setupDealId.toString() : value));
+        return substituted;
     }
 
     private ScenarioDefinition load(String scenarioName) {

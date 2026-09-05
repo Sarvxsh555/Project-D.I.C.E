@@ -1,8 +1,11 @@
 {
   "name": "customer-counteroffer",
   "description": "Customer counters via the portal; DICE re-evaluates the deal against the new discount.",
+  "setup": {
+    "customerName": "Midtown Supply Co",
+    "lines": [ { "sku": "SKU-1002", "quantity": 4 } ]
+  },
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9002, "partnerId": 202 }, "note": "requires a deal already linked to Odoo quotation 9002" },
-    { "type": "COUNTER_OFFER", "payload": { "quotationId": 9002, "requestedDiscountPercent": 18 } }
+    { "type": "COUNTER_OFFER", "payload": { "dealId": "$SETUP_DEAL_ID", "requestedDiscountPercent": 18 } }
   ]
 }

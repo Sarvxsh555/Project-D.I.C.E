@@ -1,11 +1,14 @@
 {
   "name": "complete-deal-flow",
-  "description": "End-to-end happy path: quote picked up by DICE, a modest discount applied, evaluated as within policy.",
+  "description": "End-to-end happy path: a deal is created, a modest discount applied, and it clears every policy on its own.",
+  "setup": {
+    "customerName": "Acme Enterprises",
+    "lines": [ { "sku": "SKU-1001", "quantity": 10 } ]
+  },
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9004, "partnerId": 201 }, "note": "requires a deal already linked to Odoo quotation 9004" },
-    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9004, "discountPercent": 10 }, "note": "expect AUTO_APPROVE — within every policy" }
+    { "type": "DISCOUNT_CHANGED", "payload": { "dealId": "$SETUP_DEAL_ID", "discountPercent": 10 }, "note": "expect AUTO_APPROVE — within every policy" }
   ],
   "manualSteps": [
-    "For the escalation branch of this flow, run the discount-escalation scenario instead — pushing the discount higher here would need the same manual-approval step documented there."
+    "For the escalation branch of this flow, run the discount-escalation scenario instead."
   ]
 }

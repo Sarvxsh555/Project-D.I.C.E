@@ -110,17 +110,26 @@ The example flow in the architecture brief starts with OEEG's `QUOTE_CREATED`
 always created first in DealFlow360 (`POST /api/deals`, by a sales rep), and
 `QUOTE_CREATED` only re-evaluates a deal **already** linked to that Odoo
 quotation via `odoo_quotation_id` — there is no API to establish that link
-after the fact either. Practically, this means:
+after the fact either. `QUOTE_CREATED` itself is still unresolved and not on
+the OEEG-emittable whitelist as a result.
 
-- OEEG cannot currently make `QUOTE_CREATED` do anything useful against a
-  freshly-invented `quotationId` — it will always come back `IGNORED`.
-- Scenarios that need a working deal (`discount-escalation`, `inventory-change`,
-  `customer-counteroffer`, `complete-deal-flow`) are only meaningful once a
-  matching deal exists — this needs a decision (does DealFlow360 stay the
-  origin, with Odoo as a downstream mirror, or does Odoo become the origin and
-  the adapter needs to *create* deals on `QUOTE_CREATED`?) before the scenario
-  JSON's `quotationId`-based steps can be verified live. Flagging for
-  architecture sign-off rather than picking one silently.
+**Worked around, not resolved (2026-09-05):** the four demo scenarios no
+longer need `QUOTE_CREATED` to do anything. `ScenarioRunner` supports an
+optional `setup` block — `DiceApiClient` logs in, looks up a customer/product
+via the new `GET /api/customers`/`GET /api/products`, and creates the deal
+directly through the real `POST /api/deals`, exactly as a sales rep would.
+The resulting deal id is substituted into the scenario's steps. This is
+explicitly *not* an emitted event — see `DiceApiClient`'s class doc — it's
+scenario setup, honest about being outside the webhook boundary. Verified
+live: both `complete-deal-flow` and `discount-escalation` now run start to
+finish with zero manual database access.
+
+Still genuinely open, for whoever ends up building real Odoo sync: does
+DealFlow360 stay the origin with Odoo as a downstream mirror (matches today's
+code), or does Odoo become the origin and the adapter needs to *create* deals
+on `QUOTE_CREATED`? The OEEG workaround above sidesteps this rather than
+answering it — flagging for architecture sign-off rather than picking one
+silently.
 
 ## Verified
 
