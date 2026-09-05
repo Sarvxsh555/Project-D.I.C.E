@@ -1,12 +1,11 @@
-package com.example.login.security;
+package com.example.governance.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -20,21 +19,19 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final CsrfFilter csrfFilter;
     private final UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler;
+    private final List<String> allowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CsrfFilter csrfFilter, UnauthorizedEntryPoint unauthorizedEntryPoint,
-                           ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            UnauthorizedEntryPoint unauthorizedEntryPoint,
+            ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler,
+            @Value("#{'${app.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.csrfFilter = csrfFilter;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
         this.forbiddenAccessDeniedHandler = forbiddenAccessDeniedHandler;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
@@ -46,15 +43,7 @@ public class SecurityConfig {
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(unauthorizedEntryPoint)
                         .accessDeniedHandler(forbiddenAccessDeniedHandler))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Read-only: other services (e.g. governance-engine) need to see configured
-                        // discount ceilings on a caller's behalf without themselves being an admin.
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/admin/discount-rules")
-                        .authenticated()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .addFilterBefore(csrfFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -62,7 +51,7 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5175"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
