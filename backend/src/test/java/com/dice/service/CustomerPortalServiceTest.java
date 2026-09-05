@@ -173,15 +173,18 @@ class CustomerPortalServiceTest {
     // ------------------------------------------------------------------
 
     @Test
-    void confirmSucceedsWhenApprovedAndSnapshotMatchesCurrentVersion() {
+    void confirmSucceedsWhenApprovedAndSnapshotStillActive() {
         when(customerRepository.findByPortalUsername("custA")).thenReturn(Optional.of(customerA));
         when(dealRepository.findWithLinesById(dealOfA.getId())).thenReturn(Optional.of(dealOfA));
         when(dealRepository.save(any(Deal.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        // An active (non-superseded) snapshot is the only signal needed: DealService's
+        // material-change detection already supersedes it the instant something real
+        // changes, so "active" and "unchanged since approval" are the same fact.
         ApprovalSnapshot snapshot = ApprovalSnapshot.builder()
-                .dealVersion(3L).discountPercent(dealOfA.effectiveDiscountPercent())
                 .totalAmount(dealOfA.getTotalAmount()).build();
-        when(approvalSnapshotRepository.findLatestByDealId(dealOfA.getId())).thenReturn(Optional.of(snapshot));
+        when(approvalSnapshotRepository.findByDealIdAndSupersededFalse(dealOfA.getId()))
+                .thenReturn(Optional.of(snapshot));
 
         Negotiation negotiation = Negotiation.builder().id(UUID.randomUUID()).build();
         when(negotiationService.getOrCreateNegotiation(any())).thenReturn(negotiation);
@@ -203,27 +206,16 @@ class CustomerPortalServiceTest {
         assertThat(thrown).isInstanceOf(IllegalStateException.class);
     }
 
+    /**
+     * Covers both "never approved" and "approved, then superseded by a later
+     * material change" — both look identical from here: no active snapshot.
+     */
     @Test
-    void confirmFailsWhenDealVersionIsStaleRelativeToSnapshot() {
+    void confirmFailsWhenNoActiveApprovalSnapshotExists() {
         when(customerRepository.findByPortalUsername("custA")).thenReturn(Optional.of(customerA));
         when(dealRepository.findWithLinesById(dealOfA.getId())).thenReturn(Optional.of(dealOfA));
-
-        // snapshot was taken at an earlier deal version than the deal's current one
-        ApprovalSnapshot snapshot = ApprovalSnapshot.builder()
-                .dealVersion(1L).discountPercent(dealOfA.effectiveDiscountPercent())
-                .totalAmount(dealOfA.getTotalAmount()).build();
-        when(approvalSnapshotRepository.findLatestByDealId(dealOfA.getId())).thenReturn(Optional.of(snapshot));
-
-        Throwable thrown = catchThrowable(() -> service.confirmQuotation(authAs("custA"), dealOfA.getId()));
-
-        assertThat(thrown).isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    void confirmFailsWhenNoApprovalSnapshotExists() {
-        when(customerRepository.findByPortalUsername("custA")).thenReturn(Optional.of(customerA));
-        when(dealRepository.findWithLinesById(dealOfA.getId())).thenReturn(Optional.of(dealOfA));
-        when(approvalSnapshotRepository.findLatestByDealId(dealOfA.getId())).thenReturn(Optional.empty());
+        when(approvalSnapshotRepository.findByDealIdAndSupersededFalse(dealOfA.getId()))
+                .thenReturn(Optional.empty());
 
         Throwable thrown = catchThrowable(() -> service.confirmQuotation(authAs("custA"), dealOfA.getId()));
 

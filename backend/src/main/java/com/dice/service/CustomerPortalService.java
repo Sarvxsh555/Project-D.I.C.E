@@ -130,9 +130,12 @@ public class CustomerPortalService {
     /**
      * Confirms a quotation. The frontend never decides eligibility — every
      * check here reads authoritative backend state: ownership, approval
-     * status, the latest {@link ApprovalSnapshot}, and that the deal has not
-     * drifted since it was approved (same optimistic-lock version, no
-     * material difference).
+     * status, and that an {@link ApprovalSnapshot} is still active for this
+     * deal. {@code DealService.evaluate}'s material-change detection already
+     * supersedes a snapshot the instant it finds a real drift (verified live
+     * — see docs/decision-contract.md), so "an active snapshot exists" and
+     * "nothing has changed since approval" are the same fact — no separate
+     * version-counter or threshold comparison needs to be re-derived here.
      */
     public Deal confirmQuotation(Authentication authentication, UUID dealId) {
         Customer customer = resolveCustomer(authentication);
@@ -144,21 +147,10 @@ public class CustomerPortalService {
                             .formatted(deal.getDealNumber(), deal.getStatus()));
         }
 
-        ApprovalSnapshot snapshot = approvalSnapshotRepository.findLatestByDealId(dealId)
+        approvalSnapshotRepository.findByDealIdAndSupersededFalse(dealId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Deal %s has no approval snapshot to confirm against".formatted(deal.getDealNumber())));
-
-        if (snapshot.getDealVersion() != null && !snapshot.getDealVersion().equals(deal.getVersion())) {
-            throw new IllegalStateException(
-                    "Deal %s has changed since it was approved; confirmation requires re-approval"
-                            .formatted(deal.getDealNumber()));
-        }
-
-        if (snapshot.isMateriallyDifferentFrom(deal.effectiveDiscountPercent(), deal.getTotalAmount())) {
-            throw new IllegalStateException(
-                    "Deal %s is materially different from its approved state and cannot be confirmed as-is"
-                            .formatted(deal.getDealNumber()));
-        }
+                        "Deal %s has changed since it was approved and needs reconfirmation before it can be confirmed"
+                                .formatted(deal.getDealNumber())));
 
         deal.setStatus(DealStatus.CONFIRMED);
         Deal saved = dealRepository.save(deal);
