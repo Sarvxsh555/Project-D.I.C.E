@@ -1,9 +1,11 @@
 {
   "name": "discount-escalation",
-  "description": "Rep pushes a discount past the approval threshold; expect REQUIRE_APPROVAL, then an approver clears it.",
+  "description": "Rep pushes a discount past the approval threshold; DICE moves the deal to PENDING_APPROVAL.",
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9001, "partnerId": 201 } },
-    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9001, "discountPercent": 25 } },
-    { "type": "APPROVAL_GRANTED", "payload": { "quotationId": 9001, "approvedBy": "sales_manager" } }
+    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9001, "partnerId": 201 }, "note": "requires a deal already linked to Odoo quotation 9001" },
+    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9001, "discountPercent": 25 }, "note": "expect PENDING_APPROVAL / REQUIRE_APPROVAL" }
+  ],
+  "manualSteps": [
+    "Log in as sales_manager in DealFlow360 and approve the resulting request via the Approvals screen (or POST /api/approvals/{id}/approve) — granting an approval is a DICE-internal decision, not something OEEG simulates."
   ]
 }

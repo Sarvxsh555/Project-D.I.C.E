@@ -1,8 +1,8 @@
 {
   "name": "customer-counteroffer",
-  "description": "Customer counters via the portal; DICE previews the impact before it's accepted.",
+  "description": "Customer counters via the portal; DICE re-evaluates the deal against the new discount.",
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9002, "partnerId": 202 } },
+    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9002, "partnerId": 202 }, "note": "requires a deal already linked to Odoo quotation 9002" },
     { "type": "COUNTER_OFFER", "payload": { "quotationId": 9002, "requestedDiscountPercent": 18 } }
   ]
 }
