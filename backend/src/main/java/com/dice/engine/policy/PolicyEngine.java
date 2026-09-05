@@ -5,6 +5,7 @@ import com.dice.domain.Deal;
 import com.dice.domain.DealLine;
 import com.dice.domain.Policy;
 import com.dice.domain.enums.PolicySeverity;
+import com.dice.domain.enums.PolicyType;
 import com.dice.engine.margin.MarginEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,7 +15,10 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,6 +61,62 @@ public class PolicyEngine {
     }
 
     /**
+     * Per-line discount compliance — unlike {@link #evaluate}, which checks the
+     * deal's blended discount as a whole, this resolves the most specific
+     * DISCOUNT_LIMIT policy for each line's own product category (and the
+     * customer's tier/segment) and reports how that one line compares.
+     */
+    public List<LineDiscountEvaluation> evaluateLineDiscounts(Deal deal,
+                                                               Customer customer,
+                                                               List<Policy> candidates) {
+        List<Policy> discountPolicies = candidates.stream()
+                .filter(Policy::isActive)
+                .filter(p -> p.getType() == PolicyType.DISCOUNT_LIMIT)
+                .toList();
+
+        return deal.getLines().stream()
+                .map(line -> evaluateLineDiscount(line, customer, discountPolicies))
+                .toList();
+    }
+
+    private LineDiscountEvaluation evaluateLineDiscount(DealLine line,
+                                                        Customer customer,
+                                                        List<Policy> discountPolicies) {
+        String category = line.getProduct().getCategory();
+        Optional<Policy> applicable = discountPolicies.stream()
+                .filter(p -> p.getCustomerTier() == null || p.getCustomerTier().equalsIgnoreCase(customer.getTier()))
+                .filter(p -> p.getSegment() == null || p.getSegment() == customer.getSegment())
+                .filter(p -> p.getProductCategory() == null || p.getProductCategory().equals(category))
+                .max(Comparator.comparingInt(Policy::specificity)
+                        .thenComparing(Comparator.comparingInt(Policy::getPriority).reversed()));
+
+        BigDecimal actual = line.getDiscountPercent() == null ? BigDecimal.ZERO : line.getDiscountPercent();
+
+        if (applicable.isEmpty()) {
+            return new LineDiscountEvaluation(line.getId(), null, actual, BigDecimal.ZERO, true, null);
+        }
+
+        Policy policy = applicable.get();
+        BigDecimal allowed = policy.getThresholdValue();
+        BigDecimal overage = actual.subtract(allowed).max(BigDecimal.ZERO);
+        boolean compliant = overage.signum() == 0;
+
+        return new LineDiscountEvaluation(line.getId(), allowed, actual, overage, compliant,
+                compliant ? null : reasonCode(policy, category));
+    }
+
+    /** A scope-specific code so the UI can explain a breach without another lookup. */
+    private String reasonCode(Policy policy, String category) {
+        if (category != null && policy.getProductCategory() != null) {
+            return "%s_DISCOUNT_EXCEEDED".formatted(category.toUpperCase(Locale.ROOT));
+        }
+        if (policy.getCustomerTier() != null) {
+            return "%s_TIER_DISCOUNT_EXCEEDED".formatted(policy.getCustomerTier().toUpperCase(Locale.ROOT));
+        }
+        return "DISCOUNT_LIMIT_EXCEEDED";
+    }
+
+    /**
      * Narrows the candidate set to one policy per type: the most specific match,
      * with {@code priority} breaking ties.
      */
@@ -70,6 +130,7 @@ public class PolicyEngine {
         Map<com.dice.domain.enums.PolicyType, List<Policy>> byType = candidates.stream()
                 .filter(Policy::isActive)
                 .filter(p -> p.getSegment() == null || p.getSegment() == customer.getSegment())
+                .filter(p -> p.getCustomerTier() == null || p.getCustomerTier().equalsIgnoreCase(customer.getTier()))
                 .filter(p -> p.getProductCategory() == null || categories.contains(p.getProductCategory()))
                 .collect(Collectors.groupingBy(Policy::getType));
 
@@ -199,5 +260,18 @@ public class PolicyEngine {
             BigDecimal actualValue,
             BigDecimal thresholdValue,
             String message) {
+    }
+
+    /**
+     * One line's discount compliance against its resolved ceiling.
+     * {@code allowedDiscount} is null when no policy applies to the line at all.
+     */
+    public record LineDiscountEvaluation(
+            UUID lineId,
+            BigDecimal allowedDiscount,
+            BigDecimal actualDiscount,
+            BigDecimal overage,
+            boolean compliant,
+            String reason) {
     }
 }

@@ -13,9 +13,10 @@ import java.util.UUID;
  * A configurable commercial rule. Policies are data, not code — admins add rows
  * rather than shipping a release.
  *
- * <p>Scoping is "most specific wins": a policy with a matching {@link #segment}
- * and {@link #productCategory} beats one with only a segment, which beats a
- * global one. {@link #priority} breaks remaining ties (lower runs first).
+ * <p>Scoping is "most specific wins": a policy with a matching {@link #segment},
+ * {@link #customerTier} and {@link #productCategory} beats one matching fewer
+ * of them, which beats a global one. {@link #priority} breaks remaining ties
+ * (lower runs first).
  */
 @Entity
 @Table(name = "policies")
@@ -52,6 +53,10 @@ public class Policy {
     @Column(length = 32)
     private CustomerSegment segment;
 
+    /** Free-form loyalty tier match against {@link Customer#getTier()}; null means "applies to every tier". */
+    @Column(name = "customer_tier", length = 32)
+    private String customerTier;
+
     /** Null means "applies to every category". */
     @Column(name = "product_category", length = 64)
     private String productCategory;
@@ -80,6 +85,9 @@ public class Policy {
     public int specificity() {
         int score = 0;
         if (segment != null) {
+            score += 2;
+        }
+        if (customerTier != null) {
             score += 2;
         }
         if (productCategory != null) {
