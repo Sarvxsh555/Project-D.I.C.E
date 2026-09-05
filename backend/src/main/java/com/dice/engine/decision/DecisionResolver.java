@@ -102,6 +102,12 @@ public class DecisionResolver {
             case BLOCK -> "Blocked: a hard commercial floor was breached and no alternative was found.";
             case RECOMMEND_ALTERNATIVE ->
                     "Blocked as configured, but viable alternatives are available.";
+            // Never actually produced here — this resolver only looks at current
+            // state and has no notion of "previously approved." DealService applies
+            // this outcome afterward, with its own rationale, when a
+            // MaterialChangeDetector finds the deal drifted from its last granted
+            // ApprovalSnapshot. Case exists only so this switch stays exhaustive.
+            case REAPPROVAL_REQUIRED -> "Unreachable: DecisionResolver never produces this outcome.";
         };
 
         StringBuilder sb = new StringBuilder(headline);

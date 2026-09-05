@@ -131,14 +131,14 @@ public class DealController {
 
     public record DealSummary(
             UUID id, String dealNumber, String customerName, DealStatus status,
-            BigDecimal totalAmount, BigDecimal marginPercent, RiskLevel riskLevel,
-            Integer healthScore, String currency) {
+            BigDecimal totalAmount, BigDecimal marginPercent, Integer riskScore,
+            RiskLevel riskLevel, Integer healthScore, String currency) {
 
         static DealSummary from(Deal deal) {
             return new DealSummary(deal.getId(), deal.getDealNumber(),
                     deal.getCustomer().getName(), deal.getStatus(), deal.getTotalAmount(),
-                    deal.getMarginPercent(), deal.getRiskLevel(), deal.getHealthScore(),
-                    deal.getCurrency());
+                    deal.getMarginPercent(), deal.getRiskScore(), deal.getRiskLevel(),
+                    deal.getHealthScore(), deal.getCurrency());
         }
     }
 
@@ -146,16 +146,16 @@ public class DealController {
             UUID id, String dealNumber, UUID customerId, String customerName,
             DealStatus status, String currency, BigDecimal subtotal,
             BigDecimal discountAmount, BigDecimal totalAmount, BigDecimal marginPercent,
-            RiskLevel riskLevel, Integer healthScore, LocalDate requestedDeliveryDate,
-            String ownerUsername, List<LineView> lines) {
+            Integer riskScore, RiskLevel riskLevel, Integer healthScore,
+            LocalDate requestedDeliveryDate, String ownerUsername, List<LineView> lines) {
 
         static DealDetail from(Deal deal) {
             return new DealDetail(deal.getId(), deal.getDealNumber(),
                     deal.getCustomer().getId(), deal.getCustomer().getName(),
                     deal.getStatus(), deal.getCurrency(), deal.getSubtotal(),
                     deal.getDiscountAmount(), deal.getTotalAmount(), deal.getMarginPercent(),
-                    deal.getRiskLevel(), deal.getHealthScore(), deal.getRequestedDeliveryDate(),
-                    deal.getOwnerUsername(),
+                    deal.getRiskScore(), deal.getRiskLevel(), deal.getHealthScore(),
+                    deal.getRequestedDeliveryDate(), deal.getOwnerUsername(),
                     deal.getLines().stream().map(LineView::from).toList());
         }
     }
@@ -176,12 +176,12 @@ public class DealController {
 
     public record EvaluationSummary(
             UUID id, String triggeredBy, BigDecimal marginPercent, BigDecimal discountPercent,
-            RiskLevel riskLevel, Integer healthScore, String outcome, String policyResults,
-            java.time.Instant createdAt) {
+            Integer riskScore, RiskLevel riskLevel, Integer healthScore, String outcome,
+            String policyResults, java.time.Instant createdAt) {
 
         static EvaluationSummary from(Evaluation e) {
             return new EvaluationSummary(e.getId(), e.getTriggeredBy(), e.getMarginPercent(),
-                    e.getDiscountPercent(), e.getRiskLevel(), e.getHealthScore(),
+                    e.getDiscountPercent(), e.getRiskScore(), e.getRiskLevel(), e.getHealthScore(),
                     e.getOutcome().name(), e.getPolicyResults(), e.getCreatedAt());
         }
     }
