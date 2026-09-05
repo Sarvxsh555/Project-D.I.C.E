@@ -579,34 +579,6 @@ export const mockAdapter = {
   },
 
   // ADMIN / CONFIGURATION
-  listProducts: async (): Promise<Product[]> => {
-    await delay()
-    return productsStore
-  },
-
-  createProduct: async (product: Omit<Product, 'id'>): Promise<Product> => {
-    await delay()
-    const newProd: Product = {
-      ...product,
-      id: `prod-${Date.now()}`,
-    }
-    productsStore.push(newProd)
-    return newProd
-  },
-
-  updateProduct: async (id: string, updates: Partial<Product>): Promise<Product> => {
-    await delay()
-    const prod = productsStore.find((p) => p.id === id)
-    if (prod) Object.assign(prod, updates)
-    return prod || productsStore[0]
-  },
-
-  deleteProduct: async (id: string): Promise<void> => {
-    await delay()
-    const idx = productsStore.findIndex((p) => p.id === id)
-    if (idx >= 0) productsStore.splice(idx, 1)
-  },
-
   listPricelists: async (): Promise<PricelistItem[]> => {
     await delay()
     return pricelistsStore
@@ -676,6 +648,42 @@ export const mockAdapter = {
   listPolicies: async (): Promise<Policy[]> => {
     await delay()
     return policiesStore
+  },
+
+  // PRODUCT CATALOG & INVENTORY
+  listProducts: async (): Promise<Product[]> => {
+    await delay()
+    return productsStore
+  },
+
+  getProduct: async (id: string): Promise<Product> => {
+    await delay()
+    return productsStore.find((p) => p.id === id) || productsStore[0]
+  },
+
+  createProduct: async (prod: Omit<Product, 'id'>): Promise<Product> => {
+    await delay()
+    const newProduct: Product = {
+      ...prod,
+      id: `prod-${Date.now()}`,
+      status: prod.status || 'ACTIVE',
+      taxPercent: prod.taxPercent || 18,
+    }
+    productsStore.unshift(newProduct)
+    return newProduct
+  },
+
+  updateProduct: async (id: string, updates: Partial<Product>): Promise<Product> => {
+    await delay()
+    const p = productsStore.find((item) => item.id === id)
+    if (p) Object.assign(p, updates)
+    return p || productsStore[0]
+  },
+
+  deleteProduct: async (id: string): Promise<void> => {
+    await delay()
+    const idx = productsStore.findIndex((item) => item.id === id)
+    if (idx >= 0) productsStore.splice(idx, 1)
   },
 }
 

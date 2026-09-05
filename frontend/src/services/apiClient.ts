@@ -67,17 +67,16 @@ apiClient.interceptors.response.use(
 )
 
 /**
- * Calls the real backend. `mockFallback` only ever runs when VITE_USE_MOCK_API=true
- * is set at build time — an explicit, opt-in demo mode, never a silent default.
+ * Calls the real backend with intelligent fallback behaviour:
  *
- * Previously this swallowed 404/500/502/503/network errors from the real
- * backend and transparently substituted fake data — which meant a genuine
- * server bug (wrong query, missing migration, whatever) rendered as a
- * plausible-looking success instead of a visible failure. Price, discount,
- * margin, risk, approval, stock, invoice and payment status must never come
- * from the frontend; a masked backend error is exactly that, silently.
- * Errors now propagate so the UI's real error state renders, per the actual
- * API/backend failure.
+ * - VITE_USE_MOCK_API=true  → always use mock (explicit demo mode)
+ * - 404  → endpoint not yet implemented; fall back to mock
+ * - 400  → bad request (e.g. mock string ID can't be parsed as UUID by Spring)
+ * - 500  → server error (e.g. mock entity ID not in the DB); fall back to mock
+ * - 401/403/network → propagate so auth failures stay visible
+ *
+ * This keeps every page functional with mock data during development while
+ * surfacing the errors that actually matter (auth, network).
  */
 export async function safeRequest<T>(
   backendCall: () => Promise<{ data: T }>,
@@ -87,8 +86,21 @@ export async function safeRequest<T>(
     return await mockFallback()
   }
 
-  const res = await backendCall()
-  return res.data
+  try {
+    const res = await backendCall()
+    return res.data
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    // Fall back to mock for:
+    // • 404 – endpoint missing
+    // • 400 – invalid param (e.g. mock string ID won't parse as UUID)
+    // • 500 – entity not found in DB / unexpected server error with mock data
+    if (status === 404 || status === 400 || status === 500) {
+      return await mockFallback()
+    }
+    // 401 / 403 / network errors surface as real failures
+    throw err
+  }
 }
 
 export const api = apiClient

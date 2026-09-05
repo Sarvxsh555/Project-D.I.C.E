@@ -830,7 +830,7 @@ export default function QuotationsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Primary Product Line:</label>
+              <label className="block font-semibold text-slate-700 mb-1">Select Product Line (Shoes, Toys, Electronics, Apparel, Services):</label>
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
@@ -838,33 +838,73 @@ export default function QuotationsPage() {
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} - {formatCurrency(p.basePrice)}
+                    [{p.category}] {p.name} — {formatCurrency(p.basePrice)}
                   </option>
                 ))}
               </select>
+
+              {/* Product Visual Preview with Customized Image */}
+              {products.find((p) => p.id === selectedProductId) && (
+                <div className="mt-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
+                  <img
+                    src={
+                      products.find((p) => p.id === selectedProductId)?.imageUrl ||
+                      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80'
+                    }
+                    alt="Preview"
+                    className="w-14 h-14 object-cover rounded-md border border-slate-200"
+                  />
+                  <div className="space-y-0.5 text-xs">
+                    <div className="font-semibold text-slate-900">
+                      {products.find((p) => p.id === selectedProductId)?.name}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      SKU: {products.find((p) => p.id === selectedProductId)?.sku} • List: {formatCurrency(products.find((p) => p.id === selectedProductId)?.basePrice || 0)}
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-200 text-slate-700">
+                      {products.find((p) => p.id === selectedProductId)?.category}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Quantity:</label>
+                <label className="block font-semibold text-slate-700 mb-1">Units (Quantity):</label>
                 <input
                   type="number"
                   min={1}
                   value={qty}
                   onChange={(e) => setQty(parseInt(e.target.value) || 1)}
-                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono font-bold"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Initial Discount %:</label>
+                <label className="block font-semibold text-slate-700 mb-1">Commercial Discount %:</label>
                 <input
                   type="number"
                   min={0}
                   max={50}
+                  step={0.5}
                   value={disc}
                   onChange={(e) => setDisc(parseFloat(e.target.value) || 0)}
-                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono font-bold"
                 />
+              </div>
+            </div>
+
+            {/* Live 5-6% Governance Status */}
+            <div className={`p-2.5 rounded text-xs ${
+              disc <= 6.0
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                : 'bg-amber-50 border border-amber-200 text-amber-900'
+            }`}>
+              <div className="font-bold flex items-center gap-1.5">
+                <span>{disc <= 6.0 ? '🟢 Auto-Approved (5–6% Target Benchmark)' : '🟡 Sales Manager Approval Triggered (>6%)'}</span>
+              </div>
+              <div className="text-[11px] mt-0.5 opacity-85">
+                {qty} units × {formatCurrency((products.find((p) => p.id === selectedProductId)?.basePrice || 100) * (1 - disc / 100))} = {formatCurrency(qty * (products.find((p) => p.id === selectedProductId)?.basePrice || 100) * (1 - disc / 100))} Net
               </div>
             </div>
 

@@ -37,14 +37,14 @@ export const approvalService = {
 
   approve: async (id: string, request?: DecisionRequest): Promise<ApprovalView> => {
     return safeRequest(
-      () => api.post<ApprovalView>(`/approvals/${id}/approve`, request),
+      () => api.post<ApprovalView>(`/approvals/${id}/approve`, { reason: request?.comment || 'Approved.' }),
       () => mockAdapter.approveApproval(id, request)
     )
   },
 
   reject: async (id: string, request?: DecisionRequest): Promise<ApprovalView> => {
     return safeRequest(
-      () => api.post<ApprovalView>(`/approvals/${id}/reject`, request),
+      () => api.post<ApprovalView>(`/approvals/${id}/reject`, { reason: request?.comment || 'Rejected.' }),
       () => mockAdapter.rejectApproval(id, request)
     )
   },

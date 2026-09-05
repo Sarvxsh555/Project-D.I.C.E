@@ -5,12 +5,14 @@ export interface Product {
   id: string
   sku: string
   name: string
-  category: 'Hardware' | 'Service' | 'Infrastructure' | 'Software'
+  category: 'Footwear & Shoes' | 'Toys & Games' | 'Consumer Electronics' | 'Enterprise Hardware' | 'Apparel & Sportswear' | 'Hardware' | 'Service' | 'Infrastructure' | 'Software' | string
   basePrice: number
   costPrice: number
   billingType: BillingType
   status: 'ACTIVE' | 'ARCHIVED'
   description?: string
+  imageUrl?: string
+  taxPercent?: number
 }
 
 export interface PricelistItem {
