@@ -10,6 +10,9 @@ import Unauthorized from './pages/Unauthorized.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
 import ApprovalQueue from './pages/admin/ApprovalQueue.jsx';
 import ApprovalReview from './pages/admin/ApprovalReview.jsx';
+import DealHealthDashboard from './pages/admin/DealHealthDashboard.jsx';
+import Fulfillment from './pages/admin/Fulfillment.jsx';
+import Billing from './pages/admin/Billing.jsx';
 import Products from './pages/admin/Products.jsx';
 import PriceLists from './pages/admin/PriceLists.jsx';
 import DiscountPolicies from './pages/admin/DiscountPolicies.jsx';
@@ -55,6 +58,9 @@ function App() {
             <Route index element={<Navigate to="products" replace />} />
             <Route path="approvals" element={<ApprovalQueue />} />
             <Route path="approvals/:id" element={<ApprovalReview />} />
+            <Route path="deal-health" element={<DealHealthDashboard />} />
+            <Route path="fulfillment" element={<Fulfillment />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="products" element={<Products />} />
             <Route path="price-lists" element={<PriceLists />} />
             <Route path="discount-policies" element={<DiscountPolicies />} />

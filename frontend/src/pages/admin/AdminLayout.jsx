@@ -4,7 +4,10 @@ import { api } from '../../api.js';
 import './admin.css';
 
 const NAV_ITEMS = [
+  { to: '/admin/deal-health', label: 'Deal Health' },
   { to: '/admin/approvals', label: 'Approvals' },
+  { to: '/admin/fulfillment', label: 'Fulfillment' },
+  { to: '/admin/billing', label: 'Billing' },
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/price-lists', label: 'Price Lists' },
   { to: '/admin/discount-policies', label: 'Discount Policies' },
