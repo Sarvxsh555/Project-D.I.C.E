@@ -56,6 +56,8 @@ public class SecurityConfig {
                         // configures the same ceilings and approval-chain mapping.
                         .requestMatchers("/api/admin/discount-rules/**")
                         .hasAnyRole("ADMIN", "SALES_MANAGER")
+                        .requestMatchers("/api/admin/analytics/**")
+                        .hasAnyRole("ADMIN", "SALES_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(csrfFilter, UsernamePasswordAuthenticationFilter.class)

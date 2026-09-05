@@ -10,7 +10,7 @@ export function requireAuth(req, res, next) {
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'change-this-demo-secret-key-please-32-bytes-min');
     req.user = { username: payload.sub, role: payload.role };
     req.bearerToken = token;
     next();
@@ -22,7 +22,7 @@ export function requireAuth(req, res, next) {
 /** "Approval authority" check: only a manager (ADMIN role, same persona used across the
  *  other services) may act on an approval step. */
 export function requireApprover(req, res, next) {
-  if (req.user.role !== 'ADMIN') {
+  if (!['ADMIN', 'SALES_MANAGER', 'FINANCE'].includes(req.user.role)) {
     return res.status(403).json({ success: false, message: 'You do not have approval authority' });
   }
   next();

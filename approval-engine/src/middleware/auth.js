@@ -10,7 +10,7 @@ export function requireAuth(req, res, next) {
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'change-this-demo-secret-key-please-32-bytes-min');
     req.user = { username: payload.sub, role: payload.role };
     req.bearerToken = token;
     next();
