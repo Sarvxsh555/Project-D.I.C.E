@@ -1,5 +1,6 @@
 package com.dice.domain;
 
+import com.dice.domain.enums.ApprovalLevel;
 import com.dice.domain.enums.ApprovalStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,6 +37,15 @@ public class Approval {
 
     @Column(name = "required_role", nullable = false, length = 64)
     private String requiredRole;
+
+    /**
+     * Null for the existing per-policy-violation requests (routed by role via
+     * {@code ApprovalEngine}). Set for the DealFlow360 sequential quotation
+     * sign-off chain, where it drives ordering instead of a raw role match.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_level", length = 32)
+    private ApprovalLevel approvalLevel;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)

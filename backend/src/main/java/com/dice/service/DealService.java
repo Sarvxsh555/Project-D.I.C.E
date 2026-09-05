@@ -48,6 +48,7 @@ public class DealService {
 
     private final PricingService pricingService;
     private final DecisionResolver decisionResolver;
+    private final ApprovalService approvalService;
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
@@ -185,6 +186,7 @@ public class DealService {
                 .build());
 
         openApprovals(deal, evaluation, resolution.approvals(), actor);
+        approvalService.ensureSequentialApproval(deal, evaluation, resolution.quotationDecision());
 
         deal.setMarginPercent(resolution.margin().marginPercent());
         deal.setRiskLevel(resolution.risk().level());

@@ -7,6 +7,8 @@ public enum DealStatus {
     PENDING_APPROVAL,
     APPROVED,
     REJECTED,
+    /** Sent back to the rep after a sequential approval step returned it for revision. */
+    RETURNED_FOR_REVISION,
     IN_NEGOTIATION,
     CONFIRMED,
     FULFILLING,
