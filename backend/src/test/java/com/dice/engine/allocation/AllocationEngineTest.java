@@ -18,7 +18,7 @@ class AllocationEngineTest {
     @BeforeEach
     void setUp() {
         DiceProperties properties = new DiceProperties(null, null, null,
-                new DiceProperties.Fulfillment(1.0, 1.0, 0.25));
+                new DiceProperties.Fulfillment(1.0, 1.0, 0.25), null, null, null);
         engine = new AllocationEngine(properties);
     }
 

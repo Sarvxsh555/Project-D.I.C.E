@@ -1,5 +1,6 @@
 package com.dice.domain;
 
+import com.dice.domain.enums.BillingMode;
 import com.dice.domain.enums.FulfillmentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,6 +64,17 @@ public class DealLine {
     @Column(name = "fulfillment_status", length = 32)
     @Builder.Default
     private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.NOT_STARTED;
+
+    /** ONE_TIME lines bill through an {@code Invoice}; RECURRING lines create a {@code Subscription}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "billing_mode", nullable = false, length = 16)
+    @Builder.Default
+    private BillingMode billingMode = BillingMode.ONE_TIME;
+
+    /** Required only for RECURRING lines. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_plan_id")
+    private SubscriptionPlan subscriptionPlan;
 
     /** Gross value before discount. */
     public BigDecimal grossTotal() {
