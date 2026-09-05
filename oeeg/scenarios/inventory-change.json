@@ -1,8 +1,11 @@
 {
   "name": "inventory-change",
   "description": "Stock drops under an allocated deal, forcing a re-plan.",
+  "setup": {
+    "customerName": "Bright Retail SMB",
+    "lines": [ { "sku": "SKU-1001", "quantity": 5 } ]
+  },
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9003, "partnerId": 203 } },
-    { "type": "INVENTORY_CHANGED", "payload": { "odooProductId": 101, "quantityOnHand": 5 } }
+    { "type": "INVENTORY_CHANGED", "payload": { "odooProductId": 101, "quantityOnHand": 5 }, "note": "SKU-1001 is Odoo product 101 (database/seed/products.sql)" }
   ]
 }

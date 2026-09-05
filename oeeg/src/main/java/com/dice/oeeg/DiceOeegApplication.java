@@ -8,10 +8,11 @@ import org.springframework.context.annotation.Bean;
 /**
  * OEEG — Odoo Event Emulation Gateway.
  *
- * <p>TODO: wire {@code args[0]} (a scenario name) to
- * {@code scenario.ScenarioRunner#run}, or expose scenario triggering over a
- * small REST endpoint instead of a CLI arg. See scenarios/ and
- * docs/demo-flow.md.
+ * <p>Run with a scenario name as the sole argument to replay it, e.g.
+ * {@code ./mvnw spring-boot:run -Dspring-boot.run.arguments=complete-deal-flow}.
+ * With no argument, boots and idles — useful once scenario triggering moves to
+ * a REST endpoint for oeeg-frontend to drive instead of a CLI arg (not yet
+ * built; see docs/demo-flow.md).
  */
 @SpringBootApplication
 public class DiceOeegApplication {

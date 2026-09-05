@@ -19,6 +19,16 @@
 - `POST /api/deals/{id}/evaluate` — force re-evaluation.
 - `GET /api/deals/{id}/evaluations` — evaluation history.
 
+## Catalogue
+
+Read-only; not part of the original controller list, but nothing else exposed
+customers/products and every "create a deal" flow needs to pick from
+somewhere (the frontend's own Products/Pricelist screens included).
+
+- `GET /api/customers`, `GET /api/customers/{id}`.
+- `GET /api/products`, `GET /api/products/{id}` — omits `standardCost`
+  deliberately (internal margin data).
+
 ## Approvals
 
 - `GET /api/approvals/pending` — queue for the caller's role.

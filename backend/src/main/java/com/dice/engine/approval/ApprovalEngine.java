@@ -46,18 +46,27 @@ public class ApprovalEngine {
             byRole.computeIfAbsent(role, k -> new java.util.ArrayList<>()).add(violation);
         }
 
-        Instant now = Instant.now();
         return byRole.entrySet().stream()
                 .map(entry -> new Requirement(
                         entry.getKey(),
                         entry.getValue().stream().map(PolicyEngine.Violation::policyCode).toList(),
                         summarise(entry.getValue()),
-                        now.plus(SLA_BY_ROLE.getOrDefault(entry.getKey(), DEFAULT_SLA)),
+                        slaDueFor(entry.getKey()),
                         entry.getValue().stream()
                                 .anyMatch(v -> v.severity() == PolicySeverity.BLOCKING)))
                 // Most authoritative role first, so the UI leads with the real blocker.
                 .sorted(Comparator.comparing(Requirement::role).reversed())
                 .toList();
+    }
+
+    /**
+     * The SLA deadline for a role's queue, starting now. Public so callers
+     * raising an approval outside the policy-violation path — e.g.
+     * {@code DealService}'s material-change reapproval — get the same SLA
+     * table rather than inventing their own.
+     */
+    public Instant slaDueFor(Role role) {
+        return Instant.now().plus(SLA_BY_ROLE.getOrDefault(role, DEFAULT_SLA));
     }
 
     /**
