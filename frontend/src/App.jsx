@@ -8,6 +8,8 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import Portal from './pages/Portal.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
+import ApprovalQueue from './pages/admin/ApprovalQueue.jsx';
+import ApprovalReview from './pages/admin/ApprovalReview.jsx';
 import Products from './pages/admin/Products.jsx';
 import PriceLists from './pages/admin/PriceLists.jsx';
 import DiscountPolicies from './pages/admin/DiscountPolicies.jsx';
@@ -51,6 +53,8 @@ function App() {
             }
           >
             <Route index element={<Navigate to="products" replace />} />
+            <Route path="approvals" element={<ApprovalQueue />} />
+            <Route path="approvals/:id" element={<ApprovalReview />} />
             <Route path="products" element={<Products />} />
             <Route path="price-lists" element={<PriceLists />} />
             <Route path="discount-policies" element={<DiscountPolicies />} />
