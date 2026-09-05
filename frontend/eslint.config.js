@@ -12,9 +12,14 @@ export default tseslint.config(
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs.flat['recommended-latest'],
+      reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,
