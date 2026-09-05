@@ -41,6 +41,10 @@ public class Evaluation {
     @Column(name = "discount_percent", precision = 7, scale = 4)
     private BigDecimal discountPercent;
 
+    /** 0-100, from {@code RiskEngine}. Was computed-then-discarded before this field existed. */
+    @Column(name = "risk_score")
+    private Integer riskScore;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "risk_level", length = 16)
     private RiskLevel riskLevel;

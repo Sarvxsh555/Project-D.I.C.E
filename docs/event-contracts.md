@@ -8,7 +8,7 @@ eventually) and DICE's integration boundary. It has two parts:
   actually sends. This is real, verified end-to-end (see "Verified" below).
 - **v2 — proposed, not implemented.** The normalized envelope the wider
   architecture calls for (`eventId`, `source`, `externalEventId`, `timestamp`).
-  Do not build against this yet — see "Migrating to v2" below for why.
+  Do not build against this yet — see "v2 envelope" below for why.
 
 Keep this in sync with `oeeg/src/main/java/com/dice/oeeg/events/EventType.java`
 (the OEEG-emittable whitelist) and the backend's

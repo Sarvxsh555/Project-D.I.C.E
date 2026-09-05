@@ -72,6 +72,10 @@ public class Deal {
     @Builder.Default
     private BigDecimal marginPercent = BigDecimal.ZERO;
 
+    /** 0-100, from {@code RiskEngine}. Higher is riskier — opposite sense to healthScore below. */
+    @Column(name = "risk_score")
+    private Integer riskScore;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "risk_level", length = 16)
     @Builder.Default
