@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 
 class UnauthorizedError extends Error {}
 
@@ -8,7 +8,10 @@ function readCookie(name) {
 }
 
 async function request(path, { method = 'GET', body, token, withCsrf = false } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (withCsrf) {
     const csrfToken = readCookie('XSRF-TOKEN');
@@ -25,10 +28,10 @@ async function request(path, { method = 'GET', body, token, withCsrf = false } =
   const data = await response.json().catch(() => ({}));
 
   if (response.status === 401) {
-    throw new UnauthorizedError(data.message || 'Unauthorized');
+    throw new UnauthorizedError(data.error?.message || data.message || 'Unauthorized');
   }
   if (!response.ok) {
-    throw new Error(data.message || 'Request failed');
+    throw new Error(data.error?.message || data.message || 'Request failed');
   }
   return data;
 }

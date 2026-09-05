@@ -1,7 +1,10 @@
-const QUOTATION_API_BASE = 'http://localhost:8082/api';
+const QUOTATION_API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 
 async function request(path, { method = 'GET', body, token } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await fetch(`${QUOTATION_API_BASE}${path}`, {
@@ -12,7 +15,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || 'Request failed');
+    throw new Error(data.error?.message || data.message || 'Request failed');
   }
   return data;
 }
@@ -43,7 +46,12 @@ export const quotationApi = {
   reject: (token, id, reason) => request(`/quotations/${id}/reject`, { method: 'POST', token, body: { reason } }),
   returnForRevision: (token, id, reason) =>
     request(`/quotations/${id}/return`, { method: 'POST', token, body: { reason } }),
-  customerConfirm: (token, id) => request(`/quotations/${id}/customer-confirm`, { method: 'POST', token }),
+  customerConfirm: (token, id) =>
+    request(`/quotations/${id}/customer-confirm`, {
+      method: 'POST',
+      token,
+      idempotencyKey: `confirm-${id}-${crypto.randomUUID()}`,
+    }),
 };
 
 export const PIPELINE_STAGES = [

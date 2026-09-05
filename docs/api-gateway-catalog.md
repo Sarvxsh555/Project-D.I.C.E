@@ -8,7 +8,7 @@ replaces those origins. Auth: Bearer JWT from login-service, except where noted.
 events so D.I.C.E. can react without a live Odoo. Live JSON-RPC runs only if
 `DICE_ODOO_ENABLED=true`.
 
-Suggested public prefix: `/api` (strip nothing; keep upstream paths).
+| Gateway `:8000` | Public origin. Browser talks only here. |
 
 ---
 
@@ -36,7 +36,7 @@ Suggested public prefix: `/api` (strip nothing; keep upstream paths).
 | `/api/recommendations/rank` | `recommendation-engine :8089` | Bearer | any authed |
 | `/api/deal-health/**` | `deal-health-engine :8090` | Bearer | any authed |
 | `/api/billing/**` | `billing-engine :8091` | Bearer | view any; mutations FINANCE, ADMIN |
-| `/api/oeeg/**` | `oeeg :8092` | none (demo) | emulator console |
+| `/api/oeeg/**` | `oeeg :8092` | Bearer; ADMIN unless `GATEWAY_DEMO_OEEG=true` | emulator console |
 | `/send-reset-email` | `mailer-service :4000` | none (internal) | **do not expose** on public gateway |
 
 Cookie: `refresh` httpOnly on login-service. Gateway must forward `Cookie` and

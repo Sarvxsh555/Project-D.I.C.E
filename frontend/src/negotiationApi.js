@@ -1,7 +1,10 @@
-const BASE = 'http://localhost:8086/api/negotiations';
+const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/negotiations';
 
 async function request(path, { method = 'GET', body, token } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${BASE}${path}`, {
     method,
@@ -9,7 +12,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || 'Request failed');
+  if (!response.ok) throw new Error(data.error?.message || data.message || 'Request failed');
   return data;
 }
 
