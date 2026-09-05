@@ -31,9 +31,9 @@ spring:
     baseline-on-migrate: true
 
   jackson:
+    # Dates as ISO-8601 rather than epoch millis is already Boot's default
+    # in Jackson 3 (tools.jackson) — no override needed here.
     default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
 
 server:
   port: 8080
