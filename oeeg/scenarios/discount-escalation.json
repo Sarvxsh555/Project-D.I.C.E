@@ -1,0 +1,9 @@
+{
+  "name": "discount-escalation",
+  "description": "Rep pushes a discount past the approval threshold; expect REQUIRE_APPROVAL, then an approver clears it.",
+  "steps": [
+    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9001, "partnerId": 201 } },
+    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9001, "discountPercent": 25 } },
+    { "type": "APPROVAL_GRANTED", "payload": { "quotationId": 9001, "approvedBy": "sales_manager" } }
+  ]
+}

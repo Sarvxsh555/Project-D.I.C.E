@@ -1,0 +1,8 @@
+{
+  "name": "inventory-change",
+  "description": "Stock drops under an allocated deal, forcing a re-plan.",
+  "steps": [
+    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9003, "partnerId": 203 } },
+    { "type": "INVENTORY_CHANGED", "payload": { "odooProductId": 101, "quantityOnHand": 5 } }
+  ]
+}

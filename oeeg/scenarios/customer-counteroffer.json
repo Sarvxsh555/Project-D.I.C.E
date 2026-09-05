@@ -1,0 +1,8 @@
+{
+  "name": "customer-counteroffer",
+  "description": "Customer counters via the portal; DICE previews the impact before it's accepted.",
+  "steps": [
+    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9002, "partnerId": 202 } },
+    { "type": "COUNTER_OFFER", "payload": { "quotationId": 9002, "requestedDiscountPercent": 18 } }
+  ]
+}
