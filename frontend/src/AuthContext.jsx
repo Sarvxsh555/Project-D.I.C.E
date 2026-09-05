@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { api } from './api.js';
 
 const AuthContext = createContext(null);
 
@@ -11,66 +12,75 @@ function decodeExpiry(token) {
   }
 }
 
-const STORAGE_KEY = 'login_demo_token';
-
 export function AuthProvider({ children }) {
-  const [token, setTokenState] = useState(() => localStorage.getItem(STORAGE_KEY));
+  // Access token lives only in memory (never localStorage) to limit XSS blast radius.
+  // Session continuity across reloads comes from the httpOnly refresh cookie via silent refresh below.
+  const [token, setToken] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(false);
-  const expiryTimer = useRef(null);
+  const [initializing, setInitializing] = useState(true);
+  const refreshTimer = useRef(null);
 
-  const clearExpiryTimer = () => {
-    if (expiryTimer.current) {
-      clearTimeout(expiryTimer.current);
-      expiryTimer.current = null;
+  const clearRefreshTimer = () => {
+    if (refreshTimer.current) {
+      clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
     }
   };
 
-  const setToken = useCallback((newToken) => {
-    if (newToken) {
-      localStorage.setItem(STORAGE_KEY, newToken);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    setTokenState(newToken);
+  const logout = useCallback(() => {
+    clearRefreshTimer();
+    setToken(null);
   }, []);
 
-  const logout = useCallback(() => {
-    clearExpiryTimer();
-    setToken(null);
-  }, [setToken]);
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await api.refresh();
+      setToken(data.accessToken);
+      return data.accessToken;
+    } catch {
+      setSessionExpired(true);
+      logout();
+      return null;
+    }
+  }, [logout]);
 
   useEffect(() => {
-    clearExpiryTimer();
+    silentRefresh().finally(() => setInitializing(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    clearRefreshTimer();
     if (!token) return;
 
     const expiryMs = decodeExpiry(token);
     if (!expiryMs) return;
 
-    const msRemaining = expiryMs - Date.now();
-    if (msRemaining <= 0) {
-      setSessionExpired(true);
-      logout();
-      return;
-    }
+    // Refresh a bit before expiry so the session renews silently while the tab is open.
+    const msUntilRefresh = Math.max(expiryMs - Date.now() - 60_000, 0);
+    refreshTimer.current = setTimeout(silentRefresh, msUntilRefresh);
 
-    expiryTimer.current = setTimeout(() => {
-      setSessionExpired(true);
-      logout();
-    }, msRemaining);
-
-    return clearExpiryTimer;
-  }, [token, logout]);
+    return clearRefreshTimer;
+  }, [token, silentRefresh]);
 
   const login = useCallback((newToken) => {
     setSessionExpired(false);
     setToken(newToken);
-  }, [setToken]);
+  }, []);
 
   const dismissSessionExpired = useCallback(() => setSessionExpired(false), []);
 
   return (
     <AuthContext.Provider
-      value={{ token, isAuthenticated: Boolean(token), login, logout, sessionExpired, dismissSessionExpired }}
+      value={{
+        token,
+        isAuthenticated: Boolean(token),
+        initializing,
+        login,
+        logout,
+        sessionExpired,
+        dismissSessionExpired,
+      }}
     >
       {children}
     </AuthContext.Provider>

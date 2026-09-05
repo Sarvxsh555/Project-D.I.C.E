@@ -2,19 +2,23 @@ package com.example.login.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class SignupRequest {
 
     @NotBlank
+    @Pattern(regexp = "^[a-zA-Z0-9_.-]{3,32}$", message = "Username must be 3-32 characters: letters, numbers, dot, dash, underscore")
     private String username;
 
     @NotBlank
     @Email
+    @Size(max = 255)
     private String email;
 
     @NotBlank
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 8, max = 128, message = "Password must be 8-128 characters")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain at least one letter and one number")
     private String password;
 
     public String getUsername() {

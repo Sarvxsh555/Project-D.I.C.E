@@ -20,10 +20,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final CsrfFilter csrfFilter;
     private final UnauthorizedEntryPoint unauthorizedEntryPoint;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, UnauthorizedEntryPoint unauthorizedEntryPoint) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CsrfFilter csrfFilter, UnauthorizedEntryPoint unauthorizedEntryPoint) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.csrfFilter = csrfFilter;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
     }
 
@@ -42,6 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(csrfFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

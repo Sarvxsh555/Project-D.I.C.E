@@ -20,7 +20,7 @@ function Signup() {
 
     try {
       const data = await api.signup({ username, email, password });
-      login(data.token);
+      login(data.accessToken);
       navigate('/portal');
     } catch (err) {
       setStatus({ type: 'error', message: err.message });

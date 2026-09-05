@@ -5,6 +5,7 @@ import com.example.login.repository.RefreshTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
@@ -19,12 +20,15 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRevocationService tokenRevocationService;
     private final long refreshExpirationDays;
 
     public RefreshTokenService(
             RefreshTokenRepository refreshTokenRepository,
+            TokenRevocationService tokenRevocationService,
             @Value("${app.jwt.refresh-expiration-days}") long refreshExpirationDays) {
         this.refreshTokenRepository = refreshTokenRepository;
+        this.tokenRevocationService = tokenRevocationService;
         this.refreshExpirationDays = refreshExpirationDays;
     }
 
@@ -46,12 +50,15 @@ public class RefreshTokenService {
      * one is issued for the same user. If an already-revoked token is presented, that is a signal
      * the token was stolen and reused, so every refresh token for the user is revoked.
      */
+    @Transactional
     public RotationResult rotate(String rawToken) {
         RefreshToken existing = refreshTokenRepository.findByTokenHash(hash(rawToken))
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token"));
 
         if (existing.isRevoked()) {
-            refreshTokenRepository.revokeAllForUser(existing.getUserId());
+            // Runs in its own transaction so the revocation survives the ResponseStatusException
+            // thrown right after it - otherwise the enclosing @Transactional would roll it back.
+            tokenRevocationService.revokeAllForUser(existing.getUserId());
             throw new ResponseStatusException(UNAUTHORIZED, "Refresh token reuse detected; all sessions revoked");
         }
 

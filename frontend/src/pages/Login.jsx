@@ -20,7 +20,7 @@ function Login() {
 
     try {
       const data = await api.login({ username, password });
-      login(data.token);
+      login(data.accessToken);
       navigate('/portal');
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
