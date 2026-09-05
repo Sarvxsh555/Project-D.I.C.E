@@ -51,6 +51,7 @@ public class DealService {
     private final ApprovalService approvalService;
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final AuditService auditService;
 
     // ------------------------------------------------------------------
     // Reads
@@ -121,6 +122,7 @@ public class DealService {
         Deal deal = require(dealId);
         assertMutable(deal);
 
+        int oldLineCount = deal.getLines().size();
         deal.getLines().clear();
         int lineNumber = 1;
         for (LineRequest request : lines) {
@@ -129,6 +131,14 @@ public class DealService {
 
         pricingService.recalculate(deal);
         dealRepository.save(deal);
+
+        // Audit the quotation edit with before/after line counts.
+        auditService.record(
+                AuditService.DEAL, dealId,
+                AuditService.QUOTATION_EDITED, actor,
+                "lines=%d".formatted(oldLineCount),
+                "lines=%d".formatted(lines.size()),
+                null);
 
         eventPublisher.publish(DealEvent.Type.QUANTITY_CHANGED, dealId, actor,
                 Map.of("lineCount", lines.size()));
@@ -141,9 +151,19 @@ public class DealService {
         Deal deal = require(dealId);
         assertMutable(deal);
 
+        BigDecimal oldDiscount = deal.effectiveDiscountPercent();
+
         deal.getLines().forEach(line -> line.setDiscountPercent(discountPercent));
         pricingService.recalculate(deal);
         dealRepository.save(deal);
+
+        // Audit the discount change with authoritative old/new values from backend state.
+        auditService.record(
+                AuditService.DEAL, dealId,
+                AuditService.DISCOUNT_CHANGED, actor,
+                oldDiscount.toPlainString() + "%",
+                discountPercent.toPlainString() + "%",
+                null);
 
         eventPublisher.publish(DealEvent.Type.DISCOUNT_CHANGED, dealId, actor,
                 Map.of("discountPercent", discountPercent));

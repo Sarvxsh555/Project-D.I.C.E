@@ -38,13 +38,14 @@ class ApprovalServiceTest {
     @Mock private ApprovalSnapshotRepository approvalSnapshotRepository;
     @Mock private DealRepository dealRepository;
     @Mock private EventPublisher eventPublisher;
+    @Mock private AuditService auditService;
 
     private ApprovalService service;
     private Deal deal;
 
     @BeforeEach
     void setUp() {
-        service = new ApprovalService(approvalRepository, approvalSnapshotRepository, dealRepository, eventPublisher);
+        service = new ApprovalService(approvalRepository, approvalSnapshotRepository, dealRepository, eventPublisher, auditService);
 
         deal = Deal.builder()
                 .id(UUID.randomUUID())

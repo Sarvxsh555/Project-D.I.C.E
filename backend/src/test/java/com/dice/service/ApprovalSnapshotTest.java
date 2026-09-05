@@ -43,6 +43,7 @@ class ApprovalSnapshotTest {
     @Mock private ApprovalSnapshotRepository snapshotRepository;
     @Mock private DealRepository dealRepository;
     @Mock private EventPublisher eventPublisher;
+    @Mock private AuditService auditService;
 
     private ApprovalService service;
     private Deal deal;
@@ -50,7 +51,7 @@ class ApprovalSnapshotTest {
 
     @BeforeEach
     void setUp() {
-        service = new ApprovalService(approvalRepository, snapshotRepository, dealRepository, eventPublisher);
+        service = new ApprovalService(approvalRepository, snapshotRepository, dealRepository, eventPublisher, auditService);
 
         product = Product.builder()
                 .id(UUID.randomUUID())

@@ -12,4 +12,7 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
             String aggregateType, UUID aggregateId);
 
     List<AuditEvent> findTop50ByOrderByOccurredAtDesc();
+
+    /** All audit events for a specific entity regardless of type — useful for deal-level audit trail. */
+    List<AuditEvent> findByAggregateIdOrderByOccurredAtDesc(UUID aggregateId);
 }

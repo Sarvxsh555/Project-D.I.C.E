@@ -56,6 +56,7 @@ public class ApprovalService {
     private final ApprovalSnapshotRepository approvalSnapshotRepository;
     private final DealRepository dealRepository;
     private final EventPublisher eventPublisher;
+    private final AuditService auditService;
 
     @Transactional(readOnly = true)
     public List<Approval> pendingFor(Role role) {
@@ -143,6 +144,16 @@ public class ApprovalService {
         approval.setReason(append(approval.getReason(), "%s by %s: %s".formatted(outcome, actor, reason)));
         Approval saved = approvalRepository.save(approval);
 
+        // Audit — actor comes from the authenticated backend principal, never the frontend.
+        auditService.record(
+                AuditService.APPROVAL,
+                approval.getId(),
+                auditActionFor(outcome),
+                actor,
+                ApprovalStatus.PENDING.name(),
+                outcome.name(),
+                reason);
+
         if (saved.getApprovalLevel() != null) {
             advanceDealForSequentialChain(saved, outcome);
         } else {
@@ -155,6 +166,15 @@ public class ApprovalService {
                         "reason", reason));
 
         return saved;
+    }
+
+    private String auditActionFor(ApprovalStatus outcome) {
+        return switch (outcome) {
+            case APPROVED -> AuditService.APPROVED;
+            case REJECTED -> AuditService.REJECTED;
+            case RETURNED -> AuditService.RETURNED;
+            default -> outcome.name();
+        };
     }
 
     private String eventTypeFor(ApprovalStatus outcome) {
