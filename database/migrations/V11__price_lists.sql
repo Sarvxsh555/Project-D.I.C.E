@@ -3,7 +3,7 @@
 -- specific matching list; see PriceResolutionService.
 
 CREATE TABLE price_lists (
-    id                UUID PRIMARY KEY,
+    id                CHAR(36)     PRIMARY KEY,
     code              VARCHAR(64)  NOT NULL UNIQUE,
     name              VARCHAR(255) NOT NULL,
     currency          VARCHAR(3)   NOT NULL DEFAULT 'USD',
@@ -18,16 +18,18 @@ CREATE TABLE price_lists (
         ))
 );
 
-CREATE INDEX idx_price_lists_active ON price_lists (active) WHERE active;
+CREATE INDEX idx_price_lists_active ON price_lists (active);
 
 CREATE TABLE price_list_items (
-    id             UUID PRIMARY KEY,
-    price_list_id  UUID NOT NULL REFERENCES price_lists (id),
-    product_id     UUID NOT NULL REFERENCES products (id),
+    id             CHAR(36) PRIMARY KEY,
+    price_list_id  CHAR(36) NOT NULL,
+    product_id     CHAR(36) NOT NULL,
     unit_price     NUMERIC(18, 2) NOT NULL,
 
     CONSTRAINT price_list_items_unique UNIQUE (price_list_id, product_id),
-    CONSTRAINT price_list_items_price_non_negative CHECK (unit_price >= 0)
+    CONSTRAINT price_list_items_price_non_negative CHECK (unit_price >= 0),
+    CONSTRAINT fk_price_list_items_price_list FOREIGN KEY (price_list_id) REFERENCES price_lists (id),
+    CONSTRAINT fk_price_list_items_product FOREIGN KEY (product_id) REFERENCES products (id)
 );
 
 CREATE INDEX idx_price_list_items_product ON price_list_items (product_id);

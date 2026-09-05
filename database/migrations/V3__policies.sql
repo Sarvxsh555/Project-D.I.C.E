@@ -1,7 +1,7 @@
 -- Commercial rules as data. Adding a rule is an INSERT, not a release.
 
 CREATE TABLE policies (
-    id                UUID PRIMARY KEY,
+    id                CHAR(36)       PRIMARY KEY,
     code              VARCHAR(64)    NOT NULL UNIQUE,
     name              VARCHAR(255)   NOT NULL,
     description       VARCHAR(1000),
@@ -22,4 +22,4 @@ CREATE TABLE policies (
         'ADVISORY', 'APPROVAL_REQUIRED', 'BLOCKING'))
 );
 
-CREATE INDEX idx_policies_active_priority ON policies (priority) WHERE active;
+CREATE INDEX idx_policies_active_priority ON policies (priority);

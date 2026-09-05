@@ -12,7 +12,7 @@ ALTER TABLE evaluations ADD COLUMN risk_score INTEGER;
 -- the current state — see MaterialChangeDetector.
 --
 -- line_snapshot is a JSON array of {productId, quantity, unitPrice,
--- discountPercent} — TEXT rather than JSONB for the same reason as
+-- discountPercent} — TEXT rather than JSON for the same reason as
 -- evaluations.policy_results: nothing queries into it server-side, and the
 -- shape can evolve without a migration.
 --
@@ -20,9 +20,9 @@ ALTER TABLE evaluations ADD COLUMN risk_score INTEGER;
 -- as a proxy for "payment terms" (deals do not carry their own payment-terms
 -- override today — see docs/decision-contract.md).
 CREATE TABLE approval_snapshots (
-    id                            UUID PRIMARY KEY,
-    deal_id                       UUID           NOT NULL REFERENCES deals (id) ON DELETE CASCADE,
-    evaluation_id                 UUID REFERENCES evaluations (id) ON DELETE SET NULL,
+    id                            CHAR(36)       PRIMARY KEY,
+    deal_id                       CHAR(36)       NOT NULL,
+    evaluation_id                 CHAR(36),
     approved_by_role              VARCHAR(64)    NOT NULL,
     subtotal                      NUMERIC(18, 2) NOT NULL,
     discount_amount               NUMERIC(18, 2) NOT NULL,
@@ -32,10 +32,25 @@ CREATE TABLE approval_snapshots (
     risk_level                    VARCHAR(16)    NOT NULL,
     customer_payment_terms_days   INTEGER,
     line_snapshot                 TEXT           NOT NULL,
-    captured_at                   TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    captured_at                   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     superseded                    BOOLEAN        NOT NULL DEFAULT FALSE,
-    superseded_at                 TIMESTAMPTZ,
-    superseded_reason             TEXT
+    superseded_at                 DATETIME,
+    superseded_reason             TEXT,
+    -- MySQL has no partial/filtered index. This generated column collapses to
+    -- NULL for superseded rows, and MySQL (like Postgres) never counts NULLs
+    -- against a UNIQUE index — so a unique index on this column reproduces
+    -- exactly Postgres's `UNIQUE (deal_id) WHERE NOT superseded` semantics:
+    -- at most one active snapshot per deal, any number of superseded ones.
+    active_deal_id                CHAR(36) GENERATED ALWAYS AS
+        (CASE WHEN NOT superseded THEN deal_id END) STORED,
+
+    -- No ON DELETE CASCADE here: MySQL/InnoDB refuses a CASCADE or SET NULL
+    -- foreign-key action on a column a generated column depends on
+    -- (active_deal_id depends on deal_id), unlike Postgres which allows it.
+    -- Deals are never hard-deleted by this application, so the cascade was
+    -- never exercised in practice; RESTRICT (the default) is safe here.
+    CONSTRAINT fk_approval_snapshots_deal FOREIGN KEY (deal_id) REFERENCES deals (id),
+    CONSTRAINT fk_approval_snapshots_evaluation FOREIGN KEY (evaluation_id) REFERENCES evaluations (id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_approval_snapshots_deal ON approval_snapshots (deal_id);
@@ -44,4 +59,4 @@ CREATE INDEX idx_approval_snapshots_deal ON approval_snapshots (deal_id);
 -- at most one *active* snapshot at a time. A second APPROVED cycle first
 -- supersedes the old row, then inserts a new one — never two live at once.
 CREATE UNIQUE INDEX idx_approval_snapshots_one_active
-    ON approval_snapshots (deal_id) WHERE NOT superseded;
+    ON approval_snapshots (active_deal_id);

@@ -19,7 +19,7 @@ ALTER TABLE approvals DROP CONSTRAINT approvals_decided_has_actor;
 ALTER TABLE approvals ADD CONSTRAINT approvals_decided_has_actor CHECK (
     status IN ('PENDING', 'ESCALATED') OR decided_by IS NOT NULL);
 ALTER TABLE approvals ADD CONSTRAINT approvals_decided_has_reason CHECK (
-    status IN ('PENDING', 'ESCALATED') OR (reason IS NOT NULL AND btrim(reason) <> ''));
+    status IN ('PENDING', 'ESCALATED') OR (reason IS NOT NULL AND TRIM(reason) <> ''));
 
 ALTER TABLE deals DROP CONSTRAINT deals_status_valid;
 ALTER TABLE deals ADD CONSTRAINT deals_status_valid CHECK (status IN (

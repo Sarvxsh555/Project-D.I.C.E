@@ -8,7 +8,7 @@
 -- Standard Widget also bought Basic Gadget." The engine aggregates by
 -- paired_sku so a high-weight reverse pair will also surface.
 
-INSERT INTO co_purchase_pairs (product_sku, paired_sku, weight, promotion_label)
+INSERT IGNORE INTO co_purchase_pairs (product_sku, paired_sku, weight, promotion_label)
 VALUES
     -- Widget → Gadget cross-category pairs (core pairings)
     ('SKU-1001', 'SKU-2001', 8,  NULL),                  -- Widget customers often add a Gadget
@@ -20,5 +20,4 @@ VALUES
     ('SKU-2001', 'SKU-2002', 6,  'Upgrade to Pro'),       -- Upsell within GADGETS (promoted)
     ('SKU-2001', 'SKU-1002', 3,  NULL),
     ('SKU-2002', 'SKU-1002', 8,  NULL),                  -- Pro customers typically want Premium
-    ('SKU-2002', 'SKU-1001', 4,  NULL)
-ON CONFLICT (product_sku, paired_sku) DO NOTHING;
+    ('SKU-2002', 'SKU-1001', 4,  NULL);

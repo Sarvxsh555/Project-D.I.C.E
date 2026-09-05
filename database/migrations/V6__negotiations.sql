@@ -3,8 +3,8 @@
 -- than to drive evaluation.
 
 CREATE TABLE negotiation_rounds (
-    id                   UUID PRIMARY KEY,
-    deal_id              UUID           NOT NULL REFERENCES deals (id) ON DELETE CASCADE,
+    id                   CHAR(36)       PRIMARY KEY,
+    deal_id              CHAR(36)       NOT NULL,
     round_number         INTEGER        NOT NULL,
     -- Who moved: CUSTOMER or SALES.
     initiated_by         VARCHAR(32)    NOT NULL,
@@ -13,12 +13,13 @@ CREATE TABLE negotiation_rounds (
     resulting_margin     NUMERIC(7, 4),
     outcome              VARCHAR(32),
     note                 TEXT,
-    created_at           TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    created_at           DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT negotiation_rounds_initiator_valid
         CHECK (initiated_by IN ('CUSTOMER', 'SALES')),
     CONSTRAINT negotiation_rounds_unique_round
-        UNIQUE (deal_id, round_number)
+        UNIQUE (deal_id, round_number),
+    CONSTRAINT fk_negotiation_rounds_deal FOREIGN KEY (deal_id) REFERENCES deals (id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_negotiation_deal ON negotiation_rounds (deal_id, round_number);

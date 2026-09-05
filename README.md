@@ -20,43 +20,58 @@ together.
 
 ## Prerequisites
 
-- Docker + Docker Compose
+Everything runs directly on the host — no Docker.
+
+- MySQL 8.0+, running locally
 - Java 21 / Maven wrapper (bundled — no local Maven install needed)
 - Node 22+
 
 ## Quick start
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
+1. Create the database and a dedicated user (once):
+
+   ```sql
+   CREATE DATABASE dice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'dice'@'localhost' IDENTIFIED BY 'dice_local_pw';
+   GRANT ALL PRIVILEGES ON dice.* TO 'dice'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+2. One-time server setting, required for the `updated_at` triggers V13 creates
+   (MySQL refuses to let a non-SUPER user create triggers while binary logging
+   is on, unless this is set):
+
+   ```sql
+   SET GLOBAL log_bin_trust_function_creators = 1;
+   ```
+
+   This does **not** survive a MySQL service restart unless added to
+   `my.ini`'s `[mysqld]` section (`log_bin_trust_function_creators=1`) —
+   editing that file needs admin rights. If the backend fails to start after
+   a MySQL restart with error 1419, re-run the `SET GLOBAL` above.
+
+3. Copy the env template and start each service in its own terminal:
+
+   ```bash
+   cp .env.example .env
+
+   # Backend — applies Flyway migrations + seed data on first run
+   cd backend && ./mvnw spring-boot:run
+
+   # Frontend
+   cd frontend && npm install && npm run dev
+
+   # OEEG (optional — Odoo event emulator)
+   cd oeeg && ./mvnw spring-boot:run
+   ```
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080 (health at `/actuator/health`)
-- Postgres: localhost:5432
+- MySQL: localhost:3306
 
 Demo accounts are seeded automatically under the `dev` Spring profile — see
 [docs/demo-flow.md](./docs/demo-flow.md) for usernames (password `dice-demo`
 for all of them).
-
-To also run the Odoo event emulator:
-
-```bash
-docker compose --profile emulator up
-```
-
-## Running services individually
-
-```bash
-# Backend
-cd backend && ./mvnw spring-boot:run
-
-# Frontend
-cd frontend && npm install && npm run dev
-
-# OEEG
-cd oeeg && ./mvnw spring-boot:run
-```
 
 ## Status
 

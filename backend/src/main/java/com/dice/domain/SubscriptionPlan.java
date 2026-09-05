@@ -30,7 +30,9 @@ public class SubscriptionPlan {
     private Product product;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    // "interval" is a reserved word in MySQL — the column is named
+    // interval_unit to avoid needing to quote it everywhere.
+    @Column(name = "interval_unit", nullable = false, length = 16)
     private RecurringInterval interval;
 
     @Column(nullable = false, precision = 18, scale = 2)

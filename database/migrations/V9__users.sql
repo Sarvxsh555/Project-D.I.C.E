@@ -5,18 +5,18 @@
 -- DICE has not provisioned a profile for.
 
 CREATE TABLE users (
-    id          UUID PRIMARY KEY,
+    id          CHAR(36)     PRIMARY KEY,
     username    VARCHAR(64)  NOT NULL UNIQUE,
     email       VARCHAR(255) NOT NULL UNIQUE,
     full_name   VARCHAR(255) NOT NULL,
     role        VARCHAR(32)  NOT NULL,
     active      BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT users_role_valid CHECK (role IN (
         'SALES_REP', 'SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN', 'CUSTOMER'
     ))
 );
 
-CREATE INDEX idx_users_role ON users (role) WHERE active;
+CREATE INDEX idx_users_role ON users (role);

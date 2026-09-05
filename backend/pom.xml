@@ -16,8 +16,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
-		<!-- Where migrations/ and seed/ live, relative to this pom. The Docker
-		     build overrides it with -Ddice.database.dir=/build/database. -->
+		<!-- Where migrations/ and seed/ live, relative to this pom. -->
 		<dice.database.dir>${project.basedir}/../database</dice.database.dir>
 	</properties>
 	<dependencies>
@@ -53,7 +52,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
+			<artifactId>flyway-mysql</artifactId>
 		</dependency>
 
 		<dependency>
@@ -81,8 +80,8 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -138,9 +137,7 @@
 			<!--
 			  Schema and seed data live in database/ (owned outside this module) but
 			  Flyway loads them from the classpath. Copying at build time keeps one
-			  source of truth without a filesystem: Flyway location that breaks in
-			  a container. `dice.database.dir` is overridden in the Dockerfile,
-			  where the root build context lands the folder elsewhere.
+			  source of truth without a filesystem: Flyway location.
 			-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

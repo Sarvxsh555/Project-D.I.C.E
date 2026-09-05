@@ -31,6 +31,6 @@ jobs:
           cache-dependency-path: backend/pom.xml
 
       - name: Build and test
-        # `test` Spring profile runs against in-memory H2, so no Postgres
+        # `test` Spring profile runs against in-memory H2, so no MySQL
         # service container is needed here.
         run: ./mvnw -B verify

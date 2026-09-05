@@ -1,13 +1,13 @@
 # Base configuration. Environment variables win over everything here —
-# see .env.example for the full list and docker-compose.yml for how they map.
+# see .env.example for the full list.
 spring:
   application:
     name: dice-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/dice}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dice?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${SPRING_DATASOURCE_USERNAME:dice}
-    password: ${SPRING_DATASOURCE_PASSWORD:dice}
+    password: ${SPRING_DATASOURCE_PASSWORD:dice_local_pw}
     hikari:
       pool-name: dice-pool
       maximum-pool-size: 10
@@ -23,6 +23,13 @@ spring:
         jdbc:
           time_zone: UTC
         format_sql: true
+        # MySQL has no native UUID column type. Hibernate's default for a
+        # java.util.UUID field there is BINARY(16); every migration in this
+        # port instead uses CHAR(36) (human-readable, matches what Postgres
+        # produced), so tell Hibernate to match rather than rewrite every
+        # @Id field's mapping.
+        type:
+          preferred_uuid_jdbc_type: CHAR
 
   flyway:
     enabled: true
@@ -78,14 +85,14 @@ spring:
     show-sql: true
 
 ---
-# Tests run against an in-memory H2 in PostgreSQL mode, so no container is
-# needed for `mvn test`. Swap for Testcontainers when the SQL gets Postgres-specific.
+# Tests run against an in-memory H2 in MySQL mode, so no local MySQL server is
+# needed for `mvn test`. Swap for Testcontainers when the SQL gets MySQL-specific.
 spring:
   config:
     activate:
       on-profile: test
   datasource:
-    url: jdbc:h2:mem:dice;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    url: jdbc:h2:mem:dice;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
     password: ""

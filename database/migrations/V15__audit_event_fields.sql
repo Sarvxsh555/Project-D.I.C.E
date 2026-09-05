@@ -7,6 +7,6 @@ ALTER TABLE audit_events
     ADD COLUMN new_value TEXT,
     ADD COLUMN reason    TEXT;
 
--- Index for efficient per-entity audit history queries.
-CREATE INDEX IF NOT EXISTS idx_audit_events_aggregate
-    ON audit_events (aggregate_type, aggregate_id, occurred_at DESC);
+-- Index for efficient per-entity audit history queries. Already indexed by
+-- idx_audit_aggregate from V4 with the same column list — this migration is
+-- a no-op on the MySQL port, kept only so the version number isn't skipped.
