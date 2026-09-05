@@ -32,6 +32,7 @@ import java.util.UUID;
 public class DealController {
 
     private final DealService dealService;
+    private final com.dice.service.CoPurchaseRecommendationService recommendationService;
 
     @GetMapping
     public Page<DealSummary> list(@RequestParam(required = false) DealStatus status,
@@ -50,6 +51,12 @@ public class DealController {
     @GetMapping("/{id}/evaluations")
     public List<EvaluationSummary> evaluations(@PathVariable UUID id) {
         return dealService.history(id).stream().map(EvaluationSummary::from).toList();
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public com.dice.domain.RecommendationResult recommendations(@PathVariable UUID id,
+                                                                @RequestParam(defaultValue = "5") int limit) {
+        return recommendationService.recommend(id, limit);
     }
 
     @PostMapping
