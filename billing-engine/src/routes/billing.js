@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireFinance } from '../middleware/auth.js';
 import {
   initializeBilling, changeQuantity, cancelSubscription, runRecurring, addCreditNote, getOrderBilling,
 } from '../services/billingService.js';
@@ -33,11 +34,13 @@ billingRouter.post(
 
 billingRouter.post(
   '/orders/:orderId/run-recurring',
+  requireFinance,
   handle(async (req, res) => res.json(await runRecurring(req.params.orderId)))
 );
 
 billingRouter.post(
   '/orders/:orderId/credit-notes',
+  requireFinance,
   handle(async (req, res) => {
     const { subscriptionId, amount, reason } = req.body;
     if (!amount || !reason) return res.status(400).json({ success: false, message: 'amount and reason are required' });
@@ -47,6 +50,7 @@ billingRouter.post(
 
 billingRouter.post(
   '/subscriptions/:id/change-quantity',
+  requireFinance,
   handle(async (req, res) => {
     const { newQuantity } = req.body;
     if (newQuantity === undefined) return res.status(400).json({ success: false, message: 'newQuantity is required' });
@@ -56,5 +60,6 @@ billingRouter.post(
 
 billingRouter.post(
   '/subscriptions/:id/cancel',
+  requireFinance,
   handle(async (req, res) => res.json(await cancelSubscription(req.params.id, req.body.reason)))
 );

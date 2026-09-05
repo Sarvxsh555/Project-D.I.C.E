@@ -32,6 +32,9 @@ public class User {
 
     private Instant lockedUntil;
 
+    /** Only set for role=CUSTOMER: links this login to a Customer record in quotation-service. */
+    private Long customerId;
+
     public Long getId() {
         return id;
     }
@@ -86,5 +89,13 @@ public class User {
 
     public void setLockedUntil(Instant lockedUntil) {
         this.lockedUntil = lockedUntil;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 }

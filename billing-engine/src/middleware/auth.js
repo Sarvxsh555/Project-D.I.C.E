@@ -19,11 +19,11 @@ export function requireAuth(req, res, next) {
   }
 }
 
-/** "Approval authority" check: only a manager (ADMIN role, same persona used across the
- *  other services) may act on an approval step. */
-export function requireApprover(req, res, next) {
-  if (req.user.role !== 'ADMIN') {
-    return res.status(403).json({ success: false, message: 'You do not have approval authority' });
+/** Billing mutations (proration, cancellation, credit notes, running the recurring cycle)
+ *  are Finance/Operations territory - reps and managers can view, only Finance acts. */
+export function requireFinance(req, res, next) {
+  if (!['FINANCE', 'ADMIN'].includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: 'This action requires Finance authority' });
   }
   next();
 }

@@ -19,11 +19,15 @@ public class UserDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        seed("testuser", "testuser@example.com", "Test@1234", "SALES_REP");
-        seed("admin", "admin@example.com", "Admin@1234", "ADMIN");
+        seed("testuser", "testuser@example.com", "Test@1234", "SALES_REP", null);
+        seed("manager", "manager@example.com", "Manager@1234", "SALES_MANAGER", null);
+        seed("finance", "finance@example.com", "Finance@1234", "FINANCE", null);
+        seed("admin", "admin@example.com", "Admin@1234", "ADMIN", null);
+        // customerId 1 matches "Acme Corp" as seeded in quotation-service's DataSeeder.
+        seed("customer", "customer@example.com", "Customer@1234", "CUSTOMER", 1L);
     }
 
-    private void seed(String username, String email, String password, String role) {
+    private void seed(String username, String email, String password, String role, Long customerId) {
         if (users.existsByUsername(username)) {
             return;
         }
@@ -33,6 +37,7 @@ public class UserDataSeeder implements CommandLineRunner {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setRole(role);
+        user.setCustomerId(customerId);
         users.save(user);
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -28,10 +29,12 @@ public class PortalController {
         User user = userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
 
-        return ResponseEntity.ok(Map.of(
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "role", user.getRole(),
-                "memberSince", user.getCreatedAt().toString()));
+        Map<String, Object> body = new HashMap<>();
+        body.put("username", user.getUsername());
+        body.put("email", user.getEmail());
+        body.put("role", user.getRole());
+        body.put("customerId", user.getCustomerId());
+        body.put("memberSince", user.getCreatedAt().toString());
+        return ResponseEntity.ok(body);
     }
 }

@@ -52,6 +52,10 @@ public class SecurityConfig {
                         // discount ceilings on a caller's behalf without themselves being an admin.
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/admin/discount-rules")
                         .authenticated()
+                        // A3 Discount & chain setup is shared: Admin owns the screen, Sales Manager
+                        // configures the same ceilings and approval-chain mapping.
+                        .requestMatchers("/api/admin/discount-rules/**")
+                        .hasAnyRole("ADMIN", "SALES_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(csrfFilter, UsernamePasswordAuthenticationFilter.class)

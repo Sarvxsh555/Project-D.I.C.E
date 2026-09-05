@@ -43,7 +43,12 @@ public class SecurityConfig {
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(unauthorizedEntryPoint)
                         .accessDeniedHandler(forbiddenAccessDeniedHandler))
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> auth
+                        // Finance/Operations decides the split (accept or override); everyone
+                        // else (rep, manager, admin) can only look at plans, not commit them.
+                        .requestMatchers("/api/fulfillment/plans/*/accept", "/api/fulfillment/plans/*/override")
+                        .hasAnyRole("FINANCE", "ADMIN")
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

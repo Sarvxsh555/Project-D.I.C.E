@@ -148,6 +148,7 @@ export async function approveStep(requestId, user, reason, bearerToken) {
 
   const step = request.steps.find((s) => s.status === 'PENDING');
   if (!step) throw new ApprovalError(409, 'No pending approval step');
+  assertStepAuthority(step, user);
 
   const liveQuote = await fetchQuote(request.quotation_id, bearerToken);
   const liveHash = computeQuoteVersionHash(liveQuote);
@@ -185,6 +186,7 @@ export async function rejectRequest(requestId, user, reason, bearerToken) {
   assertActionable(request);
 
   const step = request.steps.find((s) => s.status === 'PENDING');
+  if (step) assertStepAuthority(step, user);
   await pool.query(`UPDATE approval_request SET status = 'REJECTED', updated_at = now() WHERE id = $1`, [requestId]);
   await pool.query(
     `INSERT INTO approval_decision (approval_request_id, approval_step_id, decided_by, decision, reason, quote_version_hash_at_decision)
@@ -200,6 +202,7 @@ export async function returnRequest(requestId, user, reason, bearerToken) {
   assertActionable(request);
 
   const step = request.steps.find((s) => s.status === 'PENDING');
+  if (step) assertStepAuthority(step, user);
   await pool.query(`UPDATE approval_request SET status = 'RETURNED', updated_at = now() WHERE id = $1`, [requestId]);
   await pool.query(
     `INSERT INTO approval_decision (approval_request_id, approval_step_id, decided_by, decision, reason, quote_version_hash_at_decision)
@@ -208,6 +211,16 @@ export async function returnRequest(requestId, user, reason, bearerToken) {
   );
   await transitionQuote(request.quotation_id, 'DRAFT', bearerToken);
   return getApprovalRequest(requestId);
+}
+
+/** ADMIN is a break-glass override; otherwise the caller's role must match the specific
+ *  step they're trying to act on - a Sales Manager cannot clear the Finance step, and
+ *  vice versa, even though both hold "approval authority" in general. */
+function assertStepAuthority(step, user) {
+  if (user.role === 'ADMIN') return;
+  if (user.role !== step.required_role) {
+    throw new ApprovalError(403, `This step requires ${step.required_role.replace('_', ' ')} authority`);
+  }
 }
 
 function assertActionable(request) {

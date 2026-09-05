@@ -26,12 +26,20 @@ public class JwtService {
     }
 
     public String generateAccessToken(String username, String role) {
+        return generateAccessToken(username, role, null);
+    }
+
+    public String generateAccessToken(String username, String role, Long customerId) {
         Instant now = Instant.now();
         Instant expiry = now.plusSeconds(accessExpirationMinutes * 60);
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
                 .id(UUID.randomUUID().toString())
-                .claim("role", role)
+                .claim("role", role);
+        if (customerId != null) {
+            builder.claim("customerId", customerId);
+        }
+        return builder
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(key)

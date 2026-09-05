@@ -19,10 +19,12 @@ export function requireAuth(req, res, next) {
   }
 }
 
-/** "Approval authority" check: only a manager (ADMIN role, same persona used across the
- *  other services) may act on an approval step. */
+/** Route-level gate: only someone who could plausibly hold approval authority at all may
+ *  call these endpoints. Which *specific* step they can act on (Sales Manager vs Finance)
+ *  is checked separately in approvalService against that step's required_role - ADMIN is a
+ *  break-glass override for both. */
 export function requireApprover(req, res, next) {
-  if (req.user.role !== 'ADMIN') {
+  if (!['ADMIN', 'SALES_MANAGER', 'FINANCE'].includes(req.user.role)) {
     return res.status(403).json({ success: false, message: 'You do not have approval authority' });
   }
   next();
