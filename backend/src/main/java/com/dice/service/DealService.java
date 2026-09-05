@@ -52,6 +52,8 @@ public class DealService {
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
     private final AuditService auditService;
+    private final com.dice.repository.ApprovalSnapshotRepository approvalSnapshotRepository;
+    private final MaterialChangeDetector materialChangeDetector;
 
     // ------------------------------------------------------------------
     // Reads
@@ -174,11 +176,31 @@ public class DealService {
     /**
      * Runs the engines and records the outcome.
      *
+     * <p>Before running engines: detects whether a material quotation change has
+     * occurred relative to the last approved snapshot. If so, pending approvals
+     * are invalidated — a prior approval must not cover a materially different deal.
+     *
      * <p>Idempotent in the sense that re-running produces a fresh evaluation
      * rather than corrupting state — the trail is append-only by design.
      */
     public Deal evaluate(UUID dealId, String triggeredBy, String actor) {
         Deal deal = require(dealId);
+
+        // §13: material-change protection — check before running engines so the
+        // invalidation is audited in the same transaction as the new evaluation.
+        approvalSnapshotRepository.findLatestByDealId(dealId).ifPresent(snapshot -> {
+            MaterialChangeDetector.MaterialChangeResult change =
+                    materialChangeDetector.detect(deal, snapshot);
+            if (change.material()) {
+                log.info("Material change detected for deal {}: {}",
+                        deal.getDealNumber(), change.reason());
+                approvalService.invalidatePriorApprovals(deal, change.reason());
+                auditService.record(
+                        AuditService.DEAL, dealId,
+                        "MATERIAL_CHANGE_DETECTED", actor,
+                        null, null, change.reason());
+            }
+        });
 
         var context = DecisionResolver.Context.of(
                 policyRepository.findByActiveTrueOrderByPriorityAsc(),

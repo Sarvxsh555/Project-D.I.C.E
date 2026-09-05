@@ -398,4 +398,50 @@ public class ApprovalService {
     private String append(String existing, String line) {
         return existing == null || existing.isBlank() ? line : existing + "\n" + line;
     }
+
+    /**
+     * Withdraws all pending sequential-chain approvals for a deal when a material
+     * quotation change has voided the prior commercial state.
+     *
+     * <p>Called by {@link DealService} after it detects a material change against
+     * the last approved snapshot. Audit events are written for each withdrawn
+     * approval so the audit trail explains why the chain was reset.
+     *
+     * @param deal   the deal whose sequential approvals should be invalidated
+     * @param reason human-readable material-change reason for the audit trail
+     */
+    public void invalidatePriorApprovals(Deal deal, String reason) {
+        List<Approval> pending = approvalRepository
+                .findByDealIdAndApprovalLevelIsNotNullOrderByRequestedAtDesc(deal.getId())
+                .stream()
+                .filter(a -> a.getStatus() == ApprovalStatus.PENDING
+                        || a.getStatus() == ApprovalStatus.ESCALATED)
+                .toList();
+
+        if (pending.isEmpty()) {
+            return;
+        }
+
+        for (Approval approval : pending) {
+            approval.setStatus(ApprovalStatus.WITHDRAWN);
+            approval.setDecidedAt(Instant.now());
+            approval.setDecidedBy("system");
+            approval.setReason(
+                    append(approval.getReason(), "Withdrawn — material quotation change: " + reason));
+            approvalRepository.save(approval);
+
+            auditService.record(
+                    AuditService.APPROVAL,
+                    approval.getId(),
+                    AuditService.APPROVAL_INVALIDATED,
+                    "system",
+                    ApprovalStatus.PENDING.name(),
+                    ApprovalStatus.WITHDRAWN.name(),
+                    reason);
+        }
+
+        log.info("Invalidated {} pending approval(s) for deal {} due to material change",
+                pending.size(), deal.getDealNumber());
+    }
 }
+
