@@ -27,13 +27,18 @@ export function removeStoredToken(): void {
   }
 }
 
-export const USE_MOCK_API =
-  import.meta.env.VITE_USE_MOCK_API === 'true' ||
-  !import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_USE_MOCK_API === undefined
+/**
+ * Mocks are opt-in only, never a silent default. The previous version
+ * defaulted to `true` whenever VITE_USE_MOCK_API was simply unset — meaning
+ * a fresh clone with no .env ran entirely on fabricated DICE decisions
+ * (hardcoded margin/risk formulas, a hardcoded discount ceiling) with no
+ * indication anything was wrong. DealFlow360's decisions must come from the
+ * real backend; see docs/decision-contract.md.
+ */
+export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
