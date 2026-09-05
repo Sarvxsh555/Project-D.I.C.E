@@ -86,6 +86,9 @@ public class AuditService {
 
     public static final String DEAL          = "DEAL";
     public static final String APPROVAL      = "APPROVAL";
+    public static final String NEGOTIATION   = "NEGOTIATION";
+    public static final String INVENTORY     = "INVENTORY";
+    public static final String FULFILLMENT   = "FULFILLMENT";
 
     public static final String DISCOUNT_CHANGED  = "DISCOUNT_CHANGED";
     public static final String QUOTATION_EDITED  = "QUOTATION_EDITED";
@@ -93,4 +96,13 @@ public class AuditService {
     public static final String REJECTED          = "REJECTED";
     public static final String RETURNED          = "RETURNED";
     public static final String APPROVAL_INVALIDATED = "APPROVAL_INVALIDATED";
+
+    public static final String COUNTER_OFFER_SUBMITTED   = "COUNTER_OFFER_SUBMITTED";
+    public static final String NEGOTIATION_VERSION_CREATED = "NEGOTIATION_VERSION_CREATED";
+    public static final String NEGOTIATION_MESSAGE_ADDED = "NEGOTIATION_MESSAGE_ADDED";
+    public static final String QUOTATION_CONFIRMED       = "QUOTATION_CONFIRMED";
+    public static final String STOCK_RESERVED            = "STOCK_RESERVED";
+    public static final String STOCK_RELEASED            = "STOCK_RELEASED";
+    public static final String STOCK_FULFILLED           = "STOCK_FULFILLED";
+    public static final String FULFILLMENT_ALLOCATED     = "FULFILLMENT_ALLOCATED";
 }
