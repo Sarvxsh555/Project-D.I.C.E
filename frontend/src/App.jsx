@@ -7,6 +7,14 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Portal from './pages/Portal.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
+import AdminLayout from './pages/admin/AdminLayout.jsx';
+import Products from './pages/admin/Products.jsx';
+import PriceLists from './pages/admin/PriceLists.jsx';
+import DiscountPolicies from './pages/admin/DiscountPolicies.jsx';
+import Warehouses from './pages/admin/Warehouses.jsx';
+import SubscriptionPlans from './pages/admin/SubscriptionPlans.jsx';
+import RecommendationRules from './pages/admin/RecommendationRules.jsx';
+import Analytics from './pages/admin/Analytics.jsx';
 
 function App() {
   return (
@@ -27,6 +35,23 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="products" replace />} />
+            <Route path="products" element={<Products />} />
+            <Route path="price-lists" element={<PriceLists />} />
+            <Route path="discount-policies" element={<DiscountPolicies />} />
+            <Route path="warehouses" element={<Warehouses />} />
+            <Route path="subscription-plans" element={<SubscriptionPlans />} />
+            <Route path="recommendation-rules" element={<RecommendationRules />} />
+            <Route path="analytics" element={<Analytics />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

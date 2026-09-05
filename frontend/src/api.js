@@ -43,4 +43,23 @@ export const api = {
   me: (token) => request('/portal/me', { token }),
 };
 
+export function adminResource(path) {
+  return {
+    list: (token) => request(`/admin/${path}`, { token }),
+    create: (token, body) => request(`/admin/${path}`, { method: 'POST', token, body }),
+    update: (token, id, body) => request(`/admin/${path}/${id}`, { method: 'PUT', token, body }),
+    remove: (token, id) => request(`/admin/${path}/${id}`, { method: 'DELETE', token }),
+  };
+}
+
+export const adminApi = {
+  products: adminResource('products'),
+  priceLists: adminResource('price-lists'),
+  discountRules: adminResource('discount-rules'),
+  warehouses: adminResource('warehouses'),
+  subscriptionPlans: adminResource('subscription-plans'),
+  recommendationRules: adminResource('recommendation-rules'),
+  analyticsSummary: (token) => request('/admin/analytics/summary', { token }),
+};
+
 export { UnauthorizedError };
