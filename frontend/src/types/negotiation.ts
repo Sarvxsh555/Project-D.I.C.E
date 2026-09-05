@@ -27,6 +27,7 @@ export interface NegotiationDetail {
   previousRiskScore: number
   currentRiskScore: number
   decision: 'APPROVAL_REQUIRED' | 'AUTO_APPROVED' | 'REJECTED'
+  totalAmount?: number
 }
 
 export interface PortalQuoteView {
@@ -42,6 +43,7 @@ export interface PortalQuoteView {
   totalAmount: number
   paymentTerms: string
   currentDiscountPercent: number
+  totalDiscountPercent?: number
   status: string
   validUntil: string
 }

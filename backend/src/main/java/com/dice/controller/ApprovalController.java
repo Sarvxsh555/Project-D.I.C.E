@@ -23,6 +23,20 @@ import java.util.UUID;
 public class ApprovalController {
 
     private final ApprovalService approvalService;
+    private final com.dice.repository.ApprovalRepository approvalRepository;
+
+    @GetMapping
+    public List<ApprovalView> list(@RequestParam(required = false) ApprovalStatus status) {
+        if (status != null) {
+            return approvalRepository.findByStatus(status).stream().map(ApprovalView::from).toList();
+        }
+        return approvalRepository.findAll().stream().map(ApprovalView::from).toList();
+    }
+
+    @GetMapping("/{id}")
+    public ApprovalView get(@PathVariable UUID id) {
+        return ApprovalView.from(approvalService.require(id));
+    }
 
     /** Everything waiting on the caller's role. */
     @GetMapping("/pending")
@@ -60,11 +74,11 @@ public class ApprovalController {
     }
 
     /** Sends the quotation back to the rep for revision instead of clearing or refusing it. */
-    @PostMapping("/{id}/return")
+    @PostMapping({"/{id}/return", "/{id}/request-changes"})
     @PreAuthorize("hasAnyRole('SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN')")
     public ApprovalView returnForRevision(@PathVariable UUID id,
-                                         @Valid @RequestBody ReasonRequest request,
-                                         Authentication authentication) {
+                                          @Valid @RequestBody ReasonRequest request,
+                                          Authentication authentication) {
         return ApprovalView.from(approvalService.returnForRevision(id,
                 highestRoleOf(authentication),
                 DealController.actorOf(authentication),
@@ -74,11 +88,12 @@ public class ApprovalController {
     @PostMapping("/{id}/escalate")
     @PreAuthorize("hasAnyRole('SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN')")
     public ApprovalView escalate(@PathVariable UUID id,
-                                 @RequestBody(required = false) DecisionRequest request,
+                                 @RequestBody(required = false) ReasonRequest request,
                                  Authentication authentication) {
-        return ApprovalView.from(approvalService.escalate(id,
-                DealController.actorOf(authentication),
-                request == null ? null : request.comment()));
+        com.dice.domain.Approval app = approvalService.require(id);
+        app.setRequiredRole(Role.ADMIN.name());
+        app.setReason(request != null && request.reason() != null ? request.reason() : "Escalated to Executive Admin");
+        return ApprovalView.from(approvalRepository.save(app));
     }
 
     /**

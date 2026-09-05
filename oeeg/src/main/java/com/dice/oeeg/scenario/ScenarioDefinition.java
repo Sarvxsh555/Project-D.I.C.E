@@ -38,7 +38,7 @@ public record ScenarioDefinition(
 
     /**
      * @param customerName must match an active customer's name exactly (see
-     *                      database/seed/customers.sql)
+     *                      database/mysql/seed.sql)
      * @param lines         one or more {@code {sku, quantity}} entries
      */
     public record Setup(String customerName, List<SetupLine> lines) {

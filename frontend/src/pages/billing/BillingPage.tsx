@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useState, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
@@ -11,12 +11,16 @@ import type { Subscription, HybridBillingDetail } from '../../types/billing'
 import { FileText, Plus, CheckCircle2 } from 'lucide-react'
 
 export default function BillingPage() {
+  const [searchParams] = useSearchParams()
+  const dealId = searchParams.get('id') || 'd1'
+
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [hybridBilling, setHybridBilling] = useState<HybridBillingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedSuccess, setGeneratedSuccess] = useState(false)
+  const [lastInvoiceNumber, setLastInvoiceNumber] = useState('')
 
   const loadData = async () => {
     setLoading(true)
@@ -24,7 +28,7 @@ export default function BillingPage() {
     try {
       const [subsRes, billingRes] = await Promise.all([
         billingService.listSubscriptions(),
-        billingService.get('d-1042'),
+        billingService.get(dealId),
       ])
       setSubscriptions(subsRes)
       setHybridBilling(billingRes)
@@ -37,15 +41,17 @@ export default function BillingPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [dealId])
 
   const handleGenerateInvoice = async () => {
     if (!hybridBilling) return
     setIsGenerating(true)
     try {
-      await billingService.generateInvoice(hybridBilling.dealId)
+      const inv = await billingService.generateInvoice(hybridBilling.dealId)
+      setLastInvoiceNumber(inv?.invoiceNumber || 'INV-NEW')
       setGeneratedSuccess(true)
-      setTimeout(() => setGeneratedSuccess(false), 4000)
+      setTimeout(() => setGeneratedSuccess(false), 5000)
+      loadData()
     } catch (err) {
       console.error(err)
     } finally {
@@ -71,7 +77,7 @@ export default function BillingPage() {
               Billing & Invoicing Schedules
             </h1>
             <Badge variant="info" size="sm">
-              Q-1042 — Acme Corporation
+              {hybridBilling.dealNumber} — {hybridBilling.customerName}
             </Badge>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -91,7 +97,7 @@ export default function BillingPage() {
             size="sm"
             disabled={isGenerating}
             onClick={handleGenerateInvoice}
-            className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center gap-1.5"
+            className="bg-slate-900 hover:bg-slate-800 text-xs flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{isGenerating ? 'Generating...' : 'Release Next Milestone Invoice'}</span>
@@ -102,7 +108,7 @@ export default function BillingPage() {
       {generatedSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>Milestone invoice dispatched successfully to accounts receivable! Ref: <strong>INV-2026-004</strong>.</span>
+          <span>Milestone invoice dispatched successfully for <strong>{hybridBilling.dealNumber}</strong>! Ref: <strong>{lastInvoiceNumber || 'INV-NEW'}</strong>.</span>
         </div>
       )}
 
@@ -114,7 +120,7 @@ export default function BillingPage() {
         </div>
         <div className="p-3">
           <span className="text-[10px] uppercase font-semibold text-slate-400 block">Quotation</span>
-          <strong className="text-[#5E2A52] font-mono block mt-0.5">{hybridBilling.dealNumber}</strong>
+          <strong className="text-blue-600 font-mono block mt-0.5">{hybridBilling.dealNumber}</strong>
         </div>
         <div className="p-3">
           <span className="text-[10px] uppercase font-semibold text-slate-400 block">Billing Type</span>
@@ -133,7 +139,7 @@ export default function BillingPage() {
           <span className="font-mono text-slate-600 block mt-0.5">{formatCurrency(hybridBilling.taxAmount || 66203)}</span>
         </div>
         <div className="p-3 bg-slate-50/60">
-          <span className="text-[10px] uppercase font-semibold text-[#5E2A52] block">Total Contract</span>
+          <span className="text-[10px] uppercase font-semibold text-slate-900 block">Total Contract</span>
           <span className="font-mono font-bold text-slate-900 block mt-0.5 text-sm">{formatCurrency(hybridBilling.netTotal || 434000)}</span>
         </div>
       </div>
@@ -164,61 +170,51 @@ export default function BillingPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-mono text-slate-400">01</TableCell>
-              <TableCell className="font-medium text-slate-900">
-                Project Kickoff & Advance Commitment (50%)
-              </TableCell>
-              <TableCell className="text-slate-600">
-                Customer signing of proposal Q-1042
-              </TableCell>
-              <TableCell className="font-mono text-slate-700">Immediate</TableCell>
-              <TableCell align="right">₹1,83,898</TableCell>
-              <TableCell align="right" className="text-slate-500">₹33,102</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">₹2,17,000</TableCell>
-              <TableCell>
-                <Badge variant="success" size="sm">Paid</Badge>
-              </TableCell>
-              <TableCell className="font-mono text-[#5E2A52]">
-                <Link to="/invoices?id=inv-1001" className="hover:underline">INV-2026-001</Link>
-              </TableCell>
-            </TableRow>
-
-            <TableRow>
-              <TableCell className="font-mono text-slate-400">02</TableCell>
-              <TableCell className="font-medium text-slate-900">
-                Core Platform Handover & Acceptance (50%)
-              </TableCell>
-              <TableCell className="text-slate-600">
-                Delivery receipt from WH-A depot
-              </TableCell>
-              <TableCell className="font-mono text-slate-700">Net-15 Days</TableCell>
-              <TableCell align="right">₹1,83,898</TableCell>
-              <TableCell align="right" className="text-slate-500">₹33,102</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">₹2,17,000</TableCell>
-              <TableCell>
-                <Badge variant="warning" size="sm">Pending Signoff</Badge>
-              </TableCell>
-              <TableCell className="font-mono text-slate-400">Draft</TableCell>
-            </TableRow>
-
-            <TableRow>
-              <TableCell className="font-mono text-slate-400">03</TableCell>
-              <TableCell className="font-medium text-slate-900">
-                Priority Technical Support (Month 1 Recurring)
-              </TableCell>
-              <TableCell className="text-slate-600">
-                Monthly service cycle commencement
-              </TableCell>
-              <TableCell className="font-mono text-slate-700">Apr 01, 2026</TableCell>
-              <TableCell align="right">₹15,254</TableCell>
-              <TableCell align="right" className="text-slate-500">₹2,746</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">₹18,000</TableCell>
-              <TableCell>
-                <Badge variant="neutral" size="sm">Scheduled</Badge>
-              </TableCell>
-              <TableCell className="font-mono text-slate-400">—</TableCell>
-            </TableRow>
+            {hybridBilling.timeline && hybridBilling.timeline.length > 0 ? (
+              hybridBilling.timeline.map((item, idx) => {
+                const baseAmount = Math.round(item.amount / 1.18)
+                const taxAmount = item.amount - baseAmount
+                return (
+                  <TableRow key={item.id || idx}>
+                    <TableCell className="font-mono text-slate-400">
+                      {String(idx + 1).padStart(2, '0')}
+                    </TableCell>
+                    <TableCell className="font-medium text-slate-900">
+                      {item.description}
+                    </TableCell>
+                    <TableCell className="text-slate-600 text-xs">
+                      {item.chargeType === 'ONE_TIME' ? `Milestone delivery signoff for ${hybridBilling.dealNumber}` : 'Monthly recurring service billing cycle'}
+                    </TableCell>
+                    <TableCell className="font-mono text-slate-700">
+                      {item.date || 'Immediate'}
+                    </TableCell>
+                    <TableCell align="right">{formatCurrency(baseAmount)}</TableCell>
+                    <TableCell align="right" className="text-slate-500">{formatCurrency(taxAmount)}</TableCell>
+                    <TableCell align="right" className="font-bold text-slate-900">{formatCurrency(item.amount)}</TableCell>
+                    <TableCell>
+                      <Badge variant={item.status === 'PAID' ? 'success' : item.status === 'INVOICED' ? 'warning' : 'neutral'} size="sm">
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-slate-900">
+                      {item.status === 'PAID' ? (
+                        <Link to="/invoices" className="hover:underline">INV-PAID</Link>
+                      ) : item.status === 'INVOICED' ? (
+                        <Link to="/invoices" className="hover:underline">INV-ISSUED</Link>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center text-xs text-slate-500 py-6">
+                  No billing milestones scheduled for this quotation.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -244,7 +240,7 @@ export default function BillingPage() {
           <TableBody>
             {subscriptions.map((sub) => (
               <TableRow key={sub.id}>
-                <TableCell className="font-mono font-semibold text-[#5E2A52]">
+                <TableCell className="font-mono font-semibold text-slate-900">
                   {sub.id}
                 </TableCell>
                 <TableCell className="font-medium text-slate-900">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -153,13 +153,13 @@ export default function InvoicesPage() {
                 {activeInvoice.invoiceNumber}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Client: <strong className="text-slate-900">{activeInvoice.customerName}</strong> • Quotation: <strong className="font-mono text-[#5E2A52]">{activeInvoice.dealNumber}</strong>
+                Client: <strong className="text-slate-900">{activeInvoice.customerName}</strong> • Quotation: <strong className="font-mono text-slate-900">{activeInvoice.dealNumber}</strong>
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               {activeInvoice.status === 'DRAFT' && (
-                <Button variant="primary" size="sm" onClick={handleIssue} className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs">
+                <Button variant="primary" size="sm" onClick={handleIssue} className="bg-slate-900 hover:bg-slate-800 text-xs">
                   Issue Invoice
                 </Button>
               )}
@@ -330,7 +330,7 @@ export default function InvoicesPage() {
                   <button
                     type="button"
                     onClick={() => setSearchParams({ id: inv.id })}
-                    className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
+                    className="font-mono font-semibold text-blue-600 hover:underline cursor-pointer text-left"
                   >
                     {inv.invoiceNumber}
                   </button>

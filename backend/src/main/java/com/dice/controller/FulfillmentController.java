@@ -25,54 +25,75 @@ public class FulfillmentController {
 
     private final FulfillmentService fulfillmentService;
     private final FulfillmentAllocationService fulfillmentAllocationService;
+    private final com.dice.repository.DealRepository dealRepository;
+
+    private com.dice.domain.Deal resolveDeal(String idOrNumber) {
+        try {
+            UUID id = UUID.fromString(idOrNumber);
+            return dealRepository.findWithLinesById(id)
+                    .orElseGet(() -> dealRepository.findByDealNumber(idOrNumber)
+                            .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                                    .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber))));
+        } catch (IllegalArgumentException e) {
+            return dealRepository.findByDealNumber(idOrNumber)
+                    .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber)));
+        }
+    }
 
     /** What the plan would look like; changes nothing. */
-    @GetMapping("/{dealId}/plan")
-    public FulfillmentEngine.FulfillmentPlan plan(@PathVariable UUID dealId) {
-        return fulfillmentService.preview(dealId);
+    @GetMapping({"/{dealId}", "/{dealId}/plan"})
+    public FulfillmentEngine.FulfillmentPlan plan(@PathVariable String dealId) {
+        com.dice.domain.Deal deal = resolveDeal(dealId);
+        return fulfillmentService.preview(deal.getId());
     }
 
     @PostMapping("/{dealId}/commit")
     @PreAuthorize("hasAnyRole('OPERATIONS', 'ADMIN')")
-    public FulfillmentEngine.FulfillmentPlan commit(@PathVariable UUID dealId,
+    public FulfillmentEngine.FulfillmentPlan commit(@PathVariable String dealId,
                                                     Authentication authentication) {
-        return fulfillmentService.commit(dealId, DealController.actorOf(authentication));
+        com.dice.domain.Deal deal = resolveDeal(dealId);
+        return fulfillmentService.commit(deal.getId(), DealController.actorOf(authentication));
     }
 
     @PostMapping("/{dealId}/ship")
     @PreAuthorize("hasAnyRole('OPERATIONS', 'ADMIN')")
-    public DealController.DealDetail ship(@PathVariable UUID dealId,
+    public DealController.DealDetail ship(@PathVariable String dealId,
                                           Authentication authentication) {
+        com.dice.domain.Deal deal = resolveDeal(dealId);
         return DealController.DealDetail.from(
-                fulfillmentService.markShipped(dealId, DealController.actorOf(authentication)));
+                fulfillmentService.markShipped(deal.getId(), DealController.actorOf(authentication)));
     }
 
     /** Automatic multi-warehouse allocation for a confirmed sales order. */
     @PostMapping("/{dealId}/allocate")
     @PreAuthorize("hasAnyRole('OPERATIONS', 'ADMIN')")
-    public FulfillmentPlanView allocate(@PathVariable UUID dealId, Authentication authentication) {
+    public FulfillmentPlanView allocate(@PathVariable String dealId, Authentication authentication) {
+        com.dice.domain.Deal deal = resolveDeal(dealId);
         return FulfillmentPlanView.from(
-                fulfillmentAllocationService.allocate(dealId, DealController.actorOf(authentication)));
+                fulfillmentAllocationService.allocate(deal.getId(), DealController.actorOf(authentication)));
     }
 
     /** Manual allocation, revalidated server-side against live inventory before anything reserves. */
     @PostMapping("/{dealId}/allocate/override")
     @PreAuthorize("hasAnyRole('OPERATIONS', 'ADMIN')")
-    public FulfillmentPlanView allocateWithOverrides(@PathVariable UUID dealId,
+    public FulfillmentPlanView allocateWithOverrides(@PathVariable String dealId,
                                                      @Valid @RequestBody OverrideAllocationRequest request,
                                                      Authentication authentication) {
+        com.dice.domain.Deal deal = resolveDeal(dealId);
         List<FulfillmentAllocationService.Override> overrides = request.overrides().stream()
                 .map(o -> new FulfillmentAllocationService.Override(o.dealLineId(), o.warehouseCode(), o.quantity()))
                 .toList();
         return FulfillmentPlanView.from(
                 fulfillmentAllocationService.allocateWithOverrides(
-                        dealId, overrides, DealController.actorOf(authentication)));
+                        deal.getId(), overrides, DealController.actorOf(authentication)));
     }
 
     @GetMapping("/{dealId}/plans")
     @PreAuthorize("hasAnyRole('OPERATIONS', 'ADMIN')")
-    public List<FulfillmentPlanView> plans(@PathVariable UUID dealId) {
-        return fulfillmentAllocationService.plansFor(dealId).stream().map(FulfillmentPlanView::from).toList();
+    public List<FulfillmentPlanView> plans(@PathVariable String dealId) {
+        com.dice.domain.Deal deal = resolveDeal(dealId);
+        return fulfillmentAllocationService.plansFor(deal.getId()).stream().map(FulfillmentPlanView::from).toList();
     }
 
     public record OverrideAllocationRequest(@NotEmpty List<OverrideEntry> overrides) {

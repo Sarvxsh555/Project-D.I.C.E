@@ -122,7 +122,7 @@ re-evaluation. If material:
   the invalidated-snapshot fact is appended to the rationale instead of
   layering a second approval requirement on top.
 
-**Verified live** against real Postgres, through the real API, no mocks: a
+**Verified live** against real MySQL, through the real API, no mocks: a
 deal discounted to 25% (`REQUIRE_APPROVAL`, `GLOBAL_DISCOUNT_CAP`) was approved
 by `sales_manager`, capturing a snapshot ($750 total, 20% margin, risk 12).
 Dropping the discount to 5% — which alone would cleanly `AUTO_APPROVE` — was
@@ -145,7 +145,7 @@ working end to end.
   [`LazyInitializationException` on `/api/approvals/pending` and
   `/api/approvals/deal/{id}`](https://github.com/Sarvxsh555/Project-D.I.C.E/issues/1)
   — a pre-existing bug, unrelated to this change, that blocked testing until
-  worked around by querying Postgres directly for the approval id.
+  worked around by querying MySQL directly for the approval id.
 
 ## `nextAction` / `reasons` — currently free text
 

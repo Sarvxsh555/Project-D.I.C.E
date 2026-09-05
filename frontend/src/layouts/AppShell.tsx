@@ -1,11 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, ExternalLink, UserCheck, Shield, Bell } from 'lucide-react'
+import { LogOut, Shield, ShieldCheck, Lock, Bell } from 'lucide-react'
 import { TOP_NAV_ITEMS } from '../constants/navigation'
-import { DEMO_ACCOUNTS } from '../constants/roles'
 import { useAuth } from '../hooks/useAuth'
 import { STAKEHOLDER_DEFINITIONS } from '../types/auth'
-import type { Role } from '../types/auth'
 import { cn } from '../utils/cn'
 import { Dropdown } from '../components/ui/Dropdown'
 import { Badge } from '../components/ui/Badge'
@@ -17,8 +15,9 @@ export interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { currentUser, switchRole, logout, getDefaultDashboard } = useAuth()
+  const { currentUser, logout, getDefaultDashboard } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
 
   const currentStakeholder = STAKEHOLDER_DEFINITIONS[currentUser.role] || STAKEHOLDER_DEFINITIONS.SALES_REP
   const allowedRoutes = currentStakeholder.allowedRoutes || ['/']
@@ -38,54 +37,43 @@ export function AppShell({ children }: AppShellProps) {
     return location.pathname.startsWith(href)
   }
 
-  const handleRoleSwitch = (role: Role) => {
-    switchRole(role)
-    const newDef = STAKEHOLDER_DEFINITIONS[role]
-    const isStillAllowed = newDef.allowedRoutes.some((r) =>
-      r === '/' ? location.pathname === '/' || location.pathname === '/dashboard' : location.pathname.startsWith(r)
-    )
-    if (!isStillAllowed) {
-      navigate(newDef.defaultDashboard)
-    }
-  }
-
   const roleDropdownItems = [
-    // Stakeholder quick switches
-    ...DEMO_ACCOUNTS.map((acc) => {
-      const def = STAKEHOLDER_DEFINITIONS[acc.role]
-      const isActive = currentUser.role === acc.role
-      return {
-        id: `switch-${acc.username}`,
-        icon: <UserCheck className={cn('w-3.5 h-3.5', isActive ? 'text-[#714B67]' : 'text-slate-400')} />,
-        label: (
-          <div className="flex items-center justify-between w-full pr-1">
-            <span className={cn('text-xs', isActive ? 'font-bold text-[#714B67]' : 'text-slate-700')}>
-              {def?.title || acc.role}
-            </span>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#714B67]" />}
-          </div>
-        ),
-        onClick: () => handleRoleSwitch(acc.role),
-      }
-    }),
-    // External customer portal preview
+    // Current Workspace Status (Strictly Locked)
     {
-      id: 'open-portal',
-      icon: <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />,
+      id: 'current-workspace',
+      icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />,
       label: (
-        <span className="text-xs font-medium text-emerald-700">
-          Open Customer Portal
+        <div className="flex flex-col py-0.5">
+          <span className="text-xs font-bold text-slate-900 leading-tight">
+            {currentStakeholder.title}
+          </span>
+          <span className="text-[10px] text-emerald-600 font-mono font-semibold">
+            Strict Workspace Lock • Active
+          </span>
+        </div>
+      ),
+      onClick: () => {},
+      disabled: true,
+    },
+    // Cross-Dashboard Mapping Policy
+    {
+      id: 'isolation-policy',
+      icon: <Lock className="w-3.5 h-3.5 text-slate-400" />,
+      label: (
+        <span className="text-[11px] text-slate-500 font-mono">
+          Cross-Role Mapping: Disabled
         </span>
       ),
-      onClick: () => navigate('/portal'),
+      onClick: () => {},
+      disabled: true,
     },
-    // Sign In / Switch Account
+    // Switch Account / Login with different credentials
     {
       id: 'sign-in-screen',
       icon: <Shield className="w-3.5 h-3.5 text-slate-500" />,
       label: (
         <span className="text-xs text-slate-700">
-          Switch Account / Login
+          Switch Clearance Account
         </span>
       ),
       onClick: () => navigate('/login'),
@@ -107,30 +95,39 @@ export function AppShell({ children }: AppShellProps) {
     },
   ]
 
+
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col text-slate-900 antialiased">
-      {/* Top Navigation Bar - Visually quiet enterprise shell */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-slate-200 shadow-2xs">
+    <div className="min-h-screen bg-slate-50/80 bg-grid-pattern-light flex flex-col text-slate-900 antialiased font-sans">
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-slate-200/90 shadow-2xs">
+        <div className="h-0.5 bg-slate-900 w-full" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             {/* Left: Brand & Navigation */}
-            <div className="flex items-center gap-7">
+            <div className="flex items-center gap-6">
               {/* Brand Logo */}
               <Link
                 to={getDefaultDashboard(currentUser.role)}
-                className="flex items-center gap-2 focus:outline-none group py-1"
-                title="Odoo X D.I.C.E. Home"
+                className="flex items-center gap-2.5 focus:outline-none group py-1"
+                title="D.I.C.E. Enterprise Commercial OS"
               >
-                <div className="flex items-center font-bold text-sm tracking-tight text-slate-900">
-                  <span className="px-2.5 py-1 rounded bg-[#714B67] text-white font-semibold text-xs tracking-wide shadow-2xs group-hover:bg-[#5e3d55] transition-colors">
-                    odoo
-                  </span>
-                  <span className="mx-2 text-slate-300 font-light text-sm">×</span>
-                  <span className="font-extrabold tracking-wider text-slate-900 font-mono text-xs">
-                    D.I.C.E.
-                  </span>
+                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-mono font-bold text-xs shadow-xs group-hover:bg-slate-800 transition-colors">
+                  D
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-sm tracking-tight text-slate-900 font-mono">
+                      D.I.C.E.
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                      ENTERPRISE
+                    </span>
+                  </div>
                 </div>
               </Link>
+
+              <div className="h-5 w-px bg-slate-200 hidden lg:block" />
 
               {/* Desktop Nav Items */}
               <nav className="hidden lg:flex items-center space-x-1" aria-label="Main Navigation">
@@ -143,16 +140,13 @@ export function AppShell({ children }: AppShellProps) {
                       className={cn(
                         'relative px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5',
                         active
-                          ? 'text-[#714B67] bg-[#FAF5F9] font-semibold ring-1 ring-[#714B67]/15'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                          ? 'text-slate-900 bg-slate-100 font-semibold ring-1 ring-slate-200/80 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       )}
                     >
                       <span>{item.name}</span>
                       {item.badgeKey === 'pendingApprovals' && (
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 ring-2 ring-white" />
-                      )}
-                      {active && (
-                        <span className="absolute -bottom-[11px] inset-x-3 h-0.5 bg-[#714B67]" />
                       )}
                     </Link>
                   )
@@ -161,7 +155,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
 
             {/* Right: Notifications, Active Stakeholder Badge & User Profile */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {/* Notifications */}
               <button
                 type="button"
@@ -188,7 +182,7 @@ export function AppShell({ children }: AppShellProps) {
                     type="button"
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-xs text-left cursor-pointer shadow-2xs"
                   >
-                    <div className="w-5 h-5 rounded bg-[#FAF5F9] border border-[#E8D4E3] text-[#714B67] flex items-center justify-center font-bold text-[10px]">
+                    <div className="w-5 h-5 rounded bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-bold text-[10px]">
                       {currentUser.name.charAt(0)}
                     </div>
                     <div className="hidden sm:flex flex-col">
@@ -242,7 +236,7 @@ export function AppShell({ children }: AppShellProps) {
                   className={cn(
                     'block px-3 py-2 rounded-md text-xs font-medium transition-colors',
                     active
-                      ? 'bg-[#FAF5F9] text-[#714B67] font-semibold'
+                      ? 'bg-slate-100 text-slate-900 font-semibold'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   )}
                 >
@@ -255,25 +249,24 @@ export function AppShell({ children }: AppShellProps) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-7">
         {children}
       </main>
 
       {/* Enterprise Subtle Footer */}
-      <footer className="bg-white border-t border-slate-200 py-3 text-center text-[11px] text-slate-400">
+      <footer className="bg-white/95 backdrop-blur-xs border-t border-slate-200/90 py-3 text-center text-[11px] text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">Odoo X D.I.C.E.</span>
-            <span>•</span>
-            <span>Commercial Policy & Governance Engine</span>
+            <span className="font-semibold text-slate-700">D.I.C.E. Enterprise</span>
+            <span className="text-slate-300">•</span>
+            <span>Commercial Operating System & Governance Engine</span>
           </div>
-          <span className="flex items-center gap-1.5 font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Decision Engine Online • Active: {currentStakeholder.title} ({currentUser.username})
+          <span className="flex items-center gap-1.5 font-mono text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Decision Engine Active • MySQL 8.4 • {currentStakeholder.title} ({currentUser.username})
           </span>
         </div>
       </footer>
     </div>
   )
 }
-

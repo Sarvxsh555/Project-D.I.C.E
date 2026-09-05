@@ -65,7 +65,7 @@ export function App() {
           <Route
             path="/"
             element={
-              <RequireRole allowedRoles={['SALES_REP', 'SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN']}>
+              <RequireRole allowedRoles={['SALES_REP', 'SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN', 'CUSTOMER']}>
                 <DashboardPage />
               </RequireRole>
             }
@@ -73,7 +73,7 @@ export function App() {
           <Route
             path="/dashboard"
             element={
-              <RequireRole allowedRoles={['SALES_REP', 'SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN']}>
+              <RequireRole allowedRoles={['SALES_REP', 'SALES_MANAGER', 'FINANCE', 'OPERATIONS', 'ADMIN', 'CUSTOMER']}>
                 <DashboardPage />
               </RequireRole>
             }

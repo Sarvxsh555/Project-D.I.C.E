@@ -19,7 +19,7 @@ import java.util.UUID;
  * not Odoo — is what originates deals in the current architecture (see
  * docs/event-contracts.md, "Open question: quote origination"). Creating one
  * through the real, authenticated API is the honest way to get there — the
- * alternative was reaching into Postgres directly, which is worse. Once
+ * alternative was reaching into MySQL directly, which is worse. Once
  * quote origination is resolved, this may become unnecessary.
  */
 @Component
@@ -67,7 +67,7 @@ public class DiceApiClient {
                 .findFirst()
                 .map(c -> UUID.fromString((String) c.get("id")))
                 .orElseThrow(() -> new IllegalStateException(
-                        "No active customer named '%s' — check database/seed/customers.sql".formatted(name)));
+                        "No active customer named '%s' — check database/mysql/seed.sql".formatted(name)));
     }
 
     /** @throws IllegalStateException if no active product matches {@code sku} */
@@ -84,7 +84,7 @@ public class DiceApiClient {
                 .findFirst()
                 .map(p -> UUID.fromString((String) p.get("id")))
                 .orElseThrow(() -> new IllegalStateException(
-                        "No active product with SKU '%s' — check database/seed/products.sql".formatted(sku)));
+                        "No active product with SKU '%s' — check database/mysql/seed.sql".formatted(sku)));
     }
 
     /** @return the created deal's id */

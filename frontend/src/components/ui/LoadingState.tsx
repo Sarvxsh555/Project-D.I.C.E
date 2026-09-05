@@ -1,4 +1,4 @@
-import { cn } from '../../utils/cn'
+﻿import { cn } from '../../utils/cn'
 
 export interface LoadingStateProps {
   message?: string
@@ -15,7 +15,7 @@ export function LoadingState({
     <div className={cn('p-6 bg-white rounded-lg border border-slate-200 space-y-3', className)}>
       <div className="flex items-center gap-3 text-slate-500 text-xs font-medium pb-2 border-b border-slate-100">
         <svg
-          className="animate-spin h-4 w-4 text-[#5E2A52]"
+          className="animate-spin h-4 w-4 text-slate-900"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"

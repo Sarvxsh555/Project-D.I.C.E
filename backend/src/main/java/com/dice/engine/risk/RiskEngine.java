@@ -43,7 +43,7 @@ public class RiskEngine {
         factors.add(discountPressure(deal));
 
         int score = factors.stream().mapToInt(Factor::points).sum();
-        score = Math.clamp(score, 0, 100);
+        score = Math.max(0, Math.min(score, 100));
 
         return new RiskAssessment(score, levelFor(score), List.copyOf(factors));
     }

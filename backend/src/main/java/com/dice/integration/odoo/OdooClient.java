@@ -48,7 +48,7 @@ public class OdooClient {
                 .filter(result -> result instanceof List<?> list && !list.isEmpty())
                 .map(result -> {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> first = (Map<String, Object>) ((List<?>) result).getFirst();
+                    Map<String, Object> first = (Map<String, Object>) ((List<?>) result).get(0);
                     return first;
                 });
     }

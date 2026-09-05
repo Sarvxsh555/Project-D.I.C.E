@@ -16,8 +16,8 @@ The backend seeds one in-memory user per role (see `SecurityConfig.userDetailsSe
 ## Running a scenario (verified working, 2026-09-05)
 
 ```bash
-# 1. Bring up Postgres + backend (dev profile seeds customers/products/policies)
-docker compose up -d postgres backend
+# 1. Bring up MySQL + backend (dev profile seeds customers/products/policies)
+docker compose up -d mysql backend
 
 # 2. Run a scenario — it creates its own deal via the real API, no manual setup needed
 cd oeeg
@@ -39,7 +39,7 @@ Each scenario logs which deal it created (`DICE-00000N`) — look it up via
 ## Full walkthrough: discount escalation → approval → material change → reapproval
 
 This is the brief's core example, and the one actually verified end-to-end
-against real Postgres (see docs/decision-contract.md, "Approval snapshot /
+against real MySQL (see docs/decision-contract.md, "Approval snapshot /
 reapproval"). Steps 1–2 are automated by OEEG; 3 onward are manual because
 granting an approval is a DICE-internal decision — not something OEEG, an
 *external*-event simulator, should ever simulate (see docs/event-contracts.md's

@@ -7,8 +7,10 @@ export type DealStatus =
   | 'REJECTED'
   | 'CUSTOMER_REVIEW'
   | 'NEGOTIATION'
+  | 'IN_NEGOTIATION'
   | 'COMMITTED'
   | 'CONFIRMED'
+  | 'FULFILLING'
   | 'FULFILLED'
   | 'INVOICED'
   | 'PAID'
@@ -54,11 +56,12 @@ export interface DealSummary {
   createdAt: string
   portalToken?: string
   healthScore?: number
+  totalDiscountPercent?: number
 }
 
 export interface DealDetail extends DealSummary {
   customerId: string
-  customerTier: 'Bronze' | 'Silver' | 'Gold'
+  customerTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
   paymentTerms: string
   subtotal: number
   discountAmount: number

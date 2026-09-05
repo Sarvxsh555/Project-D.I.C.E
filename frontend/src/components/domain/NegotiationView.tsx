@@ -1,4 +1,4 @@
-import { Badge } from '../ui/Badge'
+﻿import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { formatCurrency, formatPercent } from '../../utils/currency'
 import type { NegotiationDetail } from '../../types/negotiation'
@@ -56,8 +56,8 @@ export function NegotiationView({
         </div>
 
         {/* DICE DECISION Re-Evaluation Impact */}
-        <div className="bg-white border border-slate-200 border-l-4 border-l-[#5E2A52] rounded p-3.5">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#5E2A52] block mb-1">
+        <div className="bg-white border border-slate-200 border-l-4 border-l-slate-900 rounded p-3.5">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-900 block mb-1">
             DICE DECISION — Re-Evaluation
           </span>
           <div className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
@@ -88,7 +88,7 @@ export function NegotiationView({
             </Button>
           )}
           {onAccept && (
-            <Button variant="primary" size="sm" onClick={onAccept} className="bg-[#5E2A52] hover:bg-[#4d2243] rounded text-xs py-1 px-3">
+            <Button variant="primary" size="sm" onClick={onAccept} className="bg-slate-900 hover:bg-slate-800 rounded text-xs py-1 px-3">
               Accept & Route for Approval
             </Button>
           )}
@@ -121,7 +121,7 @@ export function NegotiationView({
             <tbody className="divide-y divide-slate-100">
               {negotiation.history.map((record) => (
                 <tr key={record.version} className="hover:bg-slate-50/50">
-                  <td className="py-2 px-3 font-mono font-bold text-[#5E2A52]">
+                  <td className="py-2 px-3 font-mono font-semibold text-blue-600">
                     v{record.version}
                   </td>
                   <td className="py-2 px-3 font-medium text-slate-900">{record.actor}</td>

@@ -50,6 +50,19 @@ public class AuditController {
                 .stream().map(AuditView::from).toList();
     }
 
+    @GetMapping("/{entityType}/{entityId}")
+    public List<AuditView> forEntity(@PathVariable String entityType, @PathVariable String entityId) {
+        try {
+            UUID id = UUID.fromString(entityId);
+            return auditEventRepository
+                    .findByAggregateTypeAndAggregateIdOrderByOccurredAtDesc(entityType.toUpperCase(), id)
+                    .stream().map(AuditView::from).toList();
+        } catch (IllegalArgumentException ex) {
+            return auditEventRepository.findTop50ByOrderByOccurredAtDesc()
+                    .stream().map(AuditView::from).toList();
+        }
+    }
+
     // ------------------------------------------------------------------
     // Wire formats
     // ------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Drawer } from '../ui/Drawer'
 import { Button } from '../ui/Button'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -100,7 +100,7 @@ export function DiceSimulationDrawer({
                 <label className="font-semibold text-slate-800">
                   Target Service Discount:
                 </label>
-                <span className="font-bold text-[#5E2A52] font-mono text-sm">
+                <span className="font-bold text-blue-600 font-mono text-sm">
                   {simDiscount}%
                 </span>
               </div>
@@ -111,7 +111,7 @@ export function DiceSimulationDrawer({
                 step={1}
                 value={simDiscount}
                 onChange={(e) => setSimDiscount(parseInt(e.target.value))}
-                className="w-full accent-[#5E2A52] cursor-pointer"
+                className="w-full accent-slate-900 cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                 <span>0% (Standard)</span>
@@ -132,7 +132,7 @@ export function DiceSimulationDrawer({
                   max={100}
                   value={simQuantity}
                   onChange={(e) => setSimQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
                 />
               </div>
 
@@ -143,7 +143,7 @@ export function DiceSimulationDrawer({
                 <select
                   value={simTerms}
                   onChange={(e) => setSimTerms(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
                 >
                   <option value="Immediate">Immediate / Advance</option>
                   <option value="Net 30">Net 30 Days</option>
@@ -193,8 +193,8 @@ export function DiceSimulationDrawer({
               </div>
 
               {/* SIMULATED */}
-              <div className="border-2 border-[#5E2A52]/30 rounded-lg p-4 bg-[#FAF5F9]/50 shadow-xs relative">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[#5E2A52] mb-3 flex items-center justify-between">
+              <div className="border-2 border-slate-300 rounded-lg p-4 bg-slate-50/50 shadow-xs relative">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-900 mb-3 flex items-center justify-between">
                   <span>Simulated Outcome</span>
                   {loading && <span className="text-[10px] text-slate-400">Computing...</span>}
                 </div>
@@ -266,7 +266,7 @@ export function DiceSimulationDrawer({
               variant="primary"
               size="sm"
               onClick={() => setConfirmModalOpen(true)}
-              className="flex items-center gap-1.5 bg-[#5E2A52] hover:bg-[#4d2243]"
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800"
             >
               Apply Simulated Changes
               <ArrowRight className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ export function DiceSimulationDrawer({
       <ConfirmDialog
         isOpen={confirmModalOpen}
         title="Apply Simulated Changes to Quotation?"
-        message={`This will update the active quotation Q-1042 lines to ${simDiscount}% discount and re-evaluate governance rules.`}
+        message={`This will update the active quotation ${deal.dealNumber || deal.id} lines to ${simDiscount}% discount and re-evaluate governance rules.`}
         confirmLabel="Confirm & Apply"
         variant="primary"
         onConfirm={handleConfirmApply}

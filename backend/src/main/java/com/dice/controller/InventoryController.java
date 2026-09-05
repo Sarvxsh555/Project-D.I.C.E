@@ -26,6 +26,33 @@ public class InventoryController {
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
 
+    /** Stock list across all warehouses and products. */
+    @GetMapping("/stock")
+    public List<java.util.Map<String, Object>> stock() {
+        List<Warehouse> warehouses = warehouseRepository.findAll();
+        List<Product> products = productRepository.findAll();
+        List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Warehouse wh : warehouses) {
+            for (Product p : products) {
+                var invOpt = inventoryService.find(wh.getId(), p.getId());
+                int avail = invOpt.map(Inventory::getAvailableQty).orElse(0);
+                int res = invOpt.map(Inventory::getReservedQty).orElse(0);
+                java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+                map.put("warehouseId", wh.getId().toString());
+                map.put("warehouseName", wh.getName());
+                map.put("productId", p.getId().toString());
+                map.put("productSku", p.getSku());
+                map.put("productName", p.getName());
+                map.put("available", avail);
+                map.put("reserved", res);
+                map.put("incoming", 0);
+                map.put("backordered", 0);
+                result.add(map);
+            }
+        }
+        return result;
+    }
+
     /** How much of a product is available in one specific warehouse. */
     @GetMapping("/{warehouseCode}/{sku}")
     public StockView stockAt(@PathVariable String warehouseCode, @PathVariable String sku) {

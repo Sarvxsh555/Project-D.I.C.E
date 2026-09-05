@@ -1,6 +1,6 @@
 import { api, safeRequest } from './apiClient'
-import { mockAdapter } from '../mocks/mockAdapter'
 import type { ApprovalView } from '../types/approval'
+import type { Role } from '../types/auth'
 
 export interface DashboardSummary {
   openQuotations: number
@@ -8,10 +8,16 @@ export interface DashboardSummary {
   atRiskDeals: number
   activeNegotiations: number
   totalPipelineValue: number
-  totalDeals?: number
-  openPipelineValue?: number
-  dealsByStatus?: Record<string, number>
-  overdueApprovals?: number
+  totalDeals: number
+  openPipelineValue: number
+  dealsByStatus: Record<string, number>
+  overdueApprovals: number
+  blendedMargin?: number
+  fulfillingOrders?: number
+  customersCount?: number
+  warehousesCount?: number
+  totalInventoryUnits?: number
+  reservedInventoryUnits?: number
 }
 
 export interface ActivityItem {
@@ -29,31 +35,38 @@ export interface ActivityItem {
 
 export interface RiskActivityItem {
   id: string
+  dealId?: string
   dealNumber: string
   customerName: string
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | string
+  riskLevel: 'LOW' | 'MEDIUM' | 'MODERATE' | 'HIGH' | 'CRITICAL' | string
   score: number
   trend: 'UP' | 'DOWN' | 'STABLE' | string
+  margin?: number
+  status?: string
 }
 
 export const dashboardService = {
-  getSummary: async (): Promise<DashboardSummary> => {
+  getSummary: async (role?: Role): Promise<DashboardSummary> => {
     return safeRequest(
-      () => api.get<DashboardSummary>('/dashboard/summary'),
+      () => api.get<DashboardSummary>('/dashboard/summary', { params: role ? { role } : undefined }),
       async () => {
-        const base = await mockAdapter.getDashboardSummary()
+        // Honest zeroed fallback if backend connection drops - never dummy placeholder numbers
         return {
-          ...base,
-          totalDeals: base.openQuotations,
-          openPipelineValue: base.totalPipelineValue,
-          dealsByStatus: {
-            DRAFT: 1,
-            SUBMITTED: 1,
-            APPROVAL_REQUIRED: 2,
-            APPROVED: 1,
-            CONFIRMED: 1,
-          },
-          overdueApprovals: 1,
+          openQuotations: 0,
+          pendingApprovals: 0,
+          atRiskDeals: 0,
+          activeNegotiations: 0,
+          totalPipelineValue: 0,
+          totalDeals: 0,
+          openPipelineValue: 0,
+          dealsByStatus: {},
+          overdueApprovals: 0,
+          blendedMargin: 0,
+          fulfillingOrders: 0,
+          customersCount: 0,
+          warehousesCount: 0,
+          totalInventoryUnits: 0,
+          reservedInventoryUnits: 0,
         }
       }
     )
@@ -62,21 +75,21 @@ export const dashboardService = {
   getActivity: async (): Promise<ActivityItem[]> => {
     return safeRequest(
       () => api.get<ActivityItem[]>('/dashboard/activity'),
-      () => mockAdapter.getRecentActivity()
+      async () => []
     )
   },
 
   getRiskActivity: async (): Promise<RiskActivityItem[]> => {
     return safeRequest(
       () => api.get<RiskActivityItem[]>('/dashboard/risk-activity'),
-      () => mockAdapter.getRiskActivity()
+      async () => []
     )
   },
 
   getApprovalQueue: async (): Promise<ApprovalView[]> => {
     return safeRequest(
       () => api.get<ApprovalView[]>('/dashboard/approval-queue'),
-      () => mockAdapter.listApprovals('PENDING')
+      async () => []
     )
   },
 }

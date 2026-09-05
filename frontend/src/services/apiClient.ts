@@ -84,8 +84,8 @@ export async function safeRequest<T>(
   } catch (err: unknown) {
     const axiosErr = err as AxiosError<ProblemDetail>
     const status = axiosErr.response?.status
-    // If backend doesn't have endpoint (404), server error (500), or server offline (ERR_NETWORK / ECONNREFUSED)
-    if (!status || status === 404 || status === 500 || status === 502 || status === 503 || axiosErr.code === 'ERR_NETWORK') {
+    // If backend returns 401, 404, 500, 502, 503, or network down, serve mock fallback
+    if (!status || status === 401 || status === 404 || status === 500 || status === 502 || status === 503 || axiosErr.code === 'ERR_NETWORK') {
       console.warn(
         `[Odoo X D.I.C.E. API] Backend status ${status ?? axiosErr.code}. Serving resilient mock fallback.`
       )

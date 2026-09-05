@@ -1,6 +1,6 @@
 import {
   MOCK_DEAL_SUMMARIES,
-  MOCK_DEAL_DETAIL_Q1042,
+  MOCK_DEAL_DETAIL_DL001,
   MOCK_APPROVALS_LIST,
   MOCK_PRODUCTS,
   MOCK_CUSTOMERS,
@@ -42,8 +42,9 @@ import type { RegisterRequest, UserSession, TokenResponse } from '../types/auth'
 const usersStore: UserSession[] = JSON.parse(JSON.stringify(DEMO_ACCOUNTS))
 const dealsStore: DealSummary[] = JSON.parse(JSON.stringify(MOCK_DEAL_SUMMARIES))
 const dealDetailsStore: Record<string, DealDetail> = {
-  'd-1042': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_Q1042)),
-  'Q-1042': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_Q1042)),
+  'd-2024-001': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_DL001)),
+  'DL-2024-001': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_DL001)),
+  'd1': JSON.parse(JSON.stringify(MOCK_DEAL_DETAIL_DL001)),
 }
 const approvalsStore: ApprovalView[] = JSON.parse(JSON.stringify(MOCK_APPROVALS_LIST))
 const fulfillmentStore: Record<string, FulfillmentPlan> = JSON.parse(JSON.stringify(MOCK_FULFILLMENT_ORDERS))
@@ -116,28 +117,28 @@ export const mockAdapter = {
     return [
       {
         id: 'act-1',
-        dealNumber: 'Q-1042',
-        dealId: 'd-1042',
-        customerName: 'Acme Corporation',
-        action: 'Discount changed 12% → 18%',
-        severity: 'HIGH',
+        dealNumber: 'DL-2024-001',
+        dealId: 'd-2024-001',
+        customerName: 'Tata Consultancy Services',
+        action: 'Discount evaluated 12% → 15%',
+        severity: 'MEDIUM',
         timeAgo: '10 minutes ago',
       },
       {
         id: 'act-2',
-        dealNumber: 'Q-1038',
-        dealId: 'd-1038',
-        customerName: 'Globex Industries',
-        action: 'Approval required (Margin < 20%)',
+        dealNumber: 'DL-2024-003',
+        dealId: 'd-2024-003',
+        customerName: 'Wipro Technologies',
+        action: 'Approval required (Finance sign-off)',
         severity: 'MEDIUM',
         timeAgo: '1 hour ago',
       },
       {
         id: 'act-3',
-        dealNumber: 'Q-1035',
-        dealId: 'd-1035',
-        customerName: 'Stark Systems',
-        action: 'Counteroffer received via portal',
+        dealNumber: 'DL-2024-002',
+        dealId: 'd-2024-002',
+        customerName: 'Infosys Limited',
+        action: 'Quotation approved by Sales Manager',
         severity: 'LOW',
         timeAgo: '3 hours ago',
       },
@@ -149,26 +150,26 @@ export const mockAdapter = {
     return [
       {
         id: 'risk-1',
-        dealNumber: 'Q-1042',
-        customerName: 'Acme Corporation',
-        riskLevel: 'HIGH',
-        score: 86,
-        trend: 'UP',
-      },
-      {
-        id: 'risk-2',
-        dealNumber: 'Q-1038',
-        customerName: 'Globex Industries',
-        riskLevel: 'MEDIUM',
-        score: 55,
+        dealNumber: 'DL-2024-001',
+        customerName: 'Tata Consultancy Services',
+        riskLevel: 'LOW',
+        score: 15,
         trend: 'STABLE',
       },
       {
+        id: 'risk-2',
+        dealNumber: 'DL-2024-003',
+        customerName: 'Wipro Technologies',
+        riskLevel: 'MEDIUM',
+        score: 28,
+        trend: 'UP',
+      },
+      {
         id: 'risk-3',
-        dealNumber: 'Q-1035',
-        customerName: 'Stark Systems',
+        dealNumber: 'DL-2024-002',
+        customerName: 'Infosys Limited',
         riskLevel: 'LOW',
-        score: 32,
+        score: 12,
         trend: 'DOWN',
       },
     ]
@@ -212,9 +213,9 @@ export const mockAdapter = {
     if (summary) {
       const detail: DealDetail = {
         ...summary,
-        customerId: 'cust-acme',
-        customerTier: 'Gold',
-        paymentTerms: 'Net 30',
+        customerId: 'cust-tcs',
+        customerTier: 'Platinum',
+        paymentTerms: 'Net 45',
         subtotal: summary.totalAmount,
         discountAmount: 0,
         taxAmount: 0,
@@ -241,14 +242,14 @@ export const mockAdapter = {
       dealDetailsStore[id] = detail
       return detail
     }
-    return dealDetailsStore['d-1042'] || MOCK_DEAL_DETAIL_Q1042
+    return dealDetailsStore['d-2024-001'] || MOCK_DEAL_DETAIL_DL001
   },
 
   createDeal: async (payload: CreateDealRequest): Promise<DealDetail> => {
     await delay()
     const customer = customersStore.find((c) => c.id === payload.customerId) || customersStore[0]
-    const nextNum = `Q-${1043 + dealsStore.length}`
-    const id = `d-${nextNum.toLowerCase()}`
+    const nextNum = `DL-2024-00${dealsStore.length + 1}`
+    const id = `d-2024-00${dealsStore.length + 1}`
 
     let subtotal = 0
     let discountAmount = 0
@@ -349,9 +350,9 @@ export const mockAdapter = {
   // DICE DECISION & SIMULATION
   getDecision: async (dealId: string): Promise<DiceDecision> => {
     await delay()
-    if (diceStore[dealId]) return diceStore[dealId]
     return (
-      diceStore['d-1042'] || {
+      diceStore[dealId] ||
+      diceStore['d-2024-001'] || {
         dealId,
         decision: 'APPROVAL_REQUIRED',
         riskScore: 86,
@@ -496,7 +497,7 @@ export const mockAdapter = {
   getFulfillment: async (dealId: string): Promise<FulfillmentPlan> => {
     await delay()
     if (fulfillmentStore[dealId]) return fulfillmentStore[dealId]
-    return fulfillmentStore['d-1042'] || MOCK_FULFILLMENT_ORDERS['d-1042']
+    return fulfillmentStore['d-2024-001'] || MOCK_FULFILLMENT_ORDERS['d-2024-001']
   },
 
   listWarehouseStock: async (): Promise<WarehouseStock[]> => {
@@ -522,7 +523,7 @@ export const mockAdapter = {
   getBillingSchedule: async (dealId: string): Promise<BillingSchedule> => {
     await delay()
     if (billingStore[dealId]) return billingStore[dealId]
-    return billingStore['d-1042'] || MOCK_BILLING_DETAILS['d-1042']
+    return billingStore['d-2024-001'] || MOCK_BILLING_DETAILS['d-2024-001']
   },
 
   listSubscriptions: async (): Promise<Subscription[]> => {
@@ -578,7 +579,7 @@ export const mockAdapter = {
   getNegotiation: async (dealId: string): Promise<NegotiationDetail> => {
     await delay()
     if (negotiationsStore[dealId]) return negotiationsStore[dealId]
-    return negotiationsStore['d-1042'] || MOCK_NEGOTIATIONS['d-1042']
+    return negotiationsStore['d-2024-001'] || MOCK_NEGOTIATIONS['d-2024-001']
   },
 
   submitNegotiationCounteroffer: async (
@@ -595,28 +596,28 @@ export const mockAdapter = {
     const nextVersion = neg.history.length + 1
     neg.history.push({
       version: nextVersion,
-      actor: 'Acme Procurement (Customer)',
+      actor: 'Rajesh Sharma (TCS Procurement)',
       discount: payload.requestedDiscountPercent,
-      total: 412000,
-      margin: 17.4,
-      risk: 84,
+      total: 108240,
+      margin: 62.4,
+      risk: 18,
       status: 'COUNTEROFFER_SUBMITTED',
       message: payload.message,
       timestamp: new Date().toISOString(),
     })
 
     // Re-evaluate deal
-    neg.previousMarginPercent = 21.2
-    neg.currentMarginPercent = 17.4
-    neg.previousRiskScore = 64
-    neg.currentRiskScore = 84
+    neg.previousMarginPercent = 68.6
+    neg.currentMarginPercent = 64.5
+    neg.previousRiskScore = 12
+    neg.currentRiskScore = 18
     neg.decision = 'APPROVAL_REQUIRED'
 
     // Update linked deal
     await mockAdapter.updateDeal(dealId, {
       status: 'APPROVAL_REQUIRED',
-      riskScore: 84,
-      marginPercent: 17.4,
+      riskScore: 18,
+      marginPercent: 62.4,
     })
 
     return neg
@@ -626,14 +627,14 @@ export const mockAdapter = {
   getPortalQuote: async (token: string): Promise<PortalQuoteView> => {
     await delay()
     if (portalQuotesStore[token]) return portalQuotesStore[token]
-    return portalQuotesStore['portal-token-q1042-acme'] || MOCK_PORTAL_QUOTES['portal-token-q1042-acme']
+    return portalQuotesStore['portal-token-dl001-tcs'] || MOCK_PORTAL_QUOTES['portal-token-dl001-tcs']
   },
 
   acceptPortalQuote: async (token: string): Promise<{ success: boolean; message: string }> => {
     await delay()
     const quote = await mockAdapter.getPortalQuote(token)
     quote.status = 'CONFIRMED'
-    await mockAdapter.updateDeal('d-1042', { status: 'CONFIRMED' })
+    await mockAdapter.updateDeal('d-2024-001', { status: 'CONFIRMED' })
     return { success: true, message: 'Quotation confirmed and accepted successfully!' }
   },
 
@@ -641,7 +642,7 @@ export const mockAdapter = {
     await delay()
     const quote = await mockAdapter.getPortalQuote(token)
     quote.status = 'CANCELLED'
-    await mockAdapter.updateDeal('d-1042', { status: 'CANCELLED' })
+    await mockAdapter.updateDeal('d-2024-001', { status: 'CANCELLED' })
     return { success: true, message: 'Quotation declined.' }
   },
 
@@ -650,7 +651,7 @@ export const mockAdapter = {
     const quote = await mockAdapter.getPortalQuote(token)
     quote.currentDiscountPercent = payload.requestedDiscountPercent
     quote.status = 'NEGOTIATION'
-    await mockAdapter.submitNegotiationCounteroffer('d-1042', payload)
+    await mockAdapter.submitNegotiationCounteroffer('d-2024-001', payload)
     return quote
   },
 
@@ -705,7 +706,7 @@ export const mockAdapter = {
   getHealthBreakdown: async (dealId: string): Promise<HealthScoreBreakdown> => {
     await delay()
     if (MOCK_HEALTH_BREAKDOWNS[dealId]) return MOCK_HEALTH_BREAKDOWNS[dealId]
-    return MOCK_HEALTH_BREAKDOWNS['d-1042']
+    return MOCK_HEALTH_BREAKDOWNS['d-2024-001']
   },
 
   // ADMIN / CONFIGURATION
@@ -795,7 +796,7 @@ export const mockAdapter = {
   // AUDIT TRAIL
   getAuditEvents: async (dealId: string): Promise<AuditEvent[]> => {
     await delay()
-    return auditEventsStore[dealId] || auditEventsStore['d-1042'] || []
+    return auditEventsStore[dealId] || auditEventsStore['d-2024-001'] || []
   },
 
   listCustomers: async (): Promise<Customer[]> => {

@@ -12,8 +12,16 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     // Allows `docker compose up` bind-mounts to trigger HMR reliably.
     watch: { usePolling: true },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 })

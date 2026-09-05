@@ -1,11 +1,11 @@
-# D.I.C.E local stack.
+# D.I.C.E local stack with MySQL 8.4 Server
 #   cp .env.example .env && docker compose up --build
 #
 # Services:
-#   postgres  :5432  — database, schema owned by Flyway (backend/src/main/resources/db/migration)
-#   backend   :8080  — Spring Boot API
-#   frontend  :5173  — Vite dev server (HMR, bind-mounted source)
-#   oeeg      :8081  — Odoo event emulator; profile-gated, see below
+#   mysql     :3306  — MySQL 8.4 database, dealflow360
+#   backend   :8080  — Spring Boot API (Java 17)
+#   frontend  :5173  — Vite dev server
+#   oeeg      :8081  — Odoo event emulator
 #
 # OEEG only starts when you ask for it:
 #   docker compose --profile emulator up
@@ -13,43 +13,42 @@
 name: dice
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: dice-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: dice-mysql
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dice}
-      POSTGRES_USER: ${POSTGRES_USER:-dice}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dice}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-dealflow360}
+      MYSQL_USER: ${MYSQL_USER:-dice}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dice}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
     healthcheck:
-      # -d/-U guard against the check passing against the bootstrap DB.
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dice} -d ${POSTGRES_DB:-dice}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 10s
+      start_period: 15s
 
   backend:
     build:
-      # Root context so the image can pull in database/migrations + database/seed,
-      # which Flyway loads from the classpath at db/migration.
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: dice-backend
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dice}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-dice}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dice}
-      DICE_SECURITY_JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-dealflow360}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-dice}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-dice}
+      DICE_SECURITY_JWT_SECRET: ${JWT_SECRET:-sample-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256-compliance}
       DICE_SECURITY_JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       DICE_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
       DICE_ODOO_ENABLED: ${ODOO_ENABLED:-false}
@@ -76,8 +75,6 @@ services:
     depends_on:
       - backend
     environment:
-      # Browser-side calls go to the host-published backend port, not the
-      # compose-internal hostname — the bundle runs outside the network.
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
@@ -85,7 +82,6 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
       - ./frontend/index.html:/app/index.html
-      # Keeps the image's node_modules from being shadowed by the host.
       - /app/node_modules
 
   oeeg:
@@ -105,4 +101,4 @@ services:
       - "${OEEG_PORT:-8081}:8081"
 
 volumes:
-  postgres-data:
+  mysql-data:

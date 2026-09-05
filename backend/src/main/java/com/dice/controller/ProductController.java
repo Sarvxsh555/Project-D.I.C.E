@@ -43,12 +43,26 @@ public class ProductController {
 
     public record ProductSummary(
             UUID id, String sku, String name, String category,
-            BigDecimal listPrice, String uom, Integer stockOnHand, Integer leadTimeDays) {
+            BigDecimal listPrice, BigDecimal basePrice, BigDecimal costPrice,
+            String billingType, String status, String description,
+            String uom, Integer stockOnHand, Integer leadTimeDays) {
 
         static ProductSummary from(Product product) {
-            return new ProductSummary(product.getId(), product.getSku(), product.getName(),
-                    product.getCategory(), product.getListPrice(), product.getUom(),
-                    product.getStockOnHand(), product.getLeadTimeDays());
+            boolean recurring = "SERVICE".equalsIgnoreCase(product.getCategory()) || "SUPPORT".equalsIgnoreCase(product.getCategory());
+            return new ProductSummary(
+                    product.getId(),
+                    product.getSku(),
+                    product.getName(),
+                    product.getCategory() != null ? product.getCategory() : "Software",
+                    product.getListPrice(),
+                    product.getListPrice(),
+                    product.getStandardCost() != null ? product.getStandardCost() : BigDecimal.ZERO,
+                    recurring ? "RECURRING" : "ONE_TIME",
+                    product.isActive() ? "ACTIVE" : "ARCHIVED",
+                    product.getName(),
+                    product.getUom(),
+                    product.getStockOnHand(),
+                    product.getLeadTimeDays());
         }
     }
 }

@@ -43,7 +43,7 @@ export function Dropdown({ trigger, items, align = 'right', className }: Dropdow
         <div
           role="menu"
           className={cn(
-            'absolute z-50 mt-1.5 w-48 origin-top-right rounded-md bg-white p-1 border border-slate-200 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in zoom-in-95 duration-100',
+            'absolute z-50 mt-1.5 w-52 origin-top-right rounded-2xl bg-white p-1.5 border border-slate-200/90 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in zoom-in-95 duration-100',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >

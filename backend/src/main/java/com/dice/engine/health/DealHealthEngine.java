@@ -69,7 +69,7 @@ public class DealHealthEngine {
         }
 
         int total = deductions.stream().mapToInt(Deduction::points).sum();
-        int score = Math.clamp(MAX_SCORE - total, 0, MAX_SCORE);
+        int score = Math.max(0, Math.min(MAX_SCORE - total, MAX_SCORE));
 
         return new HealthScore(score, bandFor(score), List.copyOf(deductions));
     }

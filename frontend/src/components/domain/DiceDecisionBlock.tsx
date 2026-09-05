@@ -4,6 +4,8 @@ import { formatPercent } from '../../utils/currency'
 import type { DiceDecision } from '../../types/dice'
 import { SlidersHorizontal } from 'lucide-react'
 
+import { cn } from '../../utils/cn'
+
 interface DiceDecisionBlockProps {
   decision: DiceDecision
   onSimulate?: () => void
@@ -14,7 +16,16 @@ export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockPro
   const isAutoApproved = decision.decision === 'AUTO_APPROVED'
 
   return (
-    <div className="border border-slate-200 rounded bg-white overflow-hidden border-l-4 border-l-[#5E2A52]">
+    <div
+      className={cn(
+        'border border-slate-200 rounded-lg bg-white overflow-hidden border-l-4 shadow-2xs',
+        isAutoApproved
+          ? 'border-l-emerald-600'
+          : isApprovalRequired
+          ? 'border-l-amber-500'
+          : 'border-l-rose-600'
+      )}
+    >
       {/* Header Bar */}
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
         <div>

@@ -1,4 +1,4 @@
-import { Button } from '../ui/Button'
+﻿import { Button } from '../ui/Button'
 import type { FulfillmentPlan, WarehouseStock } from '../../types/fulfillment'
 import { CheckCircle2, Box, ShieldCheck } from 'lucide-react'
 
@@ -43,7 +43,7 @@ export function WarehouseAllocationView({
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
                     isCompleted
-                      ? 'bg-[#5E2A52] text-white'
+                      ? 'bg-slate-900 text-white'
                       : 'bg-white border-2 border-slate-300 text-slate-400'
                   } ${isCurrent ? 'ring-4 ring-purple-100' : ''}`}
                 >
@@ -51,7 +51,7 @@ export function WarehouseAllocationView({
                 </div>
                 <span
                   className={`text-[11px] mt-1.5 font-medium text-center hidden sm:block ${
-                    isCurrent ? 'text-[#5E2A52] font-bold' : isCompleted ? 'text-slate-800' : 'text-slate-400'
+                    isCurrent ? 'text-slate-900 font-bold' : isCompleted ? 'text-slate-800' : 'text-slate-400'
                   }`}
                 >
                   {step}
@@ -105,11 +105,11 @@ export function WarehouseAllocationView({
       </div>
 
       {/* Suggested Allocation Recommendation Box */}
-      <div className="bg-[#FAF5F9] border border-[#E8D4E3] rounded-lg p-5">
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wider font-bold text-[#5E2A52] flex items-center gap-1.5 mb-1">
-              <ShieldCheck className="w-4 h-4 text-[#5E2A52]" />
+            <div className="text-[11px] uppercase tracking-wider font-bold text-slate-900 flex items-center gap-1.5 mb-1">
+              <ShieldCheck className="w-4 h-4 text-slate-900" />
               Automated Fulfillment Recommendation
             </div>
             <div className="text-xs text-slate-700 space-y-1 mt-2">
@@ -131,7 +131,7 @@ export function WarehouseAllocationView({
                 variant="primary"
                 size="sm"
                 onClick={onAcceptSuggested}
-                className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center justify-center gap-1.5"
+                className="bg-slate-900 hover:bg-slate-800 flex items-center justify-center gap-1.5"
               >
                 Accept Suggested Allocation
               </Button>

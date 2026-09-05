@@ -265,9 +265,9 @@ export default function QuotationsPage() {
           </Button>
 
           <Link
-            to={`/portal/quotes/${activeDeal.portalToken || 'portal-token-q1042-acme'}`}
+            to={`/portal/quotes/${activeDeal.portalToken || activeDeal.id}`}
             target="_blank"
-            className="text-xs font-semibold text-[#5E2A52] flex items-center gap-1 hover:underline"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
           >
             <span>Customer Portal Proposal</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -502,7 +502,7 @@ export default function QuotationsPage() {
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center justify-center gap-1.5"
+                    className="w-full text-xs flex items-center justify-center gap-1.5"
                     onClick={async () => {
                       const res = await quotationService.update(activeDeal.id, { status: 'APPROVED' })
                       setActiveDeal(res)
@@ -582,12 +582,12 @@ export default function QuotationsPage() {
 
         <div className="flex items-center gap-2">
           {/* View Switcher */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200">
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
-                viewMode === 'table' ? 'bg-white text-[#5E2A52] font-semibold' : 'text-slate-600'
+              className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                viewMode === 'table' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -596,8 +596,8 @@ export default function QuotationsPage() {
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
-                viewMode === 'kanban' ? 'bg-white text-[#5E2A52] font-semibold' : 'text-slate-600'
+              className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                viewMode === 'kanban' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Columns className="w-3.5 h-3.5" />
@@ -609,7 +609,7 @@ export default function QuotationsPage() {
             variant="primary"
             size="sm"
             onClick={handleOpenCreate}
-            className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center gap-1.5"
+            className="text-xs flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Quotation</span>
@@ -618,7 +618,7 @@ export default function QuotationsPage() {
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-2.5 rounded border border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
           <input
@@ -626,7 +626,7 @@ export default function QuotationsPage() {
             placeholder="Search quotations by ID, customer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-md text-xs text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
           />
         </div>
 
@@ -635,7 +635,7 @@ export default function QuotationsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="DRAFT">Draft</option>
@@ -650,34 +650,31 @@ export default function QuotationsPage() {
           <select
             value={customerFilter}
             onChange={(e) => setCustomerFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs cursor-pointer"
           >
             <option value="ALL">All Customers</option>
-            <option value="Acme">Acme Corporation</option>
-            <option value="Globex">Globex Logistics</option>
-            <option value="Stark">Stark Industries</option>
-            <option value="Apex">Apex Corp</option>
-            <option value="Zenith">Zenith Tech</option>
+            {Array.from(new Set(deals.map((d) => d.customerName).filter(Boolean))).map((cust) => (
+              <option key={cust} value={cust}>{cust}</option>
+            ))}
           </select>
 
           {/* Owner Filter */}
           <select
             value={ownerFilter}
             onChange={(e) => setOwnerFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs cursor-pointer"
           >
             <option value="ALL">All Owners</option>
-            <option value="Sarah">Sarah Jenkins</option>
-            <option value="Arun">Arun</option>
-            <option value="Priya">Priya</option>
-            <option value="Marcus">Marcus Vance</option>
+            {Array.from(new Set(deals.map((d) => d.owner || (d as any).salesRep || (d as any).salesRepName).filter(Boolean))).map((owner) => (
+              <option key={owner} value={owner}>{owner}</option>
+            ))}
           </select>
 
           {/* Risk Filter */}
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded text-xs bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs cursor-pointer"
           >
             <option value="ALL">All Risk Levels</option>
             <option value="LOW">Low Risk (&lt;50)</option>
@@ -738,7 +735,7 @@ export default function QuotationsPage() {
                     <button
                       type="button"
                       onClick={() => setSearchParams({ id: d.id })}
-                      className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
+                      className="font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
                     >
                       {d.dealNumber}
                     </button>
@@ -752,7 +749,7 @@ export default function QuotationsPage() {
                   <TableCell align="right">
                     <span
                       className={`font-mono ${
-                        d.marginPercent >= 20 ? 'text-emerald-700' : 'text-rose-700 font-semibold'
+                        d.marginPercent >= 20 ? 'text-emerald-700 font-medium' : 'text-rose-700 font-semibold'
                       }`}
                     >
                       {formatPercent(d.marginPercent)}
@@ -773,16 +770,16 @@ export default function QuotationsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-slate-600">
-                    {d.owner || 'Arun'}
+                    {d.owner || 'Arjun Mehta'}
                   </TableCell>
                   <TableCell className="text-slate-500 font-mono text-xs">
-                    {d.dealNumber === 'Q-1042' ? 'Today' : 'Yesterday'}
+                    {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : 'Active'}
                   </TableCell>
                   <TableCell align="right">
                     <button
                       type="button"
                       onClick={() => setSearchParams({ id: d.id })}
-                      className="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700 hover:bg-slate-100 cursor-pointer"
+                      className="px-2.5 py-1 text-xs border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs font-medium"
                     >
                       Open
                     </button>
@@ -798,7 +795,7 @@ export default function QuotationsPage() {
           {['DRAFT', 'SUBMITTED', 'APPROVAL_REQUIRED', 'APPROVED', 'REJECTED'].map((colStatus) => {
             const colDeals = filteredDeals.filter((d) => d.status === colStatus)
             return (
-              <div key={colStatus} className="border border-slate-200 bg-slate-50 rounded p-2.5 flex flex-col gap-2">
+              <div key={colStatus} className="border border-slate-200 bg-slate-50 rounded-lg p-2.5 flex flex-col gap-2">
                 <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase">
                   <span>{colStatus.replace('_', ' ')}</span>
                   <span className="font-mono text-slate-400">({colDeals.length})</span>
@@ -808,11 +805,11 @@ export default function QuotationsPage() {
                     <div
                       key={d.id}
                       onClick={() => setSearchParams({ id: d.id })}
-                      className="p-2.5 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#5E2A52] text-xs space-y-1"
+                      className="p-3 bg-white border border-slate-200 rounded-md cursor-pointer hover:border-slate-400 hover:shadow-2xs text-xs space-y-1 transition-all"
                     >
-                      <div className="font-mono font-bold text-[#5E2A52]">{d.dealNumber}</div>
-                      <div className="font-medium text-slate-900">{d.customerName}</div>
-                      <div className="font-mono font-bold">{formatCurrency(d.totalAmount)}</div>
+                      <div className="font-mono font-bold text-blue-600">{d.dealNumber}</div>
+                      <div className="font-medium text-slate-900 truncate">{d.customerName}</div>
+                      <div className="font-mono font-bold text-slate-900">{formatCurrency(d.totalAmount)}</div>
                     </div>
                   ))}
                 </div>
@@ -831,7 +828,7 @@ export default function QuotationsPage() {
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs"
+                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-xs text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
               >
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -846,7 +843,7 @@ export default function QuotationsPage() {
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs"
+                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-xs text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -864,7 +861,7 @@ export default function QuotationsPage() {
                   min={1}
                   value={qty}
                   onChange={(e) => setQty(parseInt(e.target.value) || 1)}
-                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
                 />
               </div>
               <div>
@@ -875,7 +872,7 @@ export default function QuotationsPage() {
                   max={50}
                   value={disc}
                   onChange={(e) => setDisc(parseFloat(e.target.value) || 0)}
-                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-mono"
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
                 />
               </div>
             </div>
@@ -884,7 +881,7 @@ export default function QuotationsPage() {
               <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" className="bg-[#5E2A52] hover:bg-[#4B2141]">
+              <Button type="submit" variant="primary" size="sm">
                 Initialize Proposal
               </Button>
             </div>

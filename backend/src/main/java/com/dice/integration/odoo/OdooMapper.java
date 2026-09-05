@@ -74,7 +74,7 @@ public class OdooMapper {
         if (isUnset(value)) {
             return Optional.empty();
         }
-        if (value instanceof List<?> pair && !pair.isEmpty() && pair.getFirst() instanceof Number id) {
+        if (value instanceof List<?> pair && !pair.isEmpty() && pair.get(0) instanceof Number id) {
             return Optional.of(id.longValue());
         }
         // A plain id is also valid when the record was read without display names.

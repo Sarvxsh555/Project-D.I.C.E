@@ -1,4 +1,4 @@
-import type { AuditEvent } from '../../types/audit'
+﻿import type { AuditEvent } from '../../types/audit'
 import { Clock, Shield, ArrowRight } from 'lucide-react'
 
 interface AuditTimelineProps {
@@ -24,8 +24,8 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
       <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
         {events.map((event) => (
           <div key={event.id} className="relative group">
-            <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-white border-2 border-[#5E2A52] flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5E2A52]" />
+            <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-1">

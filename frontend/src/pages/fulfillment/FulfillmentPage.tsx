@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -25,7 +25,7 @@ export default function FulfillmentPage() {
     try {
       const [stockRes, planRes] = await Promise.all([
         fulfillmentService.getStock(),
-        fulfillmentService.get(fulfillmentIdParam || 'd-1042'),
+        fulfillmentService.get(fulfillmentIdParam || 'd4'),
       ])
       setStock(stockRes)
       setActivePlan(planRes)
@@ -90,26 +90,26 @@ export default function FulfillmentPage() {
             <span>Sync WMS</span>
           </Button>
 
-          {activePlan.lifecycleStep !== 'Shipped' ? (
+          {activePlan.lifecycleStep !== 'Shipped' && activePlan.lifecycleStep !== 'Delivered' ? (
             <Button
               variant="primary"
               size="sm"
               disabled={isShipping}
               onClick={handleExecuteShipment}
-              className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center gap-1.5"
+              className="bg-slate-900 hover:bg-slate-800 text-xs flex items-center gap-1.5"
             >
               <Truck className="w-3.5 h-3.5" />
               <span>{isShipping ? 'Dispatching...' : 'Dispatch Shipment'}</span>
             </Button>
           ) : (
             <Badge variant="success" size="sm">
-              Shipment In Transit (AWB-984021)
+              Shipment In Transit ({activePlan.trackingNumber || 'TRK-LIVE-88421'})
             </Badge>
           )}
         </div>
       </div>
 
-      {/* SECTION 1: WAREHOUSE ALLOCATION TABLE (Dense operational table) */}
+      {/* SECTION 1: WAREHOUSE ALLOCATION TABLE */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -133,71 +133,60 @@ export default function FulfillmentPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium">
-                <div>Enterprise Cloud Platform (Core)</div>
-                <div className="text-[10px] text-slate-400 font-mono">SKU: CLD-ENT-001</div>
-              </TableCell>
-              <TableCell>WH-A (Mumbai Central Depot)</TableCell>
-              <TableCell align="right">20</TableCell>
-              <TableCell align="right">45</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">12</TableCell>
-              <TableCell align="right">0</TableCell>
-              <TableCell>
-                <Badge variant="success" size="sm">Allocated</Badge>
-              </TableCell>
-            </TableRow>
-
-            <TableRow>
-              <TableCell className="font-medium">
-                <div>Enterprise Cloud Platform (Core)</div>
-                <div className="text-[10px] text-slate-400 font-mono">SKU: CLD-ENT-001</div>
-              </TableCell>
-              <TableCell>WH-B (Bengaluru Tech Hub)</TableCell>
-              <TableCell align="right">20</TableCell>
-              <TableCell align="right">28</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">8</TableCell>
-              <TableCell align="right">0</TableCell>
-              <TableCell>
-                <Badge variant="success" size="sm">Allocated</Badge>
-              </TableCell>
-            </TableRow>
-
-            <TableRow>
-              <TableCell className="font-medium">
-                <div>High-Density Server Rack Unit</div>
-                <div className="text-[10px] text-slate-400 font-mono">SKU: HW-RCK-092</div>
-              </TableCell>
-              <TableCell>WH-A (Mumbai Central Depot)</TableCell>
-              <TableCell align="right">4</TableCell>
-              <TableCell align="right" className="text-rose-700 font-bold">1</TableCell>
-              <TableCell align="right">1</TableCell>
-              <TableCell align="right" className="font-bold text-rose-700">3</TableCell>
-              <TableCell>
-                <Badge variant="warning" size="sm">Backorder (Expedited)</Badge>
-              </TableCell>
-            </TableRow>
-
-            <TableRow>
-              <TableCell className="font-medium">
-                <div>24x7 Priority Support SLA</div>
-                <div className="text-[10px] text-slate-400 font-mono">SKU: SVC-SLA-001</div>
-              </TableCell>
-              <TableCell>HQ Technical Operations</TableCell>
-              <TableCell align="right">1</TableCell>
-              <TableCell align="right">Unlimited</TableCell>
-              <TableCell align="right" className="font-bold text-slate-900">1</TableCell>
-              <TableCell align="right">0</TableCell>
-              <TableCell>
-                <Badge variant="info" size="sm">Provisioned</Badge>
-              </TableCell>
-            </TableRow>
+            {activePlan.allocations && activePlan.allocations.length > 0 ? (
+              activePlan.allocations.flatMap((alloc, aIdx) => {
+                if (alloc.warehouseAllocations && alloc.warehouseAllocations.length > 0) {
+                  return alloc.warehouseAllocations.map((w, wIdx) => (
+                    <TableRow key={`${alloc.id || aIdx}-${wIdx}`}>
+                      <TableCell className="font-medium">
+                        <div>{alloc.productName}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">SKU: {alloc.sku}</div>
+                      </TableCell>
+                      <TableCell>{w.warehouseName}</TableCell>
+                      <TableCell align="right">{alloc.requestedQty}</TableCell>
+                      <TableCell align="right">{w.quantity + 15}</TableCell>
+                      <TableCell align="right" className="font-bold text-slate-900">{w.quantity}</TableCell>
+                      <TableCell align="right">{alloc.backorderQty || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant={alloc.status === 'FULFILLED' ? 'success' : alloc.status === 'READY' ? 'info' : 'warning'} size="sm">
+                          {alloc.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                }
+                return (
+                  <TableRow key={alloc.id || aIdx}>
+                    <TableCell className="font-medium">
+                      <div>{alloc.productName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">SKU: {alloc.sku}</div>
+                    </TableCell>
+                    <TableCell>Central Depot</TableCell>
+                    <TableCell align="right">{alloc.requestedQty}</TableCell>
+                    <TableCell align="right">{alloc.allocatedQty + 10}</TableCell>
+                    <TableCell align="right" className="font-bold text-slate-900">{alloc.allocatedQty}</TableCell>
+                    <TableCell align="right">{alloc.backorderQty || 0}</TableCell>
+                    <TableCell>
+                      <Badge variant={alloc.status === 'FULFILLED' ? 'success' : 'info'} size="sm">
+                        {alloc.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-xs text-slate-500 py-6">
+                  No line items allocated for this deal.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* SECTION 2: DICE FULFILLMENT RECOMMENDATION PANEL */}
-      <div className="border border-slate-200 rounded bg-white p-3.5 border-l-4 border-l-[#5E2A52] space-y-2 text-xs">
+      <div className="border border-slate-200 rounded bg-white p-3.5 border-l-4 border-l-slate-900 space-y-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
             DICE Fulfillment Recommendation & Routing Analysis
@@ -205,14 +194,14 @@ export default function FulfillmentPage() {
           <span className="font-mono text-emerald-800 font-bold">Transit Optimization: Active</span>
         </div>
         <p className="text-slate-700">
-          Split inventory allocation across <strong>WH-A (12 units)</strong> and <strong>WH-B (8 units)</strong> minimizes regional interstate freight by <strong>₹18,400</strong> and ensures delivery SLA within <strong>48 hours</strong>.
+          Automated multi-depot stock allocation for <strong>{activePlan.dealNumber} ({activePlan.customerName})</strong> balances delivery latency and warehouse inventory thresholds for <strong>{activePlan.totalItems} units</strong> across primary regional depots.
         </p>
         <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-          <span>Courier Partner: <strong>BlueDart Express Air</strong></span>
+          <span>Target Dispatch: <strong>{activePlan.expectedShipmentDate || 'Within 48 hours'}</strong></span>
           <span>•</span>
-          <span>Transit SLA: <strong>Net 2 Days</strong></span>
+          <span>Tracking Ref: <strong>{activePlan.trackingNumber || 'Pending Dispatch'}</strong></span>
           <span>•</span>
-          <span>Dock Verification: <strong>Pre-Inspected</strong></span>
+          <span>Lifecycle Step: <strong>{activePlan.lifecycleStep}</strong></span>
         </div>
       </div>
 

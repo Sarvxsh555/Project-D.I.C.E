@@ -89,7 +89,7 @@ public class ApprovalEngine {
 
     private String summarise(List<PolicyEngine.Violation> violations) {
         if (violations.size() == 1) {
-            return violations.getFirst().message();
+            return violations.get(0).message();
         }
         return violations.stream()
                 .map(v -> "- " + v.message())

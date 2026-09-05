@@ -21,7 +21,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,13 +34,89 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/portal")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('CUSTOMER')")
 public class CustomerPortalController {
 
     private final CustomerPortalService portalService;
     private final NegotiationService negotiationService;
+    private final com.dice.repository.DealRepository dealRepository;
+    private final com.dice.service.DealService dealService;
+
+    @GetMapping("/quotes/{token}")
+    public Map<String, Object> getQuoteByToken(@PathVariable String token) {
+        Deal deal = resolveDeal(token);
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("token", token);
+        map.put("dealNumber", deal.getDealNumber());
+        map.put("customerName", deal.getCustomer().getName());
+        map.put("totalAmount", deal.getTotalAmount());
+        map.put("paymentTerms", "Net " + (deal.getCustomer().getPaymentTermsDays() != null ? deal.getCustomer().getPaymentTermsDays() : 30) + " Days");
+
+        BigDecimal disc = deal.getDiscountAmount() != null && deal.getSubtotal() != null && deal.getSubtotal().compareTo(BigDecimal.ZERO) > 0
+                ? deal.getDiscountAmount().multiply(BigDecimal.valueOf(100)).divide(deal.getSubtotal(), 1, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        map.put("currentDiscountPercent", disc);
+        map.put("totalDiscountPercent", disc);
+        map.put("status", deal.getStatus().name());
+        map.put("validUntil", deal.getRequestedDeliveryDate() != null ? deal.getRequestedDeliveryDate().toString() : java.time.LocalDate.now().plusDays(30).toString());
+
+        List<Map<String, Object>> lines = deal.getLines().stream().map(l -> {
+            Map<String, Object> lineMap = new LinkedHashMap<>();
+            lineMap.put("productName", l.getProduct().getName());
+            lineMap.put("quantity", l.getQuantity());
+            lineMap.put("unitPrice", l.getUnitPrice());
+            lineMap.put("total", l.getLineTotal());
+            return lineMap;
+        }).toList();
+        map.put("lines", lines);
+        return map;
+    }
+
+    @PostMapping("/quotes/{token}/accept")
+    public Map<String, Object> acceptQuote(@PathVariable String token) {
+        Deal deal = resolveDeal(token);
+        deal.setStatus(DealStatus.APPROVED);
+        dealRepository.save(deal);
+        return Map.of("success", true, "message", "Quotation accepted successfully");
+    }
+
+    @PostMapping("/quotes/{token}/reject")
+    public Map<String, Object> rejectQuote(@PathVariable String token) {
+        Deal deal = resolveDeal(token);
+        deal.setStatus(DealStatus.CANCELLED);
+        dealRepository.save(deal);
+        return Map.of("success", true, "message", "Quotation declined");
+    }
+
+    @PostMapping("/quotes/{token}/counteroffer")
+    public Map<String, Object> counterofferQuote(@PathVariable String token,
+                                                 @RequestBody Map<String, Object> body) {
+        Deal deal = resolveDeal(token);
+        BigDecimal disc = body.containsKey("requestedDiscountPercent")
+                ? new BigDecimal(body.get("requestedDiscountPercent").toString())
+                : BigDecimal.valueOf(10.0);
+        dealService.applyDiscount(deal.getId(), disc, "customer_portal");
+        deal.setStatus(DealStatus.IN_NEGOTIATION);
+        dealRepository.save(deal);
+        return getQuoteByToken(token);
+    }
+
+    private Deal resolveDeal(String idOrNumber) {
+        try {
+            UUID id = UUID.fromString(idOrNumber);
+            return dealRepository.findWithLinesById(id)
+                    .orElseGet(() -> dealRepository.findByDealNumber(idOrNumber)
+                            .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                                    .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber))));
+        } catch (IllegalArgumentException e) {
+            return dealRepository.findByDealNumber(idOrNumber)
+                    .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber)));
+        }
+    }
 
     @GetMapping("/quotations")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public List<QuotationSummary> listQuotations(Authentication authentication) {
         return portalService.listOwnQuotations(authentication).stream()
                 .map(QuotationSummary::from)
@@ -46,11 +124,13 @@ public class CustomerPortalController {
     }
 
     @GetMapping("/quotations/{dealId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public QuotationDetail viewQuotation(@PathVariable UUID dealId, Authentication authentication) {
         return QuotationDetail.from(portalService.viewOwnQuotation(authentication, dealId));
     }
 
     @GetMapping("/quotations/{dealId}/negotiation")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public NegotiationView viewNegotiation(@PathVariable UUID dealId, Authentication authentication) {
         Negotiation negotiation = portalService.viewNegotiation(authentication, dealId);
         List<NegotiationVersion> versions = negotiationService.versionsFor(negotiation.getId());
@@ -59,6 +139,7 @@ public class CustomerPortalController {
     }
 
     @PostMapping("/quotations/{dealId}/counteroffer")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public NegotiationVersionView submitCounterOffer(@PathVariable UUID dealId,
                                                       @Valid @RequestBody CounterOfferRequest request,
                                                       Authentication authentication) {
@@ -67,6 +148,7 @@ public class CustomerPortalController {
     }
 
     @PostMapping("/quotations/{dealId}/comments")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public MessageView addComment(@PathVariable UUID dealId,
                                   @Valid @RequestBody CommentRequest request,
                                   Authentication authentication) {
@@ -75,6 +157,7 @@ public class CustomerPortalController {
     }
 
     @PostMapping("/quotations/{dealId}/confirm")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public QuotationDetail confirm(@PathVariable UUID dealId, Authentication authentication) {
         return QuotationDetail.from(portalService.confirmQuotation(authentication, dealId));
     }

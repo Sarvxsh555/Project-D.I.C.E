@@ -6,6 +6,6 @@
     "lines": [ { "sku": "SKU-1001", "quantity": 5 } ]
   },
   "steps": [
-    { "type": "INVENTORY_CHANGED", "payload": { "odooProductId": 101, "quantityOnHand": 5 }, "note": "SKU-1001 is Odoo product 101 (database/seed/products.sql)" }
+    { "type": "INVENTORY_CHANGED", "payload": { "odooProductId": 101, "quantityOnHand": 5 }, "note": "SKU-1001 is Odoo product 101 (database/mysql/seed.sql)" }
   ]
 }

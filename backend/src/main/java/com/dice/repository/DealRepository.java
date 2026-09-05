@@ -22,6 +22,10 @@ public interface DealRepository extends JpaRepository<Deal, UUID> {
 
     Optional<Deal> findByOdooQuotationId(Long odooQuotationId);
 
+    @EntityGraph(attributePaths = {"customer"})
+    Page<Deal> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"customer"})
     Page<Deal> findByStatus(DealStatus status, Pageable pageable);
 
     Page<Deal> findByOwnerUsername(String ownerUsername, Pageable pageable);

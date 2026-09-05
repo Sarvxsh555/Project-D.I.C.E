@@ -136,7 +136,7 @@ public class DecisionResolver {
         return switch (decision) {
             case APPROVAL_REQUIRED, REAPPROVAL_REQUIRED -> approvals.isEmpty()
                     ? "WAIT_FOR_" + Role.SALES_MANAGER.name()
-                    : "WAIT_FOR_" + approvals.getFirst().role().name();
+                    : "WAIT_FOR_" + approvals.get(0).role().name();
             case DEAL_AT_RISK -> "ESCALATE_TO_" + Role.ADMIN.name();
             case ORDER_READY, NO_ACTION -> "NONE";
         };

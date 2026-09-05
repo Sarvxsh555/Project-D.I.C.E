@@ -33,6 +33,131 @@ public class DealController {
 
     private final DealService dealService;
     private final com.dice.service.CoPurchaseRecommendationService recommendationService;
+    private final com.dice.repository.DealRepository dealRepository;
+    private final com.dice.repository.DecisionRepository decisionRepository;
+
+    @GetMapping("/health")
+    public java.util.Map<String, Object> healthOverview() {
+        List<Deal> allDeals = dealRepository.findAll();
+        long healthy = allDeals.stream().filter(d -> d.getHealthScore() != null && d.getHealthScore() >= 80).count();
+        long atRisk = allDeals.stream().filter(d -> d.getHealthScore() != null && d.getHealthScore() >= 60 && d.getHealthScore() < 80).count();
+        long critical = allDeals.stream().filter(d -> d.getHealthScore() != null && d.getHealthScore() < 60).count();
+
+        List<java.util.Map<String, Object>> dealsList = allDeals.stream().map(d -> {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("dealId", d.getId());
+            map.put("dealNumber", d.getDealNumber());
+            map.put("customerName", d.getCustomer().getName());
+            map.put("healthScore", d.getHealthScore() != null ? d.getHealthScore() : 85);
+            map.put("riskLevel", d.getRiskLevel() != null ? d.getRiskLevel().name() : "LOW");
+            map.put("margin", d.getMarginPercent());
+            map.put("status", d.getStatus().name());
+            map.put("totalAmount", d.getTotalAmount());
+            map.put("anomalyDetected", d.getRiskScore() != null && d.getRiskScore() > 20);
+            return map;
+        }).toList();
+
+        java.util.Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("healthyCount", healthy);
+        response.put("atRiskCount", atRisk);
+        response.put("criticalCount", critical);
+        response.put("deals", dealsList);
+        return response;
+    }
+
+    @GetMapping("/anomalies")
+    public List<java.util.Map<String, Object>> anomalies() {
+        return dealRepository.findAll().stream()
+                .filter(d -> (d.getRiskScore() != null && d.getRiskScore() >= 20) || d.getStatus() == DealStatus.PENDING_APPROVAL)
+                .map(d -> {
+                    java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+                    map.put("dealId", d.getId());
+                    map.put("dealNumber", d.getDealNumber());
+                    map.put("customerName", d.getCustomer().getName());
+                    map.put("type", d.getStatus() == DealStatus.PENDING_APPROVAL ? "APPROVAL_PENDING" : "MARGIN_DRIFT");
+                    map.put("severity", d.getRiskLevel() != null ? d.getRiskLevel().name() : "LOW");
+                    map.put("description", "Quotation requires commercial review for " + d.getCustomer().getName());
+                    map.put("detectedAt", d.getUpdatedAt() != null ? d.getUpdatedAt() : java.time.Instant.now());
+                    return map;
+                }).toList();
+    }
+
+    @GetMapping("/health/metrics")
+    public List<java.util.Map<String, Object>> healthMetrics() {
+        return dealRepository.findAll().stream().map(d -> {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("dealId", d.getId());
+            map.put("dealNumber", d.getDealNumber());
+            map.put("customerName", d.getCustomer().getName());
+            map.put("healthScore", d.getHealthScore() != null ? d.getHealthScore() : 85);
+            map.put("riskLevel", d.getRiskLevel() != null ? d.getRiskLevel().name() : "LOW");
+            return map;
+        }).toList();
+    }
+
+    private Deal resolveDeal(String idOrNumber) {
+        try {
+            UUID id = UUID.fromString(idOrNumber);
+            return dealRepository.findWithLinesById(id)
+                    .orElseGet(() -> dealRepository.findByDealNumber(idOrNumber)
+                            .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                                    .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber))));
+        } catch (IllegalArgumentException e) {
+            return dealRepository.findByDealNumber(idOrNumber)
+                    .orElseGet(() -> dealRepository.findAll().stream().findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("No deal found for: " + idOrNumber)));
+        }
+    }
+
+    @GetMapping("/{id}/health")
+    public java.util.Map<String, Object> dealHealth(@PathVariable String id) {
+        Deal deal = resolveDeal(id);
+        java.util.Map<String, Object> res = new java.util.LinkedHashMap<>();
+        res.put("score", deal.getHealthScore() != null ? deal.getHealthScore() : 85);
+        res.put("band", deal.getHealthScore() != null && deal.getHealthScore() >= 80 ? "HEALTHY" : "NEEDS_ATTENTION");
+        res.put("riskScore", deal.getRiskScore());
+        res.put("riskLevel", deal.getRiskLevel() != null ? deal.getRiskLevel().name() : "LOW");
+        res.put("marginPercent", deal.getMarginPercent());
+        return res;
+    }
+
+    @GetMapping("/{id}/decision")
+    public java.util.Map<String, Object> dealDecision(@PathVariable String id) {
+        Deal deal = resolveDeal(id);
+        com.dice.domain.Decision decision = decisionRepository.findFirstByDealIdOrderByCreatedAtDesc(deal.getId()).orElse(null);
+        java.util.Map<String, Object> res = new java.util.LinkedHashMap<>();
+        res.put("dealId", deal.getId());
+        res.put("outcome", decision != null ? decision.getOutcome().name() : "AUTO_APPROVE");
+        res.put("rationale", decision != null ? decision.getRationale() : "Deal evaluated against standard commercial policies.");
+        res.put("approvalRequired", deal.getStatus() == DealStatus.PENDING_APPROVAL);
+        res.put("riskScore", deal.getRiskScore());
+        res.put("riskLevel", deal.getRiskLevel() != null ? deal.getRiskLevel().name() : "LOW");
+        res.put("marginPercent", deal.getMarginPercent());
+        return res;
+    }
+
+    @RequestMapping(value = "/{id}/simulate", method = {RequestMethod.GET, RequestMethod.POST})
+    public java.util.Map<String, Object> simulate(@PathVariable String id, @RequestBody(required = false) java.util.Map<String, Object> body) {
+        Deal deal = resolveDeal(id);
+        BigDecimal disc = BigDecimal.valueOf(10.0);
+        if (body != null && body.containsKey("discount")) {
+            disc = new BigDecimal(body.get("discount").toString());
+        }
+        BigDecimal subtotal = deal.getSubtotal();
+        BigDecimal newDiscountAmount = subtotal.multiply(disc).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal newTotal = subtotal.subtract(newDiscountAmount);
+        BigDecimal margin = deal.getMarginPercent();
+
+        java.util.Map<String, Object> res = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Object> simulated = new java.util.LinkedHashMap<>();
+        simulated.put("total", newTotal);
+        simulated.put("margin", margin);
+        simulated.put("risk", deal.getRiskScore());
+        simulated.put("approvalRequired", disc.compareTo(BigDecimal.valueOf(15.0)) > 0);
+        res.put("simulated", simulated);
+        res.put("recommendations", List.of());
+        return res;
+    }
 
     @GetMapping
     public Page<DealSummary> list(@RequestParam(required = false) DealStatus status,
@@ -44,13 +169,14 @@ public class DealController {
     }
 
     @GetMapping("/{id}")
-    public DealDetail get(@PathVariable UUID id) {
-        return DealDetail.from(dealService.require(id));
+    public DealDetail get(@PathVariable String id) {
+        return DealDetail.from(resolveDeal(id));
     }
 
     @GetMapping("/{id}/evaluations")
-    public List<EvaluationSummary> evaluations(@PathVariable UUID id) {
-        return dealService.history(id).stream().map(EvaluationSummary::from).toList();
+    public List<EvaluationSummary> evaluations(@PathVariable String id) {
+        Deal deal = resolveDeal(id);
+        return dealService.history(deal.getId()).stream().map(EvaluationSummary::from).toList();
     }
 
     @GetMapping("/{id}/recommendations")

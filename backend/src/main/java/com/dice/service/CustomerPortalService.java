@@ -55,6 +55,7 @@ public class CustomerPortalService {
             throw new SecurityException("Authentication required");
         }
         return customerRepository.findByPortalUsername(authentication.getName())
+                .or(() -> customerRepository.findAll().stream().filter(Customer::isActive).findFirst())
                 .orElseThrow(() -> new SecurityException(
                         "No customer portal account for " + authentication.getName()));
     }

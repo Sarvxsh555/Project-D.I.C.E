@@ -13,8 +13,8 @@ import com.dice.events.DealEvent;
 import com.dice.events.EventPublisher;
 import com.dice.repository.*;
 import com.dice.security.Role;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -364,7 +364,7 @@ public class DealService {
     private List<LineSnapshot> parseLineSnapshot(ApprovalSnapshot snapshot) {
         try {
             return List.of(objectMapper.readValue(snapshot.getLineSnapshot(), LineSnapshot[].class));
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             log.warn("Could not parse approval snapshot lines for deal {}: {}",
                     snapshot.getDeal().getId(), e.getMessage());
             return List.of();
@@ -469,7 +469,7 @@ public class DealService {
     private String toJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             log.warn("Could not serialise {}: {}", value.getClass().getSimpleName(), e.getMessage());
             return "[]";
         }

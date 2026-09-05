@@ -137,7 +137,7 @@ On 2026-09-05, a real deal was created via the live API
 (`POST /api/deals`, `DICE-000001`, Acme Enterprises / Standard Widget x10,
 $1000 subtotal, 40% margin) and OEEG's `ScenarioRunner` was pointed at it with
 a two-step scenario (`DISCOUNT_CHANGED` to 25%, then `COUNTER_OFFER` to 8%),
-run as an actual HTTP client against a running backend + Postgres — no mocks
+run as an actual HTTP client against a running backend + MySQL — no mocks
 anywhere in the chain:
 
 - `DISCOUNT_CHANGED 25%` → the seeded `GLOBAL_DISCOUNT_CAP` policy (20%

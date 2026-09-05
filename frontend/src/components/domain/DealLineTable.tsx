@@ -1,4 +1,4 @@
-import { Button } from '../ui/Button'
+﻿import { Button } from '../ui/Button'
 import { formatCurrency, formatPercent } from '../../utils/currency'
 import type { DealLineItem } from '../../types/deal'
 import { Trash2, Plus } from 'lucide-react'
@@ -73,7 +73,7 @@ export function DealLineTable({
                             quantity: Math.max(1, parseInt(e.target.value) || 1),
                           })
                         }
-                        className="w-16 px-1.5 py-1 text-right border border-slate-200 rounded text-xs font-mono text-slate-900 focus:outline-none focus:border-[#5E2A52]"
+                        className="w-16 px-1.5 py-1 text-right border border-slate-200 rounded text-xs font-mono text-slate-900 focus:outline-none focus:border-slate-300"
                       />
                     ) : (
                       <span className="font-mono">{line.quantity}</span>
@@ -98,7 +98,7 @@ export function DealLineTable({
                           className={`w-16 px-1.5 py-1 text-right border rounded text-xs font-mono focus:outline-none ${
                             hasHighDiscount
                               ? 'border-amber-300 bg-amber-50 text-amber-800'
-                              : 'border-slate-200 text-slate-900 focus:border-[#5E2A52]'
+                              : 'border-slate-200 text-slate-900 focus:border-slate-300'
                           }`}
                         />
                         <span className="text-slate-400 text-xs">%</span>

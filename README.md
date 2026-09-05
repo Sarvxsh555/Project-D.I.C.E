@@ -33,7 +33,7 @@ docker compose up --build
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080 (health at `/actuator/health`)
-- Postgres: localhost:5432
+- MySQL: localhost:3306 (database: `dealflow360`)
 
 Demo accounts are seeded automatically under the `dev` Spring profile — see
 [docs/demo-flow.md](./docs/demo-flow.md) for usernames (password `dice-demo`

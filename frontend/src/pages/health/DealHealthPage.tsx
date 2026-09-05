@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -9,6 +9,8 @@ import { AlertTriangle } from 'lucide-react'
 
 export default function DealHealthPage() {
   const [summary, setSummary] = useState<{ healthyCount: number; atRiskCount: number; criticalCount: number } | null>(null)
+  const [dealsList, setDealsList] = useState<any[]>([])
+  const [anomaliesList, setAnomaliesList] = useState<any[]>([])
   const [period, setPeriod] = useState<'month' | 'quarter' | 'ytd'>('month')
   const [teamFilter, setTeamFilter] = useState('ALL')
   const [riskFilter, setRiskFilter] = useState('ALL')
@@ -19,9 +21,28 @@ export default function DealHealthPage() {
     let active = true
     async function loadHealth() {
       try {
-        const sumRes = await healthService.getOverview()
+        const [sumRes, anomRes] = await Promise.all([
+          healthService.getOverview(),
+          healthService.listAnomalies(),
+        ])
         if (active) {
-          setSummary(sumRes)
+          if (Array.isArray(sumRes)) {
+            setDealsList(sumRes)
+            setSummary({
+              healthyCount: sumRes.filter((d: any) => d.riskLevel === 'LOW' || d.healthScore >= 75).length,
+              atRiskCount: sumRes.filter((d: any) => d.riskLevel === 'MEDIUM' || (d.healthScore >= 50 && d.healthScore < 75)).length,
+              criticalCount: sumRes.filter((d: any) => ['HIGH', 'CRITICAL'].includes(d.riskLevel) || d.healthScore < 50).length,
+            })
+          } else if (sumRes && typeof sumRes === 'object') {
+            const overview = sumRes as any
+            setSummary(overview)
+            if (Array.isArray(overview.deals)) {
+              setDealsList(overview.deals)
+            }
+          }
+          if (Array.isArray(anomRes)) {
+            setAnomaliesList(anomRes)
+          }
         }
       } catch (err) {
         console.error(err)
@@ -39,87 +60,25 @@ export default function DealHealthPage() {
     return <LoadingState message="Aggregating continuous deal health & anomaly stream..." rows={6} />
   }
 
-  const attentionDeals = [
-    {
-      dealNumber: 'Q-1042',
-      id: 'd-1042',
-      customerName: 'Acme Corporation',
-      riskScore: 86,
-      margin: '18.4%',
-      trend: 'Discount increased to 22%',
-      nextAction: 'Manager Approval Required',
-      severity: 'HIGH',
-    },
-    {
-      dealNumber: 'Q-1038',
-      id: 'd-1042',
-      customerName: 'Globex Logistics',
-      riskScore: 78,
-      margin: '19.2%',
-      trend: 'SLA countdown < 2 hours remaining',
-      nextAction: 'Review Concession Exception',
-      severity: 'MEDIUM',
-    },
-    {
-      dealNumber: 'Q-1032',
-      id: 'd-1042',
-      customerName: 'Wayne Enterprises',
-      riskScore: 74,
-      margin: '17.5%',
-      trend: 'Credit limit 94% utilized',
-      nextAction: 'Finance Credit Signoff',
-      severity: 'MEDIUM',
-    },
-    {
-      dealNumber: 'Q-1025',
-      id: 'd-1042',
-      customerName: 'Cyberdyne Systems',
-      riskScore: 82,
-      margin: '18.0%',
-      trend: 'Customer counteroffer pending',
-      nextAction: 'Accept or Adjust Terms',
-      severity: 'HIGH',
-    },
-  ]
-
-  const anomaliesList = [
-    {
-      id: 'anom-1',
-      dealNumber: 'Q-1042',
-      event: 'Discount Override',
-      previous: '18.0%',
-      current: '22.0%',
-      severity: 'HIGH',
-      detected: 'Today (12 min ago)',
-    },
-    {
-      id: 'anom-2',
-      dealNumber: 'Q-1042',
-      event: 'Margin Slippage',
-      previous: '21.2%',
-      current: '18.4%',
-      severity: 'HIGH',
-      detected: 'Today (18 min ago)',
-    },
-    {
-      id: 'anom-3',
-      dealNumber: 'Q-1038',
-      event: 'SLA Threshold Breach',
-      previous: '4.0 hrs',
-      current: '7.8 hrs',
-      severity: 'MEDIUM',
-      detected: 'Today (1 hr ago)',
-    },
-    {
-      id: 'anom-4',
-      dealNumber: 'Q-1032',
-      event: 'Credit Exposure Limit',
-      previous: '₹8,20,000',
-      current: '₹9,40,000',
-      severity: 'MEDIUM',
-      detected: 'Yesterday',
-    },
-  ]
+  const attentionDeals = dealsList
+    .filter((d) => {
+      if (riskFilter === 'HEALTHY' && !(d.riskLevel === 'LOW' || d.healthScore >= 75)) return false
+      if (riskFilter === 'AT_RISK' && !(d.riskLevel === 'MEDIUM' || (d.healthScore >= 50 && d.healthScore < 75))) return false
+      if (riskFilter === 'CRITICAL' && !(['HIGH', 'CRITICAL'].includes(d.riskLevel) || d.healthScore < 50)) return false
+      if (statusFilter === 'ACTIVE' && ['CANCELLED', 'CLOSED'].includes(d.status)) return false
+      if (statusFilter === 'ESCALATED' && d.status !== 'APPROVAL_REQUIRED') return false
+      return true
+    })
+    .map((d) => ({
+      id: d.id || d.dealId,
+      dealNumber: d.dealNumber,
+      customerName: d.customerName,
+      riskScore: d.healthScore ?? 75,
+      margin: d.margin ? `${d.margin}%` : '20.0%',
+      trend: d.trend === 'DETERIORATING' ? 'Margin slippage detected' : d.trend === 'IMPROVING' ? 'Discount within policy' : 'Standard monitoring',
+      nextAction: d.status === 'APPROVAL_REQUIRED' ? 'Manager Approval Required' : d.status === 'NEGOTIATING' ? 'Review Counteroffer' : d.riskLevel === 'HIGH' ? 'Review Exception' : 'Active Pipeline',
+      severity: d.riskLevel || 'LOW',
+    }))
 
   return (
     <div className="space-y-5">
@@ -139,7 +98,7 @@ export default function DealHealthPage() {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as any)}
-            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-slate-300"
           >
             <option value="month">Period: This Month</option>
             <option value="quarter">Period: This Quarter</option>
@@ -149,7 +108,7 @@ export default function DealHealthPage() {
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-slate-300"
           >
             <option value="ALL">All Sales Teams</option>
             <option value="COMM">Commercial Sales</option>
@@ -159,7 +118,7 @@ export default function DealHealthPage() {
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-slate-300"
           >
             <option value="ALL">All Risk Levels</option>
             <option value="HEALTHY">Healthy Only</option>
@@ -170,7 +129,7 @@ export default function DealHealthPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-[#5E2A52]"
+            className="px-2 py-1 border border-slate-200 rounded bg-white text-slate-800 focus:outline-none focus:border-slate-300"
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active Deals</option>
@@ -179,14 +138,14 @@ export default function DealHealthPage() {
         </div>
       </div>
 
-      {/* SUMMARY NUMBERS ROW (Clean flat counters, NOT giant floating cards) */}
+      {/* SUMMARY NUMBERS ROW */}
       <div className="grid grid-cols-3 border border-slate-200 bg-white rounded divide-x divide-slate-200">
         <div className="p-3.5">
           <span className="text-[11px] uppercase tracking-wider font-semibold text-emerald-800 block">
             Healthy Deals
           </span>
           <div className="text-2xl font-bold font-mono text-emerald-800 mt-1">
-            {summary?.healthyCount || 24}
+            {summary?.healthyCount ?? 0}
           </div>
           <span className="text-[11px] text-slate-500 mt-0.5 block">Within margin & policy guardrails</span>
         </div>
@@ -196,7 +155,7 @@ export default function DealHealthPage() {
             At-Risk Deals
           </span>
           <div className="text-2xl font-bold font-mono text-amber-700 mt-1">
-            {summary?.atRiskCount || 11}
+            {summary?.atRiskCount ?? 0}
           </div>
           <span className="text-[11px] text-slate-500 mt-0.5 block">SLA countdown or margin floor waiver</span>
         </div>
@@ -206,7 +165,7 @@ export default function DealHealthPage() {
             Critical Exceptions
           </span>
           <div className="text-2xl font-bold font-mono text-rose-700 mt-1">
-            {summary?.criticalCount || 4}
+            {summary?.criticalCount ?? 0}
           </div>
           <span className="text-[11px] text-slate-500 mt-0.5 block">DICE Risk Index &gt; 80</span>
         </div>
@@ -241,7 +200,7 @@ export default function DealHealthPage() {
                 <TableCell>
                   <Link
                     to={`/quotations?id=${d.id}`}
-                    className="font-mono font-bold text-[#5E2A52] hover:underline"
+                    className="font-mono font-semibold text-blue-600 hover:underline"
                   >
                     {d.dealNumber}
                   </Link>
@@ -281,6 +240,13 @@ export default function DealHealthPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {attentionDeals.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-xs text-slate-500 py-6">
+                  No deals matching the selected health criteria.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -313,31 +279,31 @@ export default function DealHealthPage() {
               <TableRow key={a.id}>
                 <TableCell>
                   <Link
-                    to="/quotations?id=d-1042"
-                    className="font-mono font-bold text-[#5E2A52] hover:underline"
+                    to={`/quotations?id=${a.dealId || a.id}`}
+                    className="font-mono font-semibold text-blue-600 hover:underline"
                   >
                     {a.dealNumber}
                   </Link>
                 </TableCell>
                 <TableCell className="font-medium text-slate-900">
-                  {a.event}
+                  {a.event || a.message}
                 </TableCell>
                 <TableCell align="right" className="font-mono text-slate-500">
-                  {a.previous}
+                  {a.previous || '—'}
                 </TableCell>
                 <TableCell align="right" className="font-mono font-bold text-rose-700">
-                  {a.current}
+                  {a.current || '—'}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={a.severity === 'HIGH' ? 'danger' : 'warning'} size="sm">
+                  <Badge variant={a.severity === 'HIGH' || a.severity === 'CRITICAL' ? 'danger' : 'warning'} size="sm">
                     {a.severity}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-slate-500 font-mono text-xs">
-                  {a.detected}
+                  {a.detected || (a.detectedAt ? new Date(a.detectedAt).toLocaleDateString() : 'Live')}
                 </TableCell>
                 <TableCell align="right">
-                  <Link to="/quotations?id=d-1042">
+                  <Link to={`/quotations?id=${a.dealId || a.id}`}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -349,6 +315,13 @@ export default function DealHealthPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {anomaliesList.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-xs text-slate-500 py-6">
+                  No active operational anomalies detected across live deals.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

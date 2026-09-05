@@ -1,4 +1,4 @@
-import { cn } from '../../utils/cn'
+﻿import { cn } from '../../utils/cn'
 import { Button } from './Button'
 
 export interface PaginationProps {
@@ -54,7 +54,7 @@ export function Pagination({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="border border-slate-300 rounded px-1.5 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+              className="border border-slate-300 rounded px-1.5 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>

@@ -19,7 +19,7 @@ import {
 export default function PortalPage() {
   const { token: urlToken } = useParams<{ token?: string }>()
   const [searchParams] = useSearchParams()
-  const activeToken = urlToken || searchParams.get('token') || 'portal-token-q1042-acme'
+  const activeToken = urlToken || searchParams.get('token') || 'd1'
 
   const [quote, setQuote] = useState<PortalQuoteView | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +29,7 @@ export default function PortalPage() {
   const [isCounterofferOpen, setIsCounterofferOpen] = useState(
     searchParams.get('action') === 'negotiate'
   )
-  const [requestedDiscount, setRequestedDiscount] = useState<number>(22)
+  const [requestedDiscount, setRequestedDiscount] = useState<number>(15)
   const [counterMessage, setCounterMessage] = useState(
     'We can proceed at this price.'
   )
@@ -42,6 +42,9 @@ export default function PortalPage() {
     try {
       const data = await portalService.getQuote(activeToken)
       setQuote(data)
+      if (data?.totalDiscountPercent) {
+        setRequestedDiscount(data.totalDiscountPercent)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid or expired customer portal token')
     } finally {
@@ -138,11 +141,12 @@ export default function PortalPage() {
       )}
 
       {/* Quote Document Header Card */}
-      <div className="bg-white border border-slate-200 rounded p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs relative overflow-hidden">
+        <div className="h-1 bg-slate-900 w-full absolute top-0 left-0" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/90 pb-5 pt-1">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 font-mono">
                 Commercial Proposal
               </span>
               <Badge variant="primary">{quote.status.replace('_', ' ')}</Badge>
@@ -156,10 +160,10 @@ export default function PortalPage() {
           </div>
 
           <div className="text-left sm:text-right">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold font-mono">
               Total Proposed Investment
             </span>
-            <span className="text-2xl font-bold text-[#5E2A52] font-mono">
+            <span className="text-2xl font-bold text-slate-900 font-mono">
               {formatCurrency(quote.totalAmount)}
             </span>
             <span className="text-xs text-slate-500 block mt-0.5">
@@ -169,25 +173,25 @@ export default function PortalPage() {
         </div>
 
         {/* Customer Commercial Item Table (STRICTLY HIDING COSTS & MARGINS) */}
-        <div className="mt-5 overflow-x-auto border border-slate-200 rounded">
+        <div className="mt-5 overflow-x-auto border border-slate-200/90 rounded-2xl">
           <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/75 text-[11px] uppercase font-semibold text-slate-600 border-b border-slate-200">
+            <thead className="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-700 border-b border-slate-200/90 font-mono">
               <tr>
-                <th className="py-2 px-3">Item Description</th>
-                <th className="py-2 px-3 text-right">Quantity</th>
-                <th className="py-2 px-3 text-right">Unit List Price</th>
-                <th className="py-2 px-3 text-right">Total Net</th>
+                <th className="py-2.5 px-4">Item Description</th>
+                <th className="py-2.5 px-4 text-right">Quantity</th>
+                <th className="py-2.5 px-4 text-right">Unit List Price</th>
+                <th className="py-2.5 px-4 text-right">Total Net</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-normal">
               {quote.lines.map((line, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50">
-                  <td className="py-2.5 px-3 font-medium text-slate-900">{line.productName}</td>
-                  <td className="py-2.5 px-3 text-right font-mono">{line.quantity}</td>
-                  <td className="py-2.5 px-3 text-right text-slate-600 font-mono">
+                <tr key={idx} className="hover:bg-slate-50/70">
+                  <td className="py-3 px-4 font-medium text-slate-900">{line.productName}</td>
+                  <td className="py-3 px-4 text-right font-mono">{line.quantity}</td>
+                  <td className="py-3 px-4 text-right text-slate-600 font-mono">
                     {formatCurrency(line.unitPrice)}
                   </td>
-                  <td className="py-2.5 px-3 text-right font-semibold text-slate-900 font-mono">
+                  <td className="py-3 px-4 text-right font-semibold text-slate-900 font-mono">
                     {formatCurrency(line.total)}
                   </td>
                 </tr>
@@ -201,15 +205,15 @@ export default function PortalPage() {
           <div className="w-64 space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal Net:</span>
-              <span className="font-mono font-medium">{formatCurrency(quote.totalAmount)}</span>
+              <span className="font-mono font-medium text-slate-900">{formatCurrency(quote.totalAmount)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Estimated GST (18%):</span>
-              <span className="font-mono font-medium">{formatCurrency(Math.round(quote.totalAmount * 0.18))}</span>
+              <span className="font-mono font-medium text-slate-900">{formatCurrency(Math.round(quote.totalAmount * 0.18))}</span>
             </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-900">
+            <div className="flex justify-between border-t border-slate-200/90 pt-2 font-bold text-slate-900">
               <span>Total Payable:</span>
-              <span className="font-mono text-[#5E2A52] text-sm">
+              <span className="font-mono text-slate-900 text-sm">
                 {formatCurrency(Math.round(quote.totalAmount * 1.18))}
               </span>
             </div>
@@ -217,7 +221,7 @@ export default function PortalPage() {
         </div>
 
         {/* Customer Actions Bar */}
-        <div className="mt-6 pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mt-6 pt-4 border-t border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-xs text-slate-500 flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <span>Offer Valid Until: <strong className="font-medium text-slate-700">{quote.validUntil}</strong></span>
@@ -229,7 +233,7 @@ export default function PortalPage() {
               size="sm"
               onClick={handleReject}
               disabled={quote.status === 'CANCELLED' || quote.status === 'CONFIRMED'}
-              className="text-rose-700 border-rose-200 hover:bg-rose-50 rounded text-xs py-1.5 px-3"
+              className="text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl text-xs py-1.5 px-3 font-medium"
             >
               <XCircle className="w-3.5 h-3.5 mr-1" />
               Decline
@@ -240,7 +244,7 @@ export default function PortalPage() {
               size="sm"
               onClick={() => setIsCounterofferOpen(true)}
               disabled={quote.status === 'CANCELLED' || quote.status === 'CONFIRMED'}
-              className="text-[#5E2A52] border-[#5E2A52]/30 hover:bg-[#FAF5F9] rounded text-xs py-1.5 px-3"
+              className="text-slate-900 border-slate-200 hover:bg-slate-50 rounded-xl text-xs py-1.5 px-3 font-medium shadow-2xs"
             >
               <MessageSquare className="w-3.5 h-3.5 mr-1" />
               Propose Counteroffer
@@ -251,7 +255,7 @@ export default function PortalPage() {
               size="sm"
               onClick={handleAccept}
               disabled={quote.status === 'CONFIRMED' || quote.status === 'CANCELLED'}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 rounded text-xs py-1.5 px-3"
+              className="bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 rounded-xl text-xs py-1.5 px-3 font-semibold shadow-xs"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Accept Proposal
@@ -261,8 +265,8 @@ export default function PortalPage() {
       </div>
 
       {/* Customer Progression Timeline */}
-      <div className="bg-white border border-slate-200 rounded p-4">
-        <h4 className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mb-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs">
+        <h4 className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mb-3 font-mono">
           Proposal Status & Progression
         </h4>
 
@@ -270,11 +274,11 @@ export default function PortalPage() {
           {customerTimelineSteps.map((step, i) => (
             <div
               key={step.title}
-              className={`p-2.5 rounded border text-xs ${
+              className={`p-3 rounded-xl border text-xs ${
                 step.status === 'completed'
                   ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900'
                   : step.status === 'current'
-                  ? 'bg-purple-50/50 border-purple-200 text-[#5E2A52] font-semibold'
+                  ? 'bg-slate-100 border-slate-300 text-slate-900 font-semibold'
                   : 'bg-slate-50/50 border-slate-200 text-slate-400'
               }`}
             >
@@ -312,7 +316,7 @@ export default function PortalPage() {
                 max={40}
                 value={requestedDiscount}
                 onChange={(e) => setRequestedDiscount(parseInt(e.target.value) || 0)}
-                className="w-24 px-3 py-2 border border-slate-200 rounded text-xs font-mono font-bold text-[#5E2A52] focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-24 px-3 py-2 border border-slate-200 rounded text-xs font-mono font-semibold text-blue-600 focus:ring-1 focus:ring-slate-900"
               />
               <span className="text-xs text-slate-500 font-medium">%</span>
             </div>
@@ -329,7 +333,7 @@ export default function PortalPage() {
               rows={3}
               value={counterMessage}
               onChange={(e) => setCounterMessage(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               placeholder="e.g. We can proceed at this price."
             />
           </div>
@@ -348,7 +352,7 @@ export default function PortalPage() {
               variant="primary"
               size="sm"
               disabled={isSubmitting}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5"
+              className="bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               {isSubmitting ? 'Submitting...' : 'Submit Counteroffer'}

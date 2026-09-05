@@ -15,7 +15,7 @@ import java.util.UUID;
  *
  * <p>Not part of the original module plan, but nothing else exposed one — any
  * "create a deal" UI needs to pick a customer from somewhere, and OEEG needed
- * a real way to look one up rather than reaching into Postgres directly. Kept
+ * a real way to look one up rather than reaching into MySQL directly. Kept
  * deliberately thin: list + get, mirroring {@link DealController}'s DTO style.
  */
 @RestController
@@ -37,12 +37,16 @@ public class CustomerController {
 
     public record CustomerSummary(
             UUID id, String name, CustomerSegment segment, String tier, String region,
-            BigDecimal creditLimit, BigDecimal availableCredit, Integer paymentTermsDays) {
+            BigDecimal creditLimit, BigDecimal availableCredit, Integer paymentTermsDays,
+            BigDecimal creditUsed, String paymentTerms, Integer riskScore) {
 
         static CustomerSummary from(Customer customer) {
             return new CustomerSummary(customer.getId(), customer.getName(), customer.getSegment(),
                     customer.getTier(), customer.getRegion(), customer.getCreditLimit(),
-                    customer.availableCredit(), customer.getPaymentTermsDays());
+                    customer.availableCredit(), customer.getPaymentTermsDays(),
+                    customer.getOutstandingBalance() != null ? customer.getOutstandingBalance() : BigDecimal.ZERO,
+                    "Net " + (customer.getPaymentTermsDays() != null ? customer.getPaymentTermsDays() : 30),
+                    customer.getRiskScore() != null ? customer.getRiskScore() : 20);
         }
     }
 }

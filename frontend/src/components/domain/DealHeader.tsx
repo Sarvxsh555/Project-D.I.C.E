@@ -1,4 +1,4 @@
-import { Badge } from '../ui/Badge'
+﻿import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { formatCurrency } from '../../utils/currency'
 import type { DealDetail } from '../../types/deal'
@@ -121,7 +121,7 @@ export function DealHeader({
             )}
 
             {deal.status === 'DRAFT' && onSubmit && (
-              <Button variant="primary" size="sm" onClick={onSubmit} className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs">
+              <Button variant="primary" size="sm" onClick={onSubmit} className="bg-slate-900 hover:bg-slate-800 text-xs">
                 Submit for Approval
               </Button>
             )}

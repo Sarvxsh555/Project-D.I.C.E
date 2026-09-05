@@ -103,7 +103,7 @@ public class ViolationRiskEngine {
         }
         BigDecimal weightedViolation = weightedSum.divide(totalQuoteValue, 8, RoundingMode.HALF_UP);
         int score = weightedViolation.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).intValue();
-        return Math.clamp(score, 0, 100);
+        return Math.max(0, Math.min(score, 100));
     }
 
     private RiskLevel levelFor(int score) {

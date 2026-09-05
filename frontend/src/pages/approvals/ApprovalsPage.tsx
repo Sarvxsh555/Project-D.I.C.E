@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
@@ -247,7 +247,7 @@ export default function ApprovalsPage() {
                 variant="primary"
                 size="sm"
                 onClick={() => setActionModal('APPROVE')}
-                className="text-xs bg-[#5E2A52] hover:bg-[#4B2141] flex items-center gap-1.5"
+                className="text-xs bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Approve Exception
@@ -302,7 +302,7 @@ export default function ApprovalsPage() {
                   value={actionComment}
                   onChange={(e) => setActionComment(e.target.value)}
                   placeholder="e.g. Approved based on multi-year strategic account expansion."
-                  className="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-[#5E2A52]"
+                  className="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-slate-300"
                 />
               </div>
 
@@ -315,7 +315,7 @@ export default function ApprovalsPage() {
                   size="sm"
                   disabled={actionSubmitting}
                   onClick={handleExecuteAction}
-                  className="bg-[#5E2A52] hover:bg-[#4B2141]"
+                  className="bg-slate-900 hover:bg-slate-800"
                 >
                   {actionSubmitting ? 'Submitting...' : 'Confirm Decision'}
                 </Button>
@@ -406,7 +406,7 @@ export default function ApprovalsPage() {
                   <button
                     type="button"
                     onClick={() => setSearchParams({ id: app.id })}
-                    className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
+                    className="font-mono font-semibold text-blue-600 hover:underline cursor-pointer text-left"
                   >
                     {app.dealNumber}
                   </button>
@@ -441,7 +441,7 @@ export default function ApprovalsPage() {
                   </span>
                 </TableCell>
                 <TableCell className="text-slate-600">
-                  {app.requestedBy || 'Sarah Jenkins'}
+                  {app.requestedBy || 'Arjun Mehta'}
                 </TableCell>
                 <TableCell>
                   <span className="font-mono text-xs text-amber-800 flex items-center gap-1">

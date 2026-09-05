@@ -37,7 +37,7 @@ export function PricingSummary({ deal }: PricingSummaryProps) {
 
         <div className="border-t border-slate-200 pt-3 mt-2 flex justify-between items-center text-sm font-bold text-slate-900">
           <span>Net Quotation Total</span>
-          <span className="text-base text-[#5E2A52]">{formatCurrency(netTotal)}</span>
+          <span className="text-base text-slate-900 font-mono">{formatCurrency(netTotal)}</span>
         </div>
 
         <div className="bg-slate-50 border border-slate-200 rounded-md p-2.5 mt-3 flex items-center justify-between text-[11px]">

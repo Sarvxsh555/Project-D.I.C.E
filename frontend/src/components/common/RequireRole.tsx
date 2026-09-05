@@ -1,6 +1,6 @@
 import React from 'react'
 import { Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom'
-import { ShieldAlert, ArrowLeft, UserCheck, KeyRound } from 'lucide-react'
+import { ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import type { Role } from '../../types/auth'
 import { STAKEHOLDER_DEFINITIONS } from '../../types/auth'
@@ -14,7 +14,8 @@ export interface RequireRoleProps {
 }
 
 export const RequireRole: React.FC<RequireRoleProps> = ({ allowedRoles, children }) => {
-  const { currentUser, isAuthenticated, getDefaultDashboard, switchRole } = useAuth()
+  const { currentUser, isAuthenticated, getDefaultDashboard } = useAuth()
+
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -83,29 +84,18 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ allowedRoles, children
             </Button>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              {allowedRoles && allowedRoles.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto text-xs"
-                  onClick={() => switchRole(allowedRoles[0])}
-                  title={`Fast-switch to ${allowedRoles[0]} for evaluation`}
-                >
-                  <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-                  Switch to {allowedRoles[0].replace('_', ' ')}
-                </Button>
-              )}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="w-full sm:w-auto text-xs text-slate-500 hover:text-slate-800"
+                className="w-full sm:w-auto text-xs"
                 onClick={() => navigate('/login')}
               >
                 <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-                Sign In
+                Sign In With Different Clearance
               </Button>
             </div>
           </div>
+
         </Card>
       </div>
     )

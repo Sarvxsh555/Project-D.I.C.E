@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { cn } from '../../utils/cn'
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -25,7 +25,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           disabled={disabled}
           className={cn(
             'w-full bg-white text-slate-900 placeholder:text-slate-400 border rounded-md text-sm transition-colors',
-            'py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#5E2A52]/20 focus:border-[#5E2A52]',
+            'py-2 px-3 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-300',
             'disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed resize-y',
             error
               ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20'

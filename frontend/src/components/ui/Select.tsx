@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { cn } from '../../utils/cn'
 
 export interface SelectOption {
@@ -31,7 +31,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             disabled={disabled}
             className={cn(
               'w-full appearance-none bg-white text-slate-900 border rounded-md text-sm transition-colors',
-              'py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[#5E2A52]/20 focus:border-[#5E2A52]',
+              'py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-300',
               'disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed',
               error
                 ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20'

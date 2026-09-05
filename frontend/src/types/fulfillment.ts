@@ -38,6 +38,8 @@ export interface FulfillmentOrder {
   allocations: LineAllocation[]
   expectedShipmentDate: string
   lifecycleStep: 'Approved' | 'Fulfillment Created' | 'Allocated' | 'Shipment Planned' | 'Shipped' | 'Delivered'
+  trackingNumber?: string
+  warehouse?: string
 }
 
 export type FulfillmentPlan = FulfillmentOrder

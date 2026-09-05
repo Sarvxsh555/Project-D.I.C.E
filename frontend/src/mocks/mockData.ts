@@ -4,7 +4,7 @@ import {
   MOCK_PRICELISTS,
   MOCK_DISCOUNT_RULES,
   MOCK_DEAL_SUMMARIES,
-  MOCK_DEAL_DETAIL_Q1042,
+  MOCK_DEAL_DETAIL_DL001,
   MOCK_APPROVALS_LIST,
   MOCK_FULFILLMENT_ORDERS,
   MOCK_BILLING_DETAILS,
@@ -46,27 +46,28 @@ export {
 export const MOCK_DEALS: DealSummary[] = MOCK_DEAL_SUMMARIES
 
 export const MOCK_DEAL_DETAILS: Record<string, DealDetail> = {
-  'd-1042': MOCK_DEAL_DETAIL_Q1042,
-  'Q-1042': MOCK_DEAL_DETAIL_Q1042,
-  'd1111111-1111-1111-1111-111111111111': MOCK_DEAL_DETAIL_Q1042,
-  'd-1038': {
-    ...MOCK_DEAL_DETAIL_Q1042,
-    id: 'd-1038',
-    dealNumber: 'Q-1038',
-    customerName: 'Globex Industries',
-    totalAmount: 185000,
-    marginPercent: 17.4,
-    riskScore: 55,
+  'd-2024-001': MOCK_DEAL_DETAIL_DL001,
+  'DL-2024-001': MOCK_DEAL_DETAIL_DL001,
+  'd1': MOCK_DEAL_DETAIL_DL001,
+  'd-2024-002': {
+    ...MOCK_DEAL_DETAIL_DL001,
+    id: 'd-2024-002',
+    dealNumber: 'DL-2024-002',
+    customerName: 'Infosys Limited',
+    totalAmount: 84075,
+    marginPercent: 68.2,
+    riskScore: 12,
+    status: 'APPROVED',
   },
-  'd-1035': {
-    ...MOCK_DEAL_DETAIL_Q1042,
-    id: 'd-1035',
-    dealNumber: 'Q-1035',
-    customerName: 'Stark Systems',
-    totalAmount: 920000,
-    marginPercent: 28.0,
-    riskScore: 32,
-    status: 'NEGOTIATION',
+  'd-2024-003': {
+    ...MOCK_DEAL_DETAIL_DL001,
+    id: 'd-2024-003',
+    dealNumber: 'DL-2024-003',
+    customerName: 'Wipro Technologies',
+    totalAmount: 146000,
+    marginPercent: 58.4,
+    riskScore: 28,
+    status: 'CONFIRMED',
   },
 }
 

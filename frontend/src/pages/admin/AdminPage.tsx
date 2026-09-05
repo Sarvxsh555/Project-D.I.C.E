@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+﻿import { useState, useEffect, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -154,7 +154,7 @@ export default function AdminPage() {
                 onClick={() => setSearchParams({ tab: t.id })}
                 className={`px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
                   isActive
-                    ? 'bg-white text-[#5E2A52] font-semibold border border-slate-200/80 shadow-none'
+                    ? 'bg-white text-slate-900 font-semibold border border-slate-200/80 shadow-none'
                     : 'text-slate-600 hover:text-slate-900 border border-transparent'
                 }`}
               >
@@ -199,7 +199,7 @@ export default function AdminPage() {
               <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
                 Governance SLA Velocity
               </span>
-              <div className="text-xl font-bold text-[#5E2A52] font-mono">
+              <div className="text-xl font-bold text-blue-600 font-mono">
                 {reports.averageApprovalHours}h
               </div>
               <span className="text-[11px] text-slate-500 mt-1 block">
@@ -276,7 +276,7 @@ export default function AdminPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsAddProductOpen(true)}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 rounded"
+              className="bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5 rounded"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Product
@@ -351,7 +351,7 @@ export default function AdminPage() {
               <tbody className="divide-y divide-slate-100">
                 {pricelists.map((pl) => (
                   <tr key={pl.id} className="hover:bg-slate-50/50">
-                    <td className="py-2 px-3 font-semibold text-[#5E2A52]">{pl.tier} Tier</td>
+                    <td className="py-2 px-3 font-semibold text-slate-900">{pl.tier} Tier</td>
                     <td className="py-2 px-3 font-medium text-slate-900">{pl.productName}</td>
                     <td className="py-2 px-3 font-mono text-slate-500">{pl.sku}</td>
                     <td className="py-2 px-3 text-right font-medium text-slate-900 font-mono">
@@ -383,7 +383,7 @@ export default function AdminPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsAddRuleOpen(true)}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 rounded"
+              className="bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5 rounded"
             >
               <Plus className="w-3.5 h-3.5" />
               Create Rule
@@ -409,7 +409,7 @@ export default function AdminPage() {
                 {discountRules.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50">
                     <td className="py-2 px-3 font-semibold text-slate-900">{r.ruleName}</td>
-                    <td className="py-2 px-3 font-medium text-[#5E2A52]">{r.customerTier}</td>
+                    <td className="py-2 px-3 font-medium text-slate-900">{r.customerTier}</td>
                     <td className="py-2 px-3 text-slate-700">{r.category}</td>
                     <td className="py-2 px-3 text-right font-medium text-slate-900 font-mono">
                       {formatPercent(r.maxDiscountPercent)}
@@ -454,7 +454,7 @@ export default function AdminPage() {
               required
               value={newProdName}
               onChange={(e) => setNewProdName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               placeholder="e.g. GPU AI Acceleration Node"
             />
           </div>
@@ -467,7 +467,7 @@ export default function AdminPage() {
                 required
                 value={newProdSku}
                 onChange={(e) => setNewProdSku(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
                 placeholder="HW-2005"
               />
             </div>
@@ -477,7 +477,7 @@ export default function AdminPage() {
               <select
                 value={newProdCategory}
                 onChange={(e) => setNewProdCategory(e.target.value as any)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
               >
                 <option value="Hardware">Hardware</option>
                 <option value="Service">Service</option>
@@ -493,7 +493,7 @@ export default function AdminPage() {
                 type="number"
                 value={newProdPrice}
                 onChange={(e) => setNewProdPrice(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               />
             </div>
             <div>
@@ -502,7 +502,7 @@ export default function AdminPage() {
                 type="number"
                 value={newProdCost}
                 onChange={(e) => setNewProdCost(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               />
             </div>
           </div>
@@ -512,7 +512,7 @@ export default function AdminPage() {
             <select
               value={newProdBilling}
               onChange={(e) => setNewProdBilling(e.target.value as any)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
             >
               <option value="ONE_TIME">One-Time Capital</option>
               <option value="RECURRING">Recurring Subscription</option>
@@ -523,7 +523,7 @@ export default function AdminPage() {
             <Button variant="outline" size="sm" onClick={() => setIsAddProductOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm" className="bg-[#5E2A52]">
+            <Button type="submit" variant="primary" size="sm" className="bg-slate-900">
               Save Product
             </Button>
           </div>
@@ -544,7 +544,7 @@ export default function AdminPage() {
               required
               value={newRuleName}
               onChange={(e) => setNewRuleName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+              className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               placeholder="e.g. Platinum Tier Cap"
             />
           </div>
@@ -555,7 +555,7 @@ export default function AdminPage() {
               <select
                 value={newRuleCategory}
                 onChange={(e) => setNewRuleCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
               >
                 <option value="Hardware">Hardware</option>
                 <option value="Service">Service</option>
@@ -568,7 +568,7 @@ export default function AdminPage() {
               <select
                 value={newRuleTier}
                 onChange={(e) => setNewRuleTier(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
               >
                 <option value="Bronze">Bronze</option>
                 <option value="Silver">Silver</option>
@@ -582,7 +582,7 @@ export default function AdminPage() {
                 type="number"
                 value={newRuleDiscount}
                 onChange={(e) => setNewRuleDiscount(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
+                className="w-full px-3 py-2 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
               />
             </div>
           </div>
@@ -592,7 +592,7 @@ export default function AdminPage() {
             <select
               value={newRuleApproval}
               onChange={(e) => setNewRuleApproval(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
+              className="w-full px-3 py-2 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-slate-900"
             >
               <option value="None">None (Auto-Approved)</option>
               <option value="Sales Manager">Sales Manager</option>
@@ -605,7 +605,7 @@ export default function AdminPage() {
             <Button variant="outline" size="sm" onClick={() => setIsAddRuleOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm" className="bg-[#5E2A52]">
+            <Button type="submit" variant="primary" size="sm" className="bg-slate-900">
               Create Rule
             </Button>
           </div>

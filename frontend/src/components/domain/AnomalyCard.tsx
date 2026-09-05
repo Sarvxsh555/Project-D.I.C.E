@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Badge } from '../ui/Badge'
 import { AlertTriangle, AlertCircle, Info, ArrowRight } from 'lucide-react'
 
@@ -78,7 +78,7 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
 
         <Link
           to={`/quotations?id=${anomaly.dealId}`}
-          className="text-xs font-semibold text-[#5E2A52] hover:text-[#4d2243] flex items-center gap-1 shrink-0 pt-1"
+          className="text-xs font-semibold text-slate-900 hover:text-[#4d2243] flex items-center gap-1 shrink-0 pt-1"
         >
           <span>{anomaly.dealNumber}</span>
           <ArrowRight className="w-3 h-3" />

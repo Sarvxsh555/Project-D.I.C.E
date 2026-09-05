@@ -1,4 +1,4 @@
-import { Badge } from '../ui/Badge'
+﻿import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { formatCurrency } from '../../utils/currency'
 import type { HybridBillingDetail } from '../../types/billing'
@@ -30,7 +30,7 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
           <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
             Recurring Operating Retainer
           </span>
-          <div className="text-xl font-bold text-[#5E2A52]">
+          <div className="text-xl font-bold text-slate-900">
             {formatCurrency(billing.recurringMonthlyTotal)}
             <span className="text-xs text-slate-400 font-normal"> / month</span>
           </div>
@@ -39,9 +39,9 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
           </span>
         </div>
 
-        <div className="bg-[#FAF5F9] border border-[#E8D4E3] rounded-lg p-4 flex flex-col justify-between">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
           <div>
-            <span className="text-[11px] uppercase tracking-wider font-bold text-[#5E2A52] block mb-1">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-slate-900 block mb-1">
               Billing Action
             </span>
             <span className="text-xs text-slate-700">
@@ -53,7 +53,7 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
               variant="primary"
               size="sm"
               onClick={onGenerateInvoice}
-              className="mt-3 bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 self-start"
+              className="mt-3 bg-slate-900 hover:bg-slate-800 flex items-center gap-1.5 self-start"
             >
               <FileText className="w-3.5 h-3.5" />
               Generate Milestone Invoice

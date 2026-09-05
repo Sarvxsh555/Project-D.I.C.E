@@ -1,5 +1,5 @@
 export type BillingType = 'ONE_TIME' | 'RECURRING'
-export type CustomerTier = 'Bronze' | 'Silver' | 'Gold'
+export type CustomerTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
 
 export interface Product {
   id: string
@@ -39,10 +39,12 @@ export interface DiscountRule {
 export interface Customer {
   id: string
   name: string
-  segment: 'ENTERPRISE' | 'STRATEGIC' | 'MID_MARKET' | 'SMB'
+  segment: 'ENTERPRISE' | 'STRATEGIC' | 'MID_MARKET' | 'SMB' | string
   creditLimit: number
   creditUsed: number
+  availableCredit?: number
   paymentTerms: string
+  paymentTermsDays?: number
   riskScore: number
 }
 

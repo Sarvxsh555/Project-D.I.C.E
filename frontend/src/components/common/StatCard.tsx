@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Card, CardContent } from '../ui/Card'
 import { cn } from '../../utils/cn'
 
@@ -28,7 +28,7 @@ export function StatCard({
     <Card
       className={cn(
         'border border-slate-200 bg-white transition-colors',
-        highlight && 'border-[#5E2A52] bg-[#FAF5F9]',
+        highlight && 'border-slate-300 bg-slate-50',
         className
       )}
     >

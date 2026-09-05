@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react'
+﻿import React, { createContext, useContext } from 'react'
 import { cn } from '../../utils/cn'
 
 interface TabsContextType {
@@ -94,7 +94,7 @@ export function TabsTrigger({
       className={cn(
         'relative inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold tracking-wide transition-all border-b-2',
         isSelected
-          ? 'border-[#5E2A52] text-[#5E2A52]'
+          ? 'border-slate-300 text-slate-900'
           : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300',
         className
       )}
@@ -105,7 +105,7 @@ export function TabsTrigger({
         <span
           className={cn(
             'ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-semibold',
-            isSelected ? 'bg-[#FAF5F9] text-[#5E2A52]' : 'bg-slate-100 text-slate-600'
+            isSelected ? 'bg-slate-50 text-slate-900' : 'bg-slate-100 text-slate-600'
           )}
         >
           {count}

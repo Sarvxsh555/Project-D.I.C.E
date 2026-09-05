@@ -55,9 +55,11 @@ public class SecurityConfig {
     /** Reachable without a token. Keep this list short and deliberate. */
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/**",
+            "/api/v1/auth/**",
             "/actuator/health",
             "/actuator/health/**",
             "/actuator/info",
+            "/api/portal/quotes/**",
             // Signature-verified in OdooWebhookController rather than by a bearer token.
             "/api/webhooks/**"
     };
