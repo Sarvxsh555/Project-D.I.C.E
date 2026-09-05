@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { WarehouseAllocationView } from '../../components/domain/WarehouseAllocationView'
 import { fulfillmentService } from '../../services/fulfillmentService'
 import type { FulfillmentPlan, WarehouseStock } from '../../types/fulfillment'
-import { Truck, RefreshCw, Layers } from 'lucide-react'
+import { Truck, RefreshCw } from 'lucide-react'
 
 export default function FulfillmentPage() {
   const [searchParams] = useSearchParams()
@@ -17,6 +17,7 @@ export default function FulfillmentPage() {
   const [activePlan, setActivePlan] = useState<FulfillmentPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isShipping, setIsShipping] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
@@ -39,21 +40,21 @@ export default function FulfillmentPage() {
     loadData()
   }, [fulfillmentIdParam])
 
-  const handleAcceptSuggested = async () => {
+  const handleExecuteShipment = async () => {
     if (!activePlan) return
+    setIsShipping(true)
     try {
-      const updated = await fulfillmentService.allocate(activePlan.dealId, [
-        { warehouseName: 'Warehouse A (Mumbai Central)', quantity: 12 },
-        { warehouseName: 'Warehouse B (Bengaluru Tech Hub)', quantity: 8 },
-      ])
-      setActivePlan(updated)
+      const res = await fulfillmentService.ship(activePlan.dealId)
+      setActivePlan(res)
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsShipping(false)
     }
   }
 
   if (loading) {
-    return <LoadingState message="Connecting to Warehouse Management System (WMS)..." rows={5} />
+    return <LoadingState message="Connecting to Warehouse Management System (WMS)..." rows={6} />
   }
 
   if (error || !activePlan) {
@@ -61,20 +62,20 @@ export default function FulfillmentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Operations & Logistics</span>
-            <span>•</span>
-            <span className="text-[#5E2A52] font-mono">{activePlan.dealNumber}</span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Fulfillment & Stock Allocation
+            </h1>
+            <Badge variant="neutral" size="sm">
+              {activePlan.dealNumber} — {activePlan.customerName}
+            </Badge>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-1">
-            Fulfillment & Stock Allocation
-          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Multi-depot inventory routing and delivery feasibility for {activePlan.customerName}
+            Operational WMS inventory routing, depot split allocations, and shipment dispatch
           </p>
         </div>
 
@@ -83,84 +84,181 @@ export default function FulfillmentPage() {
             variant="outline"
             size="sm"
             onClick={loadData}
-            className="flex items-center gap-1.5 text-slate-600"
+            className="flex items-center gap-1.5 text-xs text-slate-700 border-slate-300 hover:bg-slate-100"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Sync WMS
+            <span>Sync WMS</span>
           </Button>
 
-          {activePlan.lifecycleStep === 'Allocated' && (
+          {activePlan.lifecycleStep !== 'Shipped' ? (
             <Button
               variant="primary"
               size="sm"
-              onClick={async () => {
-                const res = await fulfillmentService.ship(activePlan.dealId)
-                setActivePlan(res)
-              }}
-              className="bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5"
+              disabled={isShipping}
+              onClick={handleExecuteShipment}
+              className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs flex items-center gap-1.5"
             >
               <Truck className="w-3.5 h-3.5" />
-              Dispatch Shipment
+              <span>{isShipping ? 'Dispatching...' : 'Dispatch Shipment'}</span>
             </Button>
+          ) : (
+            <Badge variant="success" size="sm">
+              Shipment In Transit (AWB-984021)
+            </Badge>
           )}
         </div>
       </div>
 
-      {/* Main Allocation & Stock Component */}
-      <WarehouseAllocationView
-        plan={activePlan}
-        stock={stock}
-        onAcceptSuggested={handleAcceptSuggested}
-        onManualOverride={() => alert('Manual allocation override enabled.')}
-      />
-
-      {/* Allocation Breakdown Table */}
-      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-        <h4 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3 flex items-center gap-1.5">
-          <Layers className="w-4 h-4 text-slate-500" />
-          Itemized Line Allocation Schedule
-        </h4>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-slate-700">
-            <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
-              <tr>
-                <th className="py-2.5 px-3">Product Name</th>
-                <th className="py-2.5 px-3">SKU</th>
-                <th className="py-2.5 px-3 text-right">Requested Qty</th>
-                <th className="py-2.5 px-3 text-right">Allocated Qty</th>
-                <th className="py-2.5 px-3 text-right">Backorder</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3 text-right">Expected Shipment</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {activePlan.allocations.map((alloc) => (
-                <tr key={alloc.id} className="hover:bg-slate-50/50">
-                  <td className="py-3 px-3 font-medium text-slate-900">{alloc.productName}</td>
-                  <td className="py-3 px-3 font-mono text-slate-500">{alloc.sku}</td>
-                  <td className="py-3 px-3 text-right font-semibold text-slate-800">
-                    {alloc.requestedQty}
-                  </td>
-                  <td className="py-3 px-3 text-right font-bold text-emerald-700">
-                    {alloc.allocatedQty}
-                  </td>
-                  <td className="py-3 px-3 text-right text-slate-400 font-mono">
-                    {alloc.backorderQty}
-                  </td>
-                  <td className="py-3 px-3">
-                    <Badge variant={alloc.status === 'READY' ? 'success' : 'warning'}>
-                      {alloc.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3 px-3 text-right font-mono text-slate-500">
-                    {alloc.expectedShipmentDate}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* SECTION 1: WAREHOUSE ALLOCATION TABLE (Dense operational table) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            Line Item Allocation by Depot
+          </h2>
+          <span className="text-xs text-slate-400 font-mono">
+            Status: {activePlan.lifecycleStep}
+          </span>
         </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Line Item / SKU</TableHead>
+              <TableHead>Assigned Depot</TableHead>
+              <TableHead className="w-24" align="right">Requested</TableHead>
+              <TableHead className="w-24" align="right">Available</TableHead>
+              <TableHead className="w-24" align="right">Allocated</TableHead>
+              <TableHead className="w-24" align="right">Backorder</TableHead>
+              <TableHead className="w-32">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">
+                <div>Enterprise Cloud Platform (Core)</div>
+                <div className="text-[10px] text-slate-400 font-mono">SKU: CLD-ENT-001</div>
+              </TableCell>
+              <TableCell>WH-A (Mumbai Central Depot)</TableCell>
+              <TableCell align="right">20</TableCell>
+              <TableCell align="right">45</TableCell>
+              <TableCell align="right" className="font-bold text-slate-900">12</TableCell>
+              <TableCell align="right">0</TableCell>
+              <TableCell>
+                <Badge variant="success" size="sm">Allocated</Badge>
+              </TableCell>
+            </TableRow>
+
+            <TableRow>
+              <TableCell className="font-medium">
+                <div>Enterprise Cloud Platform (Core)</div>
+                <div className="text-[10px] text-slate-400 font-mono">SKU: CLD-ENT-001</div>
+              </TableCell>
+              <TableCell>WH-B (Bengaluru Tech Hub)</TableCell>
+              <TableCell align="right">20</TableCell>
+              <TableCell align="right">28</TableCell>
+              <TableCell align="right" className="font-bold text-slate-900">8</TableCell>
+              <TableCell align="right">0</TableCell>
+              <TableCell>
+                <Badge variant="success" size="sm">Allocated</Badge>
+              </TableCell>
+            </TableRow>
+
+            <TableRow>
+              <TableCell className="font-medium">
+                <div>High-Density Server Rack Unit</div>
+                <div className="text-[10px] text-slate-400 font-mono">SKU: HW-RCK-092</div>
+              </TableCell>
+              <TableCell>WH-A (Mumbai Central Depot)</TableCell>
+              <TableCell align="right">4</TableCell>
+              <TableCell align="right" className="text-rose-700 font-bold">1</TableCell>
+              <TableCell align="right">1</TableCell>
+              <TableCell align="right" className="font-bold text-rose-700">3</TableCell>
+              <TableCell>
+                <Badge variant="warning" size="sm">Backorder (Expedited)</Badge>
+              </TableCell>
+            </TableRow>
+
+            <TableRow>
+              <TableCell className="font-medium">
+                <div>24x7 Priority Support SLA</div>
+                <div className="text-[10px] text-slate-400 font-mono">SKU: SVC-SLA-001</div>
+              </TableCell>
+              <TableCell>HQ Technical Operations</TableCell>
+              <TableCell align="right">1</TableCell>
+              <TableCell align="right">Unlimited</TableCell>
+              <TableCell align="right" className="font-bold text-slate-900">1</TableCell>
+              <TableCell align="right">0</TableCell>
+              <TableCell>
+                <Badge variant="info" size="sm">Provisioned</Badge>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* SECTION 2: DICE FULFILLMENT RECOMMENDATION PANEL */}
+      <div className="border border-slate-200 rounded bg-white p-3.5 border-l-4 border-l-[#5E2A52] space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+            DICE Fulfillment Recommendation & Routing Analysis
+          </span>
+          <span className="font-mono text-emerald-800 font-bold">Transit Optimization: Active</span>
+        </div>
+        <p className="text-slate-700">
+          Split inventory allocation across <strong>WH-A (12 units)</strong> and <strong>WH-B (8 units)</strong> minimizes regional interstate freight by <strong>₹18,400</strong> and ensures delivery SLA within <strong>48 hours</strong>.
+        </p>
+        <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+          <span>Courier Partner: <strong>BlueDart Express Air</strong></span>
+          <span>•</span>
+          <span>Transit SLA: <strong>Net 2 Days</strong></span>
+          <span>•</span>
+          <span>Dock Verification: <strong>Pre-Inspected</strong></span>
+        </div>
+      </div>
+
+      {/* SECTION 3: DEPOT CAPACITY & INVENTORY STATUS (Dense table) */}
+      <div className="space-y-2">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          Multi-Depot Live Capacity & Inventory Balance
+        </h2>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Depot Name</TableHead>
+              <TableHead>Product / SKU</TableHead>
+              <TableHead className="w-28" align="right">Reserved</TableHead>
+              <TableHead className="w-28" align="right">Incoming</TableHead>
+              <TableHead className="w-28" align="right">Backordered</TableHead>
+              <TableHead className="w-32" align="right">Available Units</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stock.map((w, idx) => (
+              <TableRow key={`${w.warehouseId}-${w.productSku}-${idx}`}>
+                <TableCell className="font-medium text-slate-900">
+                  {w.warehouseName}
+                </TableCell>
+                <TableCell className="text-slate-600">
+                  <span>{w.productName}</span>
+                  <span className="font-mono text-slate-400 text-[11px] ml-1.5">[{w.productSku}]</span>
+                </TableCell>
+                <TableCell align="right" className="font-mono text-slate-700">
+                  {w.reserved} Units
+                </TableCell>
+                <TableCell align="right" className="font-mono text-slate-700">
+                  {w.incoming} Units
+                </TableCell>
+                <TableCell align="right" className="font-mono text-amber-700">
+                  {w.backordered} Units
+                </TableCell>
+                <TableCell align="right" className="font-mono font-bold text-slate-900">
+                  {w.available} Units
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   )
