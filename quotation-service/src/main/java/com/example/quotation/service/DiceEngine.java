@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Self-governing quote brain. Ten named rules decide risk, who must sign, and whether
- * the pipeline can skip humans. Policy lives here — not in the UI.
+ * D.I.C.E. — Deal Intelligence & Control Engine.
+ * This is the only decision brain. OEEG is not intelligence; it only emits external events.
  */
 @Service
-public class IntelligenceService {
+public class DiceEngine {
 
     public enum RequiredLevel { NONE, SALES_MANAGER, FINANCE }
 
@@ -40,7 +40,7 @@ public class IntelligenceService {
     private final CustomerRepository customers;
     private final ProductRepository products;
 
-    public IntelligenceService(CustomerRepository customers, ProductRepository products) {
+    public DiceEngine(CustomerRepository customers, ProductRepository products) {
         this.customers = customers;
         this.products = products;
     }
@@ -60,7 +60,6 @@ public class IntelligenceService {
                 ? quotation.getDiscountTotal() / quotation.getSubtotal() * 100.0
                 : 0;
 
-        // 1. Baseline risk from overall discount depth (even when under ceiling).
         risk += overallDiscount * 1.2;
         reasons.add("BASELINE_DISCOUNT: overall discount " + round(overallDiscount) + "% contributes "
                 + round(overallDiscount * 1.2) + " risk");
@@ -84,19 +83,15 @@ public class IntelligenceService {
             }
         }
 
-        // 2. Blended small overages across many lines still route.
         if (blendedOverage > 0 && blendedOverage < 8 && anyLineOver) {
             reasons.add("BLENDED_OVERAGE: stacked overages total " + round(blendedOverage)
                     + " points — pattern cannot slip as 'each line is almost fine'");
         }
 
-        // 3. Service lines are stricter — a single service overage flags the whole quote.
         if (serviceOver) {
             reasons.add("SERVICE_LINE_STRICT: a thin-margin service line broke its own ceiling");
         }
 
-        // 4. Highest required level wins when categories mix.
-        // 5. Margin floor → Finance.
         if (quotation.getMarginPercent() < MARGIN_FLOOR) {
             double deficit = MARGIN_FLOOR - quotation.getMarginPercent();
             risk += deficit * 1.5;
@@ -105,21 +100,18 @@ public class IntelligenceService {
                     + "% is below " + (int) MARGIN_FLOOR + "%");
         }
 
-        // 6. Large deal value → Finance.
         if (quotation.getTotal() > DEAL_VALUE_FINANCE) {
             risk += 15;
             required = highest(required, RequiredLevel.FINANCE);
             reasons.add("DEAL_VALUE: total exceeds standard sales authority (Rs. 50L)");
         }
 
-        // 7. Stacked overages past the blended finance line.
         if (blendedOverage >= BLENDED_OVERAGE_FINANCE) {
             required = highest(required, RequiredLevel.FINANCE);
             reasons.add("BLENDED_FINANCE: combined overage " + round(blendedOverage)
                     + " pts requires Finance as well as Manager");
         }
 
-        // 8. Anomaly: very deep overall discount even if lines look legal.
         if (overallDiscount >= ANOMALY_DISCOUNT) {
             required = highest(required, RequiredLevel.SALES_MANAGER);
             risk += 10;
@@ -139,7 +131,6 @@ public class IntelligenceService {
                 && quotation.getMarginPercent() >= MARGIN_FLOOR
                 && quotation.getTotal() <= DEAL_VALUE_FINANCE;
 
-        // 9. Gold/Platinum fast-track auto-approve when every line is inside policy.
         if (goldFastTrack) {
             reasons.add("TIER_FAST_TRACK: " + customer.getTier()
                     + " quote is inside every ceiling, margin is healthy, value is under authority");
@@ -150,7 +141,6 @@ public class IntelligenceService {
             required = RequiredLevel.NONE;
         }
 
-        // 10. Skip Finance when only Manager is required; build the chain from the winner.
         List<String> chain = switch (required) {
             case FINANCE -> List.of("Sales Manager", "Finance");
             case SALES_MANAGER -> List.of("Sales Manager");

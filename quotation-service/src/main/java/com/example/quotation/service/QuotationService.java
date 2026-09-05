@@ -31,20 +31,20 @@ public class QuotationService {
     private final CustomerPriceRepository customerPrices;
     private final ApprovalStepRepository approvalSteps;
     private final AuditEventRepository auditEvents;
-    private final IntelligenceService intelligence;
+    private final DiceEngine diceEngine;
     private final AtomicInteger quoteSequence = new AtomicInteger(1000);
 
     public QuotationService(QuotationRepository quotations, CustomerRepository customers,
                              ProductRepository products, CustomerPriceRepository customerPrices,
                              ApprovalStepRepository approvalSteps, AuditEventRepository auditEvents,
-                             IntelligenceService intelligence) {
+                             DiceEngine diceEngine) {
         this.quotations = quotations;
         this.customers = customers;
         this.products = products;
         this.customerPrices = customerPrices;
         this.approvalSteps = approvalSteps;
         this.auditEvents = auditEvents;
-        this.intelligence = intelligence;
+        this.diceEngine = diceEngine;
     }
 
     public Quotation create(QuotationRequest request, String repUsername) {
@@ -59,7 +59,7 @@ public class QuotationService {
         quotation.setStage(PipelineStage.DRAFT);
 
         applyLines(quotation, request.getLines(), customer);
-        quotation.setRiskScore(intelligence.evaluate(quotation).riskScore());
+        quotation.setRiskScore(diceEngine.evaluate(quotation).riskScore());
         return quotations.save(quotation);
     }
 
@@ -75,7 +75,7 @@ public class QuotationService {
         quotation.setCustomerId(customer.getId());
         quotation.setCustomerName(customer.getName());
         applyLines(quotation, request.getLines(), customer);
-        quotation.setRiskScore(intelligence.evaluate(quotation).riskScore());
+        quotation.setRiskScore(diceEngine.evaluate(quotation).riskScore());
         return quotations.save(quotation);
     }
 
@@ -89,7 +89,7 @@ public class QuotationService {
         }
 
         if (toStage == PipelineStage.APPROVED) {
-            IntelligenceService.Decision decision = intelligence.evaluate(quotation);
+            DiceEngine.Decision decision = diceEngine.evaluate(quotation);
             quotation.setRiskScore(decision.riskScore());
             if (!decision.autoApprove() && !"APPROVED".equals(quotation.getApprovalStatus())
                     && !"AUTO_APPROVED".equals(quotation.getApprovalStatus())) {
@@ -170,10 +170,10 @@ public class QuotationService {
     }
 
     private Quotation submitForApproval(Quotation quotation, String username, PipelineStage from) {
-        IntelligenceService.Decision decision = intelligence.evaluate(quotation);
+        DiceEngine.Decision decision = diceEngine.evaluate(quotation);
         quotation.setRiskScore(decision.riskScore());
         for (String reason : decision.reasons()) {
-            logAudit(quotation, "system:intelligence", "INTELLIGENCE", reason, from, from);
+            logAudit(quotation, "system:dice", "DICE", reason, from, from);
         }
 
         if (decision.autoApprove()) {
@@ -182,7 +182,7 @@ public class QuotationService {
             quotation.setApprovalStatus("AUTO_APPROVED");
             quotation.setUpdatedAt(Instant.now());
             Quotation saved = quotations.save(quotation);
-            logAudit(saved, "system:intelligence", "AUTO_APPROVE",
+            logAudit(saved, "system:dice", "AUTO_APPROVE",
                     "Risk " + Math.round(decision.riskScore()) + " — pipeline skipped the human queue",
                     from, PipelineStage.APPROVED);
             if (saved.isCustomerAccepted()) {
