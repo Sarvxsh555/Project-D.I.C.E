@@ -8,7 +8,9 @@ replaces those origins. Auth: Bearer JWT from login-service, except where noted.
 events so D.I.C.E. can react without a live Odoo. Live JSON-RPC runs only if
 `DICE_ODOO_ENABLED=true`.
 
-| Gateway `:8000` | Public origin. Browser talks only here. |
+Public origin is **Nginx `:80`** (SPA + `/api`). Nginx reverse-proxies to the Fastify gateway on `:8000`. Downstream service ports (`8082`, `8083`, …) stay private.
+
+Do **not** put Nginx between the gateway and Java services — JWT, coarse RBAC, error envelopes, and GET-only retries stay in Fastify. Nginx is the edge: gzip, static assets, timeouts, request-id passthrough, hide `/metrics`.
 
 ---
 

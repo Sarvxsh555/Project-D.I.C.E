@@ -1,11 +1,12 @@
-const QUOTATION_API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const QUOTATION_API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
-async function request(path, { method = 'GET', body, token } = {}) {
+async function request(path, { method = 'GET', body, token, idempotencyKey } = {}) {
   const headers = {
     'Content-Type': 'application/json',
     'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
   };
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   const response = await fetch(`${QUOTATION_API_BASE}${path}`, {
     method,

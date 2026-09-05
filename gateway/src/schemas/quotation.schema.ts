@@ -15,6 +15,6 @@ export const transitionBody = z.object({
   toStage: z.string().min(1),
 });
 
-export const reasonBody = z.object({
-  reason: z.string().min(1),
-});
+export const odooWebhook = z.object({
+  event: z.string().min(1).optional(),
+}).passthrough();
