@@ -10,7 +10,13 @@ public enum QuotationDecision {
     NO_ACTION,
     /** Policy violations need a first sign-off. */
     APPROVAL_REQUIRED,
-    /** The quote was already approved (or confirmed), but has since drifted out of policy again. */
+    /**
+     * The quote was already approved, but has genuinely changed since — never
+     * produced by {@code DecisionResolver} itself (it can't tell "changed"
+     * from "unchanged, re-evaluated again"), only applied downstream once
+     * {@code DealService}'s {@code MaterialChangeDetector} confirms a real
+     * drift from the last granted {@code ApprovalSnapshot}.
+     */
     REAPPROVAL_REQUIRED,
     /** Clean on every check — safe to move toward an order. */
     ORDER_READY,

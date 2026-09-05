@@ -4,7 +4,6 @@ import com.dice.domain.Customer;
 import com.dice.domain.Deal;
 import com.dice.domain.Policy;
 import com.dice.domain.Product;
-import com.dice.domain.enums.DealStatus;
 import com.dice.domain.enums.DecisionOutcome;
 import com.dice.domain.enums.QuotationDecision;
 import com.dice.domain.enums.RiskLevel;
@@ -81,6 +80,19 @@ public class DecisionResolver {
      * vocabulary than {@link DecisionOutcome}, aimed at "what should the rep do
      * next" rather than "what does the deal's status become". Orchestrates the
      * results above — it never re-derives a policy or risk number itself.
+     *
+     * <p>Never produces {@link QuotationDecision#REAPPROVAL_REQUIRED} — same
+     * reasoning as {@link DecisionOutcome#REAPPROVAL_REQUIRED} (see {@link #explain}):
+     * this resolver only looks at current state and has no notion of
+     * "previously approved with this exact configuration." An earlier version
+     * approximated it with {@code deal.getStatus() == APPROVED}, but that fires
+     * on <em>any</em> re-evaluation of an approved deal — including a bare
+     * {@code POST /api/deals/{id}/evaluate} with no underlying change — not
+     * just a genuine one. {@code DealService} is where a real comparison
+     * against the last granted {@code ApprovalSnapshot} happens
+     * ({@code MaterialChangeDetector}); it promotes both {@code DecisionOutcome}
+     * and, as a follow-up, this result to {@code REAPPROVAL_REQUIRED} only when
+     * that comparison finds an actual material change.
      */
     private QuotationDecisionResult decideQuotation(Deal deal,
                                                     PolicyEngine.PolicyReport policies,
@@ -96,14 +108,12 @@ public class DecisionResolver {
 
         boolean atRisk = policies.hasBlocking() || violationRisk.level() == RiskLevel.CRITICAL;
         boolean needsApproval = !policies.requiringApproval().isEmpty() || violationRisk.level() == RiskLevel.HIGH;
-        boolean previouslyApproved = deal.getStatus() == DealStatus.APPROVED
-                || deal.getStatus() == DealStatus.CONFIRMED;
 
         QuotationDecision decision;
         if (atRisk) {
             decision = QuotationDecision.DEAL_AT_RISK;
         } else if (needsApproval) {
-            decision = previouslyApproved ? QuotationDecision.REAPPROVAL_REQUIRED : QuotationDecision.APPROVAL_REQUIRED;
+            decision = QuotationDecision.APPROVAL_REQUIRED;
         } else if (policies.isClean()) {
             decision = QuotationDecision.ORDER_READY;
         } else {
