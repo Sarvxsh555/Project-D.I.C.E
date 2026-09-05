@@ -12,6 +12,9 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
     Optional<Customer> findByOdooPartnerId(Long odooPartnerId);
 
+    /** Resolves the authenticated portal principal to their own customer row. */
+    Optional<Customer> findByPortalUsername(String portalUsername);
+
     List<Customer> findBySegment(CustomerSegment segment);
 
     List<Customer> findByActiveTrue();
