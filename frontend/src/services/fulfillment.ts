@@ -1,7 +1,3 @@
-import { api } from './api'
+import { fulfillmentService } from './fulfillmentService'
 
-// TODO: mirror backend FulfillmentController.
-export const fulfillmentService = {
-  plan: (dealId: string) => api.get(`/fulfillment/${dealId}/plan`),
-  commit: (dealId: string) => api.post(`/fulfillment/${dealId}/commit`),
-}
+export default fulfillmentService
