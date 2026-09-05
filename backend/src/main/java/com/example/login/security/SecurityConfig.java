@@ -22,11 +22,14 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final CsrfFilter csrfFilter;
     private final UnauthorizedEntryPoint unauthorizedEntryPoint;
+    private final ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CsrfFilter csrfFilter, UnauthorizedEntryPoint unauthorizedEntryPoint) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CsrfFilter csrfFilter, UnauthorizedEntryPoint unauthorizedEntryPoint,
+                           ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.csrfFilter = csrfFilter;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
+        this.forbiddenAccessDeniedHandler = forbiddenAccessDeniedHandler;
     }
 
     @Bean
@@ -40,7 +43,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(eh -> eh.authenticationEntryPoint(unauthorizedEntryPoint))
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(unauthorizedEntryPoint)
+                        .accessDeniedHandler(forbiddenAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

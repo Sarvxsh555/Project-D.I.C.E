@@ -20,14 +20,17 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UnauthorizedEntryPoint unauthorizedEntryPoint;
+    private final ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler;
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
             UnauthorizedEntryPoint unauthorizedEntryPoint,
+            ForbiddenAccessDeniedHandler forbiddenAccessDeniedHandler,
             @Value("#{'${app.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
+        this.forbiddenAccessDeniedHandler = forbiddenAccessDeniedHandler;
         this.allowedOrigins = allowedOrigins;
     }
 
@@ -37,7 +40,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(eh -> eh.authenticationEntryPoint(unauthorizedEntryPoint))
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(unauthorizedEntryPoint)
+                        .accessDeniedHandler(forbiddenAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

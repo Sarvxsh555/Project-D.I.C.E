@@ -32,7 +32,7 @@ public class Quotation {
 
     private Instant updatedAt = Instant.now();
 
-    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<QuotationLine> lines = new ArrayList<>();
 
     // server-computed totals, never trusted from the client
