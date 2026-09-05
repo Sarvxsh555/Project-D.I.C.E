@@ -11,6 +11,7 @@ import com.example.quotation.web.QuotationLineRequest;
 import com.example.quotation.web.QuotationRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
+@Transactional
 public class QuotationService {
 
     /** Above this overall discount %, a quotation cannot go straight to APPROVED - it needs sign-off. */
@@ -160,6 +162,49 @@ public class QuotationService {
         approvalSteps.deleteByQuotationId(quotation.getId());
         logAudit(quotation, username, "RETURN", reason, from, PipelineStage.DRAFT);
         return getOrThrow(id);
+    }
+
+    /**
+     * Applies a customer's counter-discount to a single line. Only legal once a quote has
+     * reached APPROVED (or is already mid-negotiation) - this is what the Negotiation Engine
+     * calls after it records the request, and it's the only way an APPROVED quote's numbers
+     * can change. The stage flip to NEGOTIATION is what makes the change externally visible
+     * as "this approval is now stale" - approval-engine's version hash will no longer match.
+     */
+    public Quotation applyCounterDiscount(Long id, Long lineId, double proposedDiscountPercent, String username, String reason) {
+        Quotation quotation = getOrThrow(id);
+        PipelineStage from = quotation.getStage();
+
+        if (from != PipelineStage.APPROVED && from != PipelineStage.NEGOTIATION) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Counter-discounts can only be negotiated on an approved or in-negotiation quote (currently " + from + ")");
+        }
+
+        QuotationLine line = quotation.getLines().stream()
+                .filter(l -> l.getId().equals(lineId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Line not found on this quotation"));
+
+        Product product = products.findById(line.getProductId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+
+        double previousDiscount = line.getDiscountPercent();
+        line.setDiscountPercent(proposedDiscountPercent);
+        QuotationCalculator.applyLine(line, product);
+        QuotationCalculator.recomputeTotals(quotation);
+
+        if (from == PipelineStage.APPROVED) {
+            quotation.setStage(PipelineStage.NEGOTIATION);
+            quotation.setApprovalStatus("NOT_REQUIRED");
+            approvalSteps.deleteByQuotationId(quotation.getId());
+        }
+        quotation.setUpdatedAt(Instant.now());
+        Quotation saved = quotations.save(quotation);
+
+        logAudit(saved, username, "COUNTER_DISCOUNT",
+                String.format("%s: %.1f%% -> %.1f%% (%s)", line.getProductName(), previousDiscount, proposedDiscountPercent, reason),
+                from, saved.getStage());
+        return saved;
     }
 
     public List<ApprovalStep> getApprovalChain(Long id) {

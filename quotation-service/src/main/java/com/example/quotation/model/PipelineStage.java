@@ -20,7 +20,7 @@ public enum PipelineStage {
             DRAFT, Set.of(PENDING_APPROVAL),
             PENDING_APPROVAL, Set.of(NEGOTIATION, APPROVED, DRAFT),
             NEGOTIATION, Set.of(PENDING_APPROVAL, APPROVED),
-            APPROVED, Set.of(ORDERED),
+            APPROVED, Set.of(ORDERED, NEGOTIATION),
             ORDERED, Set.of(FULFILLMENT),
             FULFILLMENT, Set.of(COMPLETED),
             COMPLETED, Set.of());

@@ -8,6 +8,7 @@ import com.example.quotation.repository.QuotationRepository;
 import com.example.quotation.service.QuotationService;
 import com.example.quotation.service.QuotationSpecifications;
 import com.example.quotation.web.ApprovalActionRequest;
+import com.example.quotation.web.CounterDiscountRequest;
 import com.example.quotation.web.QuotationRequest;
 import com.example.quotation.web.TransitionRequest;
 import jakarta.validation.Valid;
@@ -84,6 +85,13 @@ public class QuotationController {
     @GetMapping("/{id}/audit")
     public List<AuditEvent> audit(@PathVariable Long id) {
         return quotationService.getAuditHistory(id);
+    }
+
+    @PostMapping("/{id}/counter-discount")
+    public Quotation counterDiscount(@PathVariable Long id, @Valid @RequestBody CounterDiscountRequest request,
+                                      Authentication authentication) {
+        return quotationService.applyCounterDiscount(id, request.getLineId(), request.getProposedDiscountPercent(),
+                authentication.getName(), request.getReason());
     }
 
     @PostMapping("/{id}/approve")
