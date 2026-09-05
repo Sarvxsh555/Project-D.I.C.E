@@ -26,6 +26,7 @@ function isPublic(url: string, method: string): boolean {
   if (PUBLIC_EXACT.has(path)) return true;
   if (path.startsWith('/documentation')) return true;
   if (method === 'POST' && path === '/api/webhooks/odoo') return true;
+  if (path === '/api/oeeg/health') return true;
   return false;
 }
 

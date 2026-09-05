@@ -1,9 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { mountProxy } from '../proxy/forward.js';
+import { createProxyHandler, mountProxy } from '../proxy/forward.js';
+import { oeegWebhookGuard } from '../middleware/rbac.js';
 
-/** D.I.C.E. lives on quotation-service. Never route this through OEEG. */
+/** D.I.C.E. is quotation-service. OEEG only posts webhooks; it never owns /api/dice. */
 export async function diceRoutes(app: FastifyInstance) {
   mountProxy(app, '/api/dice', 'quotation');
-  app.post('/api/webhooks/odoo', { preHandler: (await import('../middleware/rbac.js')).oeegWebhookGuard }, 
-    (await import('../proxy/forward.js')).createProxyHandler('quotation'));
+  app.post(
+    '/api/webhooks/odoo',
+    { preHandler: oeegWebhookGuard },
+    createProxyHandler('quotation')
+  );
 }

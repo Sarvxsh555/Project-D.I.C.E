@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GatewayError } from '../utils/errors.js';
 import type { Role } from '../types/auth.js';
+import { env } from '../config/env.js';
 
 const ALIASES: Record<string, Role[]> = {
   SALES: ['SALES', 'SALES_REP'],
@@ -27,7 +28,7 @@ export function requireRoles(...roles: Role[]) {
 
 export async function oeegWebhookGuard(request: FastifyRequest, _reply: FastifyReply) {
   const key = request.headers['x-oeeg-key'];
-  const expected = process.env.OEEG_WEBHOOK_KEY || 'oeeg-demo-key';
+  const expected = env.OEEG_WEBHOOK_KEY;
   if (key !== expected) {
     throw new GatewayError(401, 'UNAUTHORIZED', 'Invalid X-OEEG-Key');
   }
