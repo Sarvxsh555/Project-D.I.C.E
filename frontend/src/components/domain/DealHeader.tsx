@@ -2,7 +2,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { formatCurrency } from '../../utils/currency'
 import type { DealDetail } from '../../types/deal'
-import { Sparkles, Send, Edit3, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
+import { Send, Edit3, CheckCircle2, AlertTriangle, Clock, SlidersHorizontal } from 'lucide-react'
 
 interface DealHeaderProps {
   deal: DealDetail
@@ -61,7 +61,7 @@ export function DealHeader({
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs mb-6">
+    <div className="bg-white border border-slate-200 rounded p-4 mb-5">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Left: Deal Identifiers */}
         <div>
@@ -70,11 +70,11 @@ export function DealHeader({
               {deal.dealNumber}
             </h1>
             {getStatusBadge()}
-            <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-[#5E2A52] font-semibold border border-purple-200">
+            <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">
               {deal.customerTier || 'Enterprise'} Tier
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-slate-500">
             <span>
               Customer:{' '}
               <strong className="text-slate-800 font-medium">
@@ -99,10 +99,10 @@ export function DealHeader({
         {/* Center/Right: Pricing & Actions */}
         <div className="flex flex-wrap items-center gap-4">
           <div className="text-right pr-2">
-            <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
               Total Deal Value
             </div>
-            <div className="text-2xl font-bold text-slate-900">
+            <div className="text-2xl font-bold font-mono text-slate-900">
               {formatCurrency(deal.totalAmount)}
             </div>
           </div>
@@ -113,16 +113,16 @@ export function DealHeader({
                 variant="outline"
                 size="sm"
                 onClick={onSimulate}
-                className="flex items-center gap-1.5 text-[#5E2A52] border-[#5E2A52]/30 hover:bg-[#FAF5F9]"
+                className="flex items-center gap-1.5 text-slate-700 border-slate-300 hover:bg-slate-50 text-xs"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#5E2A52]" />
-                Simulate Deal
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+                <span>Simulate</span>
               </Button>
             )}
 
             {deal.status === 'DRAFT' && onSubmit && (
-              <Button variant="primary" size="sm" onClick={onSubmit}>
-                Submit for DICE Check
+              <Button variant="primary" size="sm" onClick={onSubmit} className="bg-[#5E2A52] hover:bg-[#4B2141] text-xs">
+                Submit for Approval
               </Button>
             )}
 
