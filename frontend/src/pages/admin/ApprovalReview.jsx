@@ -56,7 +56,7 @@ export default function ApprovalReview() {
   const stepRole = (name = '') => (name.toLowerCase().includes('finance') ? 'FINANCE' : 'SALES_MANAGER');
   const canDecide =
     canAct && pendingStep && (role === 'ADMIN' || role === stepRole(pendingStep.name));
-  const intelEvents = audit.filter((e) => e.action === 'INTELLIGENCE' || e.action === 'AUTO_APPROVE');
+  const intelEvents = audit.filter((e) => e.action === 'DICE' || e.action === 'INTELLIGENCE' || e.action === 'AUTO_APPROVE');
 
   return (
     <div>
@@ -105,7 +105,7 @@ export default function ApprovalReview() {
 
       {intelEvents.length > 0 && (
         <div className="builder-panel" style={{ marginTop: '1rem' }}>
-          <h2>Intelligence</h2>
+          <h2>D.I.C.E.</h2>
           {intelEvents.map((event) => (
             <p key={event.id} className="ws-subtitle" style={{ margin: '0.25rem 0' }}>
               {event.reason}
