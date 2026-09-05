@@ -7,7 +7,45 @@ import type {
   CreateDealRequest,
   DealStatus,
 } from '../types/deal'
-import type { DiceDecision, SimulationResponse } from '../types/dice'
+import type { DiceDecision, SimulationResponse, PolicyViolation } from '../types/dice'
+
+/** DealController.EvaluationSummary — the raw wire shape before policyResults
+ *  (a JSON-serialized string) is parsed into PolicyViolation[]. */
+interface EvaluationSummaryWire {
+  id: string
+  triggeredBy: string
+  marginPercent: number | null
+  discountPercent: number | null
+  riskScore: number | null
+  riskLevel: string | null
+  healthScore: number | null
+  outcome: string
+  policyResults: string | null
+  createdAt: string
+}
+
+function parseEvaluation(e: EvaluationSummaryWire): DiceDecision {
+  let violations: PolicyViolation[] = []
+  if (e.policyResults) {
+    try {
+      violations = JSON.parse(e.policyResults)
+    } catch {
+      violations = []
+    }
+  }
+  return {
+    id: e.id,
+    triggeredBy: e.triggeredBy,
+    marginPercent: e.marginPercent,
+    discountPercent: e.discountPercent,
+    riskScore: e.riskScore,
+    riskLevel: e.riskLevel as DiceDecision['riskLevel'],
+    healthScore: e.healthScore,
+    outcome: e.outcome as DiceDecision['outcome'],
+    violations,
+    createdAt: e.createdAt,
+  }
+}
 
 /**
  * Routes below are corrected to match the real backend (DealController,
@@ -94,36 +132,34 @@ export const quotationService = {
     )
   },
 
-  /** No real backend endpoint yet - the closest equivalent is
-   *  GET /deals/{id}/evaluations (history), not a single "decision"
-   *  resource, and it doesn't return this DiceDecision shape. See file header. */
-  getDecision: async (id: string): Promise<DiceDecision> => {
-    return safeRequest(
-      () => api.get<DiceDecision>(`/deals/${id}/decision`),
-      () => mockAdapter.getDecision(id)
-    )
+  /** No single-decision resource on the real API — the closest is
+   *  GET /deals/{id}/evaluations (history, newest first). Returns the most
+   *  recent evaluation as "the current decision", or null if the deal has
+   *  never been evaluated. */
+  getDecision: async (id: string): Promise<DiceDecision | null> => {
+    const res = await api.get<EvaluationSummaryWire[]>(`/deals/${id}/evaluations`)
+    return res.data.length > 0 ? parseEvaluation(res.data[0]) : null
   },
 
-  /** Real endpoint (POST /deals/{id}/evaluate), but it returns DealDetail,
-   *  not DiceDecision - response shape not reconciled in this pass. */
-  evaluate: async (id: string): Promise<DiceDecision> => {
-    return safeRequest(
-      () => api.post<DiceDecision>(`/deals/${id}/evaluate`),
-      () => mockAdapter.getDecision(id)
-    )
+  /** Real endpoint: POST /deals/{id}/evaluate. Re-runs the engines and
+   *  returns the updated deal; fetch the fresh decision separately. */
+  evaluate: async (id: string): Promise<DiceDecision | null> => {
+    await api.post(`/deals/${id}/evaluate`)
+    return quotationService.getDecision(id)
   },
 
-  /** The real equivalent is POST /negotiations/{dealId}/preview
-   *  (NegotiationController), with a different request/response shape -
-   *  not rewired in this pass. See file header. */
-  simulate: async (
-    id: string,
-    changes: { discount?: number; quantity?: number; paymentTerms?: string }
-  ): Promise<SimulationResponse> => {
-    return safeRequest(
-      () => api.post<SimulationResponse>(`/deals/${id}/simulate`, { changes }),
-      () => mockAdapter.simulateDeal(id, changes)
-    )
+  /** Real endpoint: POST /negotiations/{dealId}/preview
+   *  (NegotiationController.preview). Read-only — never changes the deal. */
+  simulate: async (id: string, discountPercent: number): Promise<SimulationResponse> => {
+    const res = await api.post<SimulationResponse>(`/negotiations/${id}/preview`, { discountPercent })
+    return res.data
+  },
+
+  /** Real endpoint: POST /negotiations/{dealId}/accept — commits a
+   *  previously-previewed discount. */
+  acceptNegotiation: async (id: string, discountPercent: number): Promise<DealDetail> => {
+    const res = await api.post<DealDetail>(`/negotiations/${id}/accept`, { discountPercent })
+    return res.data
   },
 
   applyDiscount: async (

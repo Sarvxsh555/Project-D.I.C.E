@@ -206,21 +206,9 @@ export default function QuotationsPage() {
     })
   }
 
-  const handleApplySimulatedChanges = async (changes: {
-    discount: number
-    quantity: number
-    paymentTerms: string
-  }) => {
-    if (!activeDeal) return
-    const updated = await quotationService.update(activeDeal.id, {
-      paymentTerms: changes.paymentTerms,
-      marginPercent: changes.discount <= 10 ? 22.4 : 18.4,
-      riskScore: changes.discount <= 10 ? 35 : 84,
-      status: changes.discount <= 10 ? 'APPROVED' : 'APPROVAL_REQUIRED',
-    })
+  const handleSimulationApplied = (updated: DealDetail) => {
     setActiveDeal(updated)
-    const newDecision = await quotationService.getDecision(activeDeal.id)
-    setDiceDecision(newDecision)
+    quotationService.getDecision(updated.id).then(setDiceDecision)
     loadDeals()
   }
 
@@ -558,7 +546,7 @@ export default function QuotationsPage() {
           isOpen={isSimOpen}
           onClose={() => setIsSimOpen(false)}
           deal={activeDeal}
-          onApplyChanges={handleApplySimulatedChanges}
+          onApplied={handleSimulationApplied}
         />
       </div>
     )

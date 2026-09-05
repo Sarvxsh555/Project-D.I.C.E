@@ -1,11 +1,14 @@
 import { useState, useCallback } from 'react'
-import { negotiationService } from '../services/negotiationService'
-import type { PreviewResponse } from '../types/negotiation'
+import { quotationService } from '../services/quotationService'
+import type { SimulationResponse } from '../types/dice'
 import { extractErrorMessage } from '../utils/errors'
 import { useToast } from './useToast'
 
+// Real preview/accept (POST /negotiations/{dealId}/preview|accept) live on
+// quotationService, correctly typed against NegotiationController's actual
+// response shape — see DiceSimulationDrawer for the primary consumer.
 export function useNegotiation(dealId?: string) {
-  const [preview, setPreview] = useState<PreviewResponse | null>(null)
+  const [preview, setPreview] = useState<SimulationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { success, error: toastError } = useToast()
@@ -13,7 +16,7 @@ export function useNegotiation(dealId?: string) {
   const previewDiscount = useCallback(
     async (targetDealId: string, discountPercent: number) => {
       try {
-        const res = await negotiationService.preview(targetDealId, { discountPercent })
+        const res = await quotationService.simulate(targetDealId, discountPercent)
         setPreview(res)
         setError(null)
         setIsLoading(false)
@@ -30,7 +33,7 @@ export function useNegotiation(dealId?: string) {
 
   const acceptOffer = async (targetDealId: string, discountPercent: number) => {
     try {
-      const deal = await negotiationService.accept(targetDealId, { discountPercent })
+      const deal = await quotationService.acceptNegotiation(targetDealId, discountPercent)
       success(`Counter-offer of ${discountPercent}% committed to deal ${deal.dealNumber}`)
       setIsLoading(false)
       return deal

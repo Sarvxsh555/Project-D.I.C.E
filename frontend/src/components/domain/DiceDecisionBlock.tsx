@@ -9,9 +9,16 @@ interface DiceDecisionBlockProps {
   onSimulate?: () => void
 }
 
+const OUTCOME_META: Record<DiceDecision['outcome'], { label: string; variant: 'success' | 'warning' | 'danger'; nextAction: string }> = {
+  AUTO_APPROVE: { label: 'AUTO-APPROVED', variant: 'success', nextAction: 'Proceed to fulfillment and billing dispatch.' },
+  REQUIRE_APPROVAL: { label: 'APPROVAL REQUIRED', variant: 'warning', nextAction: 'Awaiting sign-off from the required role.' },
+  BLOCK: { label: 'BLOCKED', variant: 'danger', nextAction: 'A hard policy floor was breached — cannot proceed as configured.' },
+  RECOMMEND_ALTERNATIVE: { label: 'BLOCKED — ALTERNATIVES AVAILABLE', variant: 'danger', nextAction: 'See recommendations below for a viable alternative.' },
+  REAPPROVAL_REQUIRED: { label: 'REAPPROVAL REQUIRED', variant: 'warning', nextAction: 'The deal changed since it was last approved — prior sign-off no longer covers this state.' },
+}
+
 export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockProps) {
-  const isApprovalRequired = decision.decision === 'APPROVAL_REQUIRED'
-  const isAutoApproved = decision.decision === 'AUTO_APPROVED'
+  const meta = OUTCOME_META[decision.outcome]
 
   return (
     <div className="border border-slate-200 rounded bg-white overflow-hidden border-l-4 border-l-[#5E2A52]">
@@ -26,23 +33,7 @@ export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockPro
           </h3>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={
-              isApprovalRequired
-                ? 'warning'
-                : isAutoApproved
-                ? 'success'
-                : 'danger'
-            }
-          >
-            {isApprovalRequired
-              ? 'APPROVAL REQUIRED'
-              : isAutoApproved
-              ? 'AUTO-APPROVED'
-              : 'POLICY REJECTED'}
-          </Badge>
-        </div>
+        <Badge variant={meta.variant}>{meta.label}</Badge>
       </div>
 
       {/* Metrics Row */}
@@ -53,7 +44,7 @@ export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockPro
           </span>
           <div className="flex items-baseline gap-1 mt-0.5">
             <span className="text-xl font-bold font-mono text-amber-700">
-              {decision.riskScore}
+              {decision.riskScore ?? '—'}
             </span>
             <span className="text-xs text-slate-400 font-mono">/ 100</span>
           </div>
@@ -66,13 +57,10 @@ export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockPro
           <div className="flex items-baseline gap-1 mt-0.5">
             <span
               className={`text-xl font-bold font-mono ${
-                decision.marginPercent >= 20 ? 'text-emerald-700' : 'text-rose-700'
+                (decision.marginPercent ?? 0) >= 20 ? 'text-emerald-700' : 'text-rose-700'
               }`}
             >
               {formatPercent(decision.marginPercent)}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              (Floor: 20.0%)
             </span>
           </div>
         </div>
@@ -82,45 +70,30 @@ export function DiceDecisionBlock({ decision, onSimulate }: DiceDecisionBlockPro
       <div className="p-4 space-y-3.5 text-xs">
         <div>
           <span className="text-[11px] uppercase tracking-wider font-bold text-slate-700 block mb-1.5">
-            Decision Factors:
+            Policy Violations:
           </span>
-          <ul className="space-y-1 text-slate-700">
-            {decision.policyViolations && decision.policyViolations.length > 0 ? (
-              decision.policyViolations.map((v, i) => (
+          {decision.violations.length > 0 ? (
+            <ul className="space-y-1 text-slate-700">
+              {decision.violations.map((v, i) => (
                 <li key={i} className="flex items-start gap-2 text-slate-800">
                   <span className="text-rose-600 font-bold select-none">•</span>
-                  <span>{v}</span>
+                  <span>{v.message}</span>
                 </li>
-              ))
-            ) : (
-              decision.factors.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-slate-700">
-                  <span className="text-slate-400 font-bold select-none">•</span>
-                  <span>{f}</span>
-                </li>
-              ))
-            )}
-          </ul>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-slate-500">No policy violations on this evaluation.</p>
+          )}
         </div>
 
-        {/* Recommendation & Next Action */}
         <div className="p-3 bg-slate-50 border border-slate-200 rounded space-y-2">
-          <div>
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block">
-              Recommendation:
-            </span>
-            <p className="text-xs text-slate-800 mt-0.5">
-              {decision.autoApproveCondition || decision.recommendation || 'Reduce service discount to 10% or below to reach target margin.'}
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block">
                 Next Action:
               </span>
               <span className="text-xs font-semibold text-slate-900">
-                {isApprovalRequired ? 'Manager approval required.' : 'Proceed to fulfillment and billing dispatch.'}
+                {meta.nextAction}
               </span>
             </div>
 

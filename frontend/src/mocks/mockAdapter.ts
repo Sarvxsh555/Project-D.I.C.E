@@ -14,7 +14,6 @@ import {
   MOCK_ANOMALIES,
   MOCK_HEALTH_SUMMARY,
   MOCK_POLICIES,
-  MOCK_DICE_DECISIONS,
   MOCK_NEGOTIATIONS,
   MOCK_PORTAL_QUOTES,
   MOCK_AUDIT_EVENTS,
@@ -22,7 +21,6 @@ import {
 import type { Page } from '../types/api'
 import type { DealSummary, DealDetail, CreateDealRequest, DealStatus } from '../types/deal'
 import type { ApprovalView, DecisionRequest, ApprovalSnapshot } from '../types/approval'
-import type { DiceDecision, SimulationResponse } from '../types/dice'
 import type { FulfillmentPlan, WarehouseStock } from '../types/fulfillment'
 import type { BillingSchedule, Subscription } from '../types/billing'
 import type { HealthScoreBreakdown } from '../types/health'
@@ -49,7 +47,6 @@ const fulfillmentStore: Record<string, FulfillmentPlan> = JSON.parse(JSON.string
 const warehouseStockStore: WarehouseStock[] = JSON.parse(JSON.stringify(MOCK_WAREHOUSE_STOCK))
 const billingStore: Record<string, BillingSchedule> = JSON.parse(JSON.stringify(MOCK_BILLING_DETAILS))
 const subscriptionsStore: Subscription[] = JSON.parse(JSON.stringify(MOCK_SUBSCRIPTIONS))
-const diceStore: Record<string, DiceDecision> = JSON.parse(JSON.stringify(MOCK_DICE_DECISIONS))
 const negotiationsStore: Record<string, NegotiationDetail> = JSON.parse(JSON.stringify(MOCK_NEGOTIATIONS))
 const portalQuotesStore: Record<string, PortalQuoteView> = JSON.parse(JSON.stringify(MOCK_PORTAL_QUOTES))
 const productsStore: Product[] = JSON.parse(JSON.stringify(MOCK_PRODUCTS))
@@ -344,66 +341,6 @@ export const mockAdapter = {
 
   cancelDeal: async (id: string): Promise<DealDetail> => {
     return mockAdapter.updateDeal(id, { status: 'CANCELLED' })
-  },
-
-  // DICE DECISION & SIMULATION
-  getDecision: async (dealId: string): Promise<DiceDecision> => {
-    await delay()
-    if (diceStore[dealId]) return diceStore[dealId]
-    return (
-      diceStore['d-1042'] || {
-        dealId,
-        decision: 'APPROVAL_REQUIRED',
-        riskScore: 86,
-        riskLevel: 'HIGH',
-        marginPercent: 18.4,
-        policyViolations: ['Service discount exceeds ceiling (18% vs 10%)'],
-        factors: ['High discount on service line item'],
-        recommendation: 'Reduce service discount to ≤ 10%',
-        autoApproveCondition: 'Reduce service discount to ≤ 10%',
-        evaluatedAt: new Date().toISOString(),
-      }
-    )
-  },
-
-  simulateDeal: async (
-    dealId: string,
-    changes: { discount?: number; quantity?: number; paymentTerms?: string }
-  ): Promise<SimulationResponse> => {
-    await delay()
-    const deal = await mockAdapter.getDeal(dealId)
-    const simulatedDiscount = changes.discount !== undefined ? changes.discount : 18
-    const simulatedQty = changes.quantity !== undefined ? changes.quantity : 20
-    const autoApprovable = simulatedDiscount <= 10
-
-    const unitPrice = 20000
-    const servicePrice = 100000
-    const simNet = Math.round((simulatedQty * unitPrice * 0.88) + (servicePrice * (1 - simulatedDiscount / 100)))
-    const simMargin = autoApprovable ? 22.4 : 18.4 - (simulatedDiscount - 10) * 0.8
-    const simRisk = autoApprovable ? 35 : Math.min(95, 40 + simulatedDiscount * 2.5)
-
-    return {
-      current: {
-        total: deal.totalAmount,
-        margin: deal.marginPercent,
-        risk: deal.riskScore,
-        approvalRequired: deal.status === 'APPROVAL_REQUIRED',
-      },
-      simulated: {
-        total: simNet,
-        margin: parseFloat(simMargin.toFixed(1)),
-        risk: Math.round(simRisk),
-        approvalRequired: !autoApprovable,
-      },
-      changedFactors: [
-        `Discount modified to ${simulatedDiscount}%`,
-        `Quantity set to ${simulatedQty}`,
-        changes.paymentTerms ? `Terms: ${changes.paymentTerms}` : 'Terms: Net 30',
-      ],
-      recommendation: autoApprovable
-        ? 'Changes bring deal within governance limits. Instant automatic approval unlocked.'
-        : 'Discount still exceeds 10% ceiling. Manager review required.',
-    }
   },
 
   // APPROVALS

@@ -1,35 +1,55 @@
 import type { RiskLevel } from './deal'
 
+export type DecisionOutcome = 'AUTO_APPROVE' | 'REQUIRE_APPROVAL' | 'BLOCK' | 'RECOMMEND_ALTERNATIVE' | 'REAPPROVAL_REQUIRED'
+
+/** One policy breach — matches PolicyEngine.Violation, parsed out of
+ *  Evaluation.policyResults (a JSON-serialized array on the backend). */
+export interface PolicyViolation {
+  policyCode: string
+  policyName: string
+  type: string
+  severity: string
+  requiredRole: string | null
+  actualValue: number | null
+  thresholdValue: number | null
+  message: string
+}
+
+/** Matches DealController.EvaluationSummary exactly — the most recent entry
+ *  from GET /deals/{id}/evaluations is "the current decision." There is no
+ *  single-decision endpoint on the real API. */
 export interface DiceDecision {
-  dealId: string
-  decision: 'APPROVAL_REQUIRED' | 'AUTO_APPROVED' | 'REJECTED'
-  riskScore: number // 0 - 100
-  riskLevel: RiskLevel
-  marginPercent: number
-  policyViolations: string[]
-  factors: string[]
-  recommendation: string
-  autoApproveCondition: string
-  evaluatedAt: string
+  id: string
+  triggeredBy: string
+  marginPercent: number | null
+  discountPercent: number | null
+  riskScore: number | null
+  riskLevel: RiskLevel | null
+  healthScore: number | null
+  outcome: DecisionOutcome
+  violations: PolicyViolation[]
+  createdAt: string
 }
 
-export interface SimulationInput {
-  discount: number
-  quantity: number
-  paymentTerms: string
-  products?: string[]
+/** Matches RecommendationEngine.Recommendation. */
+export interface Recommendation {
+  code: string
+  title: string
+  rationale: string
+  estimatedValue: number | null
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH'
 }
 
-export interface SimulationMetricState {
-  total: number
-  margin: number
-  risk: number
-  approvalRequired: boolean
-}
-
+/** Matches NegotiationController.PreviewResponse exactly —
+ *  POST /negotiations/{dealId}/preview. Never changes the deal. */
 export interface SimulationResponse {
-  current: SimulationMetricState
-  simulated: SimulationMetricState
-  changedFactors: string[]
-  recommendation: string
+  proposedDiscountPercent: number
+  currentTotal: number
+  proposedTotal: number
+  resultingMarginPercent: number
+  outcome: string
+  rationale: string
+  maxAllowedDiscountPercent: number
+  acceptable: boolean
+  recommendations: Recommendation[]
 }

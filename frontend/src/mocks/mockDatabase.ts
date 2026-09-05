@@ -1,5 +1,4 @@
 import type { DealSummary, DealDetail, DealLineItem } from '../types/deal'
-import type { DiceDecision } from '../types/dice'
 import type { ApprovalView } from '../types/approval'
 import type { FulfillmentOrder, WarehouseStock } from '../types/fulfillment'
 import type { BillingSchedule, Subscription, Invoice } from '../types/billing'
@@ -353,43 +352,6 @@ export const MOCK_DEAL_SUMMARIES: DealSummary[] = [
     healthScore: 78,
   },
 ]
-
-// 6. DICE DECISIONS
-export const MOCK_DICE_DECISIONS: Record<string, DiceDecision> = {
-  'd-1042': {
-    dealId: 'd-1042',
-    decision: 'APPROVAL_REQUIRED',
-    riskScore: 86,
-    riskLevel: 'HIGH',
-    marginPercent: 18.4,
-    policyViolations: [
-      'Service discount exceeds ceiling (18.0% vs 10.0% max)',
-      'Blended margin below target floor (18.4% vs 20.0%)',
-      'Extended exposure on Net 30 terms with pending high-value shipments',
-    ],
-    factors: [
-      'Customer Tier: Gold (eligible for up to 15.0% product discount)',
-      'Service line item discount (18.0%) exceeds governance rule ceiling',
-      'Hardware unit volume (20 Enterprise Servers) offers substantial absolute revenue (₹3,52,000)',
-      'Customer credit utilization at 43.4% of ₹10,00,000 facility',
-    ],
-    recommendation: 'Reduce service discount to ≤ 10.0% to restore blended margin to 20.2% and qualify for auto-approval.',
-    autoApproveCondition: 'Reduce service discount to ≤ 10.0%',
-    evaluatedAt: '2026-09-05T10:30:00Z',
-  },
-  'd-1038': {
-    dealId: 'd-1038',
-    decision: 'APPROVAL_REQUIRED',
-    riskScore: 55,
-    riskLevel: 'MEDIUM',
-    marginPercent: 17.4,
-    policyViolations: ['Blended margin 17.4% is below 20.0% floor'],
-    factors: ['Competitive renewal discount offered'],
-    recommendation: 'Request Sales Manager waiver for strategic account expansion.',
-    autoApproveCondition: 'Increase unit price on hardware by 3.0%',
-    evaluatedAt: '2026-09-05T09:15:00Z',
-  },
-}
 
 // 7. APPROVAL QUEUE
 export const MOCK_APPROVALS_LIST: ApprovalView[] = [

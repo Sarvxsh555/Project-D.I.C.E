@@ -12,67 +12,61 @@ interface DiceSimulationDrawerProps {
   isOpen: boolean
   onClose: () => void
   deal: DealDetail
-  onApplyChanges: (changes: { discount: number; quantity: number; paymentTerms: string }) => void
+  onApplied: (deal: DealDetail) => void
 }
 
 export function DiceSimulationDrawer({
   isOpen,
   onClose,
   deal,
-  onApplyChanges,
+  onApplied,
 }: DiceSimulationDrawerProps) {
   const [simDiscount, setSimDiscount] = useState<number>(18)
-  const [simQuantity, setSimQuantity] = useState<number>(20)
-  const [simTerms, setSimTerms] = useState<string>('Net 30')
   const [simulation, setSimulation] = useState<SimulationResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
 
-  // Trigger simulation upon input adjustments
+  // Real-time preview via POST /negotiations/{dealId}/preview — never
+  // changes the deal, safe to call on every slider move.
   useEffect(() => {
     let active = true
-    async function runSimulation() {
+    async function runPreview() {
       setLoading(true)
+      setError(null)
       try {
-        const res = await quotationService.simulate(deal.id, {
-          discount: simDiscount,
-          quantity: simQuantity,
-          paymentTerms: simTerms,
-        })
+        const res = await quotationService.simulate(deal.id, simDiscount)
         if (active) setSimulation(res)
       } catch (err) {
-        console.error('Simulation error:', err)
+        if (active) setError(err instanceof Error ? err.message : 'Preview failed')
       } finally {
         if (active) setLoading(false)
       }
     }
 
     if (isOpen) {
-      runSimulation()
+      runPreview()
     }
     return () => {
       active = false
     }
-  }, [isOpen, deal.id, simDiscount, simQuantity, simTerms])
+  }, [isOpen, deal.id, simDiscount])
 
-  const handleConfirmApply = () => {
-    onApplyChanges({
-      discount: simDiscount,
-      quantity: simQuantity,
-      paymentTerms: simTerms,
-    })
-    setConfirmModalOpen(false)
-    onClose()
+  const handleConfirmApply = async () => {
+    setApplying(true)
+    try {
+      const updated = await quotationService.acceptNegotiation(deal.id, simDiscount)
+      onApplied(updated)
+      setConfirmModalOpen(false)
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to apply')
+      setConfirmModalOpen(false)
+    } finally {
+      setApplying(false)
+    }
   }
-
-  const currentTotal = simulation?.current.total ?? deal.totalAmount
-  const currentMargin = simulation?.current.margin ?? deal.marginPercent
-  const currentRisk = simulation?.current.risk ?? deal.riskScore
-
-  const simTotal = simulation?.simulated.total ?? deal.totalAmount
-  const simMargin = simulation?.simulated.margin ?? deal.marginPercent
-  const simRisk = simulation?.simulated.risk ?? deal.riskScore
-  const simApprovalRequired = simulation?.simulated.approvalRequired ?? true
 
   return (
     <>
@@ -84,191 +78,141 @@ export function DiceSimulationDrawer({
       >
         <div className="space-y-6">
           <p className="text-xs text-slate-500">
-            Simulate adjustments to line discounts, unit volume, and contractual terms to preview
-            governance impact without modifying the active quotation.
+            Preview a discount change against real policy and margin rules before applying it —
+            this calls the same engine that evaluates the live quotation.
           </p>
 
-          {/* Interactive Sliders and Inputs */}
+          {error && (
+            <div className="p-3 rounded bg-rose-50 border border-rose-200 text-xs text-rose-800">
+              {error}
+            </div>
+          )}
+
+          {/* Discount Slider */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Simulation Variables
-            </h4>
-
-            {/* Discount Slider */}
-            <div>
-              <div className="flex justify-between items-center text-xs mb-1.5">
-                <label className="font-semibold text-slate-800">
-                  Target Service Discount:
-                </label>
-                <span className="font-bold text-[#5E2A52] font-mono text-sm">
-                  {simDiscount}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={30}
-                step={1}
-                value={simDiscount}
-                onChange={(e) => setSimDiscount(parseInt(e.target.value))}
-                className="w-full accent-[#5E2A52] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>0% (Standard)</span>
-                <span className="text-emerald-700 font-medium">≤ 10% (Auto-Approved)</span>
-                <span>30% (Max)</span>
-              </div>
+            <div className="flex justify-between items-center text-xs mb-1.5">
+              <label className="font-semibold text-slate-800">
+                Proposed Discount:
+              </label>
+              <span className="font-bold text-[#5E2A52] font-mono text-sm">
+                {simDiscount}%
+              </span>
             </div>
-
-            {/* Hardware Quantity Input */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-800 mb-1">
-                  Enterprise Server Qty:
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={simQuantity}
-                  onChange={(e) => setSimQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-[#5E2A52]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-800 mb-1">
-                  Payment Terms:
-                </label>
-                <select
-                  value={simTerms}
-                  onChange={(e) => setSimTerms(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded text-xs bg-white focus:ring-1 focus:ring-[#5E2A52]"
-                >
-                  <option value="Immediate">Immediate / Advance</option>
-                  <option value="Net 30">Net 30 Days</option>
-                  <option value="Net 45">Net 45 Days</option>
-                  <option value="Net 60">Net 60 Days</option>
-                </select>
-              </div>
-            </div>
+            <input
+              type="range"
+              min={0}
+              max={50}
+              step={1}
+              value={simDiscount}
+              onChange={(e) => setSimDiscount(parseInt(e.target.value))}
+              className="w-full accent-[#5E2A52] cursor-pointer"
+            />
           </div>
 
-          {/* Side-by-Side Comparison */}
+          {/* Preview Result */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Projected Governance & Margin Outcome
+              Governance & Margin Outcome
             </h4>
 
             <div className="grid grid-cols-2 gap-3">
-              {/* CURRENT */}
               <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-xs">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-3">
-                  Current Quotation
+                  Current
                 </div>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Net Total</span>
+                    <span className="text-slate-500 block text-[11px]">Total</span>
                     <span className="font-bold text-slate-900 text-sm">
-                      {formatCurrency(currentTotal)}
+                      {formatCurrency(simulation?.currentTotal ?? deal.totalAmount)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Blended Margin</span>
-                    <span className="font-bold text-rose-600">
-                      {formatPercent(currentMargin)}
+                    <span className="text-slate-500 block text-[11px]">Margin</span>
+                    <span className="font-bold text-slate-700">
+                      {formatPercent(deal.marginPercent)}
                     </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">DICE Risk Score</span>
-                    <span className="font-bold text-amber-700 font-mono">
-                      {currentRisk} / 100
-                    </span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center gap-1 text-amber-700 font-medium text-[11px]">
-                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                    <span>Approval Required</span>
                   </div>
                 </div>
               </div>
 
-              {/* SIMULATED */}
               <div className="border-2 border-[#5E2A52]/30 rounded-lg p-4 bg-[#FAF5F9]/50 shadow-xs relative">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-[#5E2A52] mb-3 flex items-center justify-between">
-                  <span>Simulated Outcome</span>
+                  <span>Proposed</span>
                   {loading && <span className="text-[10px] text-slate-400">Computing...</span>}
                 </div>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Net Total</span>
+                    <span className="text-slate-500 block text-[11px]">Total</span>
                     <span className="font-bold text-slate-900 text-sm">
-                      {formatCurrency(simTotal)}
+                      {simulation ? formatCurrency(simulation.proposedTotal) : '—'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Blended Margin</span>
+                    <span className="text-slate-500 block text-[11px]">Margin</span>
                     <span
                       className={`font-bold ${
-                        simMargin >= 20 ? 'text-emerald-700' : 'text-rose-600'
+                        simulation && simulation.resultingMarginPercent >= 20 ? 'text-emerald-700' : 'text-rose-600'
                       }`}
                     >
-                      {formatPercent(simMargin)}
+                      {simulation ? formatPercent(simulation.resultingMarginPercent) : '—'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">DICE Risk Score</span>
-                    <span
-                      className={`font-bold font-mono ${
-                        simRisk < 50 ? 'text-emerald-700' : 'text-amber-700'
+                  {simulation && (
+                    <div
+                      className={`pt-2 border-t border-purple-100 flex items-center gap-1 font-medium text-[11px] ${
+                        simulation.acceptable ? 'text-emerald-700' : 'text-amber-700'
                       }`}
                     >
-                      {simRisk} / 100
-                    </span>
-                  </div>
-                  <div
-                    className={`pt-2 border-t border-purple-100 flex items-center gap-1 font-medium text-[11px] ${
-                      simApprovalRequired ? 'text-amber-700' : 'text-emerald-700'
-                    }`}
-                  >
-                    {simApprovalRequired ? (
-                      <>
-                        <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                        <span>Approval Required</span>
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                        <span>Instant Auto-Approve</span>
-                      </>
-                    )}
-                  </div>
+                      {simulation.acceptable ? (
+                        <>
+                          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                          <span>No approval needed</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                          <span>{simulation.outcome.replaceAll('_', ' ')}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Recommendation Banner */}
-          {simulation?.recommendation && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-900 flex items-start gap-2">
-              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <strong>Recommendation:</strong> {simulation.recommendation}
-              </div>
+          {simulation?.rationale && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700">
+              {simulation.rationale}
             </div>
           )}
 
-          {/* Action Footer */}
+          {simulation && simulation.recommendations.length > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-900 space-y-1.5">
+              {simulation.recommendations.map((rec) => (
+                <div key={rec.code} className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>{rec.title}:</strong> {rec.rationale}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <Button variant="outline" size="sm" onClick={onClose}>
-              Discard Simulation
+              Discard
             </Button>
             <Button
               variant="primary"
               size="sm"
+              disabled={!simulation}
               onClick={() => setConfirmModalOpen(true)}
               className="flex items-center gap-1.5 bg-[#5E2A52] hover:bg-[#4d2243]"
             >
-              Apply Simulated Changes
+              Apply Discount
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -277,9 +221,9 @@ export function DiceSimulationDrawer({
 
       <ConfirmDialog
         isOpen={confirmModalOpen}
-        title="Apply Simulated Changes to Quotation?"
-        message={`This will update the active quotation Q-1042 lines to ${simDiscount}% discount and re-evaluate governance rules.`}
-        confirmLabel="Confirm & Apply"
+        title="Apply Discount to Quotation?"
+        message={`This will update ${deal.dealNumber} to a ${simDiscount}% discount and re-evaluate governance rules.`}
+        confirmLabel={applying ? 'Applying...' : 'Confirm & Apply'}
         variant="primary"
         onConfirm={handleConfirmApply}
         onCancel={() => setConfirmModalOpen(false)}

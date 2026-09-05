@@ -4,9 +4,7 @@ import type {
   NegotiationDetail,
   CounterofferPayload,
   PortalQuoteView,
-  PreviewResponse,
 } from '../types/negotiation'
-import type { DealDetail } from '../types/deal'
 
 export const negotiationService = {
   get: async (dealId: string): Promise<NegotiationDetail> => {
@@ -33,36 +31,10 @@ export const negotiationService = {
     )
   },
 
-  preview: async (dealId: string, req: { discountPercent: number }): Promise<PreviewResponse> => {
-    return safeRequest(
-      () => api.post<PreviewResponse>(`/negotiations/${dealId}/preview`, req),
-      async () => {
-        const sim = await mockAdapter.simulateDeal(dealId, { discount: req.discountPercent })
-        return {
-          total: sim.simulated.total,
-          margin: sim.simulated.margin,
-          risk: sim.simulated.risk,
-          approvalRequired: sim.simulated.approvalRequired,
-          decision: sim.simulated.approvalRequired ? 'APPROVAL_REQUIRED' : 'AUTO_APPROVED',
-          recommendation: sim.simulated.approvalRequired
-            ? 'Discount requires management exception.'
-            : 'Discount is within auto-approval limits.',
-        }
-      }
-    )
-  },
-
-  accept: async (dealId: string, req: { discountPercent: number }): Promise<DealDetail> => {
-    return safeRequest(
-      () => api.post<DealDetail>(`/negotiations/${dealId}/accept`, req),
-      async () => {
-        const deal = await mockAdapter.getDeal(dealId)
-        deal.totalDiscountPercent = req.discountPercent
-        deal.status = 'APPROVED'
-        return deal
-      }
-    )
-  },
+  // Real preview/accept (POST /negotiations/{dealId}/preview|accept) live on
+  // quotationService.simulate/acceptNegotiation, correctly typed against
+  // NegotiationController.PreviewResponse — used by DiceSimulationDrawer.
+  // Not duplicated here.
 }
 
 export const portalService = {
