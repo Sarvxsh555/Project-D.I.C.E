@@ -43,6 +43,7 @@ export const quotationApi = {
   reject: (token, id, reason) => request(`/quotations/${id}/reject`, { method: 'POST', token, body: { reason } }),
   returnForRevision: (token, id, reason) =>
     request(`/quotations/${id}/return`, { method: 'POST', token, body: { reason } }),
+  customerConfirm: (token, id) => request(`/quotations/${id}/customer-confirm`, { method: 'POST', token }),
 };
 
 export const PIPELINE_STAGES = [

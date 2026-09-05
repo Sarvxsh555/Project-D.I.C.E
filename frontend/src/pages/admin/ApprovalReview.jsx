@@ -5,7 +5,7 @@ import { quotationApi, formatInr, stageLabel } from '../../quotationApi.js';
 import './admin.css';
 
 export default function ApprovalReview() {
-  const { token } = useAuth();
+  const { token, role } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -53,6 +53,10 @@ export default function ApprovalReview() {
   const discountPercent = quote.subtotal > 0 ? ((quote.discountTotal / quote.subtotal) * 100).toFixed(1) : 0;
   const pendingStep = chain.find((s) => s.status === 'PENDING');
   const canAct = quote.stage === 'PENDING_APPROVAL';
+  const stepRole = (name = '') => (name.toLowerCase().includes('finance') ? 'FINANCE' : 'SALES_MANAGER');
+  const canDecide =
+    canAct && pendingStep && (role === 'ADMIN' || role === stepRole(pendingStep.name));
+  const intelEvents = audit.filter((e) => e.action === 'INTELLIGENCE' || e.action === 'AUTO_APPROVE');
 
   return (
     <div>
@@ -99,9 +103,23 @@ export default function ApprovalReview() {
         ))}
       </div>
 
-      {canAct && pendingStep && (
+      {intelEvents.length > 0 && (
+        <div className="builder-panel" style={{ marginTop: '1rem' }}>
+          <h2>Intelligence</h2>
+          {intelEvents.map((event) => (
+            <p key={event.id} className="ws-subtitle" style={{ margin: '0.25rem 0' }}>
+              {event.reason}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {canDecide && pendingStep && (
         <div className="builder-panel" style={{ marginTop: '1rem' }}>
           <h2>Decision on: {pendingStep.name}</h2>
+          {role !== 'ADMIN' && (
+            <p className="ws-subtitle">You can act on this step because it matches your role.</p>
+          )}
           <textarea
             placeholder="Reason (e.g. Hardware discount exceeds ceiling.)"
             value={reason}
@@ -120,6 +138,12 @@ export default function ApprovalReview() {
             </button>
           </div>
         </div>
+      )}
+
+      {canAct && pendingStep && !canDecide && (
+        <p className="status error" style={{ marginTop: '1rem' }}>
+          Waiting on {pendingStep.name}. Your role cannot clear this step.
+        </p>
       )}
 
       <div className="builder-panel" style={{ marginTop: '1rem' }}>

@@ -109,9 +109,7 @@ export default function CustomerPortal() {
     setBusy(true);
     setError('');
     try {
-      if (selected.stage === 'NEGOTIATION') {
-        await quotationApi.transition(token, selected.id, 'PENDING_APPROVAL');
-      }
+      await quotationApi.customerConfirm(token, selected.id);
       await refreshSelected();
     } catch (err) {
       setError(err.message);
@@ -120,12 +118,15 @@ export default function CustomerPortal() {
     }
   };
 
-  const canConfirm = selected && ['DRAFT', 'NEGOTIATION'].includes(selected.stage);
+  const canConfirm =
+    selected &&
+    !selected.customerAccepted &&
+    ['DRAFT', 'NEGOTIATION', 'APPROVED', 'PENDING_APPROVAL'].includes(selected.stage);
 
   return (
     <div className="portal-shell">
       <header className="portal-topnav">
-        <div className="portal-brand">DealFlow360 - My Quotations</div>
+        <div className="portal-brand">DealFlow360 — {selected?.customerName || quotes[0]?.customerName || 'My quotations'}</div>
         <button type="button" onClick={logout}>Log out</button>
       </header>
 
@@ -156,7 +157,10 @@ export default function CustomerPortal() {
           ) : (
             <>
               <h1>{selected.quoteNo}</h1>
-              <p className="ws-subtitle">Status: {STATUS_LABEL[selected.stage] || selected.stage}</p>
+              <p className="ws-subtitle">
+                Status: {STATUS_LABEL[selected.stage] || selected.stage}
+                {selected.customerAccepted ? ' · You accepted these terms' : ''}
+              </p>
 
               <div className="admin-table-wrap">
                 <table className="admin-table">
@@ -229,9 +233,15 @@ export default function CustomerPortal() {
                 <div className="builder-actions">
                   <button className="admin-btn secondary" disabled={busy} onClick={submitChangeRequest}>Submit Request</button>
                   {canConfirm && (
-                    <button className="admin-btn" disabled={busy} onClick={confirmQuotation}>Confirm Quotation</button>
+                    <button className="admin-btn" disabled={busy} onClick={confirmQuotation}>
+                      Confirm quotation (accept current price)
+                    </button>
                   )}
                 </div>
+                <p className="ws-subtitle" style={{ marginTop: '0.5rem' }}>
+                  Confirming accepts the prices on this quote as-is. It does not submit a counter-offer.
+                  Low-risk quotes are auto-approved; higher risk still goes to your sales manager.
+                </p>
               </div>
 
               <div className="builder-panel" style={{ marginTop: '1rem' }}>
