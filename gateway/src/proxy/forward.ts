@@ -10,6 +10,19 @@ import { logger } from '../utils/logger.js';
 const idempotency = new Map<string, { status: number; body: unknown; expires: number }>();
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+function upstreamMessage(parsed: unknown, service: string, status: number): string {
+  if (parsed && typeof parsed === 'object') {
+    const o = parsed as Record<string, unknown>;
+    if (typeof o.message === 'string' && o.message.trim()) return o.message;
+    if (o.error && typeof o.error === 'object' && o.error !== null && 'message' in o.error) {
+      const nested = String((o.error as { message: unknown }).message || '');
+      if (nested.trim()) return nested;
+    }
+    if (typeof o.error === 'string' && o.error.trim()) return o.error;
+  }
+  return `Upstream ${service} returned ${status}`;
+}
+
 function hopHeaders(request: FastifyRequest): Record<string, string> {
   const headers: Record<string, string> = {
     'x-request-id': request.requestId,
@@ -87,10 +100,7 @@ export function createProxyHandler(service: ServiceName): RouteHandlerMethod {
     }
 
     if (res.statusCode >= 400) {
-      const msg =
-        parsed && typeof parsed === 'object' && parsed !== null && 'message' in parsed
-          ? String((parsed as { message: unknown }).message)
-          : `Upstream ${service} returned ${res.statusCode}`;
+      const msg = upstreamMessage(parsed, service, res.statusCode);
       return sendError(
         reply,
         res.statusCode,

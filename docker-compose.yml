@@ -1,8 +1,27 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: login-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: loginuser
+      POSTGRES_PASSWORD: loginpass
+      POSTGRES_DB: dealflow
+    volumes:
+      - dealflow_pg:/var/lib/postgresql/data
+      - ./data-service/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loginuser -d dealflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
+
   data-service:
     build: ./data-service
     ports:
@@ -13,6 +32,10 @@ services:
       DATA_SERVICE_KEY: data-demo-key
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   gateway:
     build: ./gateway
     expose:
@@ -21,7 +44,7 @@ services:
       - "8000:8000"
     environment:
       PORT: 8000
-      JWT_SECRET: change-this-demo-secret-key-please-32-bytes-min
+      JWT_SECRET: dev-only-insecure-secret-change-me-at-least-32-bytes-long
       CORS_ORIGINS: http://localhost,http://127.0.0.1,http://localhost:80,http://localhost:5173,http://localhost:5175
       REDIS_URL: redis://redis:6379
       SERVICE_LOGIN: http://host.docker.internal:8080
@@ -42,6 +65,7 @@ services:
     depends_on:
       - redis
       - data-service
+
   nginx:
     build:
       context: .
@@ -50,3 +74,6 @@ services:
       - "80:80"
     depends_on:
       - gateway
+
+volumes:
+  dealflow_pg:
