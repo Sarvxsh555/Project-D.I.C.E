@@ -56,13 +56,13 @@ export function AppShell({ children }: AppShellProps) {
       const isActive = currentUser.role === acc.role
       return {
         id: `switch-${acc.username}`,
-        icon: <UserCheck className={cn('w-3.5 h-3.5', isActive ? 'text-[#5E2A52]' : 'text-slate-400')} />,
+        icon: <UserCheck className={cn('w-3.5 h-3.5', isActive ? 'text-[#714B67]' : 'text-slate-400')} />,
         label: (
           <div className="flex items-center justify-between w-full pr-1">
-            <span className={cn('text-xs', isActive ? 'font-bold text-[#5E2A52]' : 'text-slate-700')}>
+            <span className={cn('text-xs', isActive ? 'font-bold text-[#714B67]' : 'text-slate-700')}>
               {def?.title || acc.role}
             </span>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#5E2A52]" />}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#714B67]" />}
           </div>
         ),
         onClick: () => handleRoleSwitch(acc.role),
@@ -108,25 +108,26 @@ export function AppShell({ children }: AppShellProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col text-slate-900">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col text-slate-900 antialiased">
       {/* Top Navigation Bar - Visually quiet enterprise shell */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-slate-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-12">
+          <div className="flex items-center justify-between h-14">
             {/* Left: Brand & Navigation */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-7">
               {/* Brand Logo */}
-              <Link to={getDefaultDashboard(currentUser.role)} className="flex items-center gap-2 focus:outline-none group">
-                <div className="w-7 h-7 rounded bg-[#5E2A52] flex items-center justify-center text-white">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                    <polyline points="2 17 12 22 22 17" />
-                    <polyline points="2 12 12 17 22 12" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[13px] font-bold tracking-tight text-slate-900 group-hover:text-[#5E2A52] transition-colors leading-none">
-                    DealFlow<span className="text-[#5E2A52]">360</span>
+              <Link
+                to={getDefaultDashboard(currentUser.role)}
+                className="flex items-center gap-2 focus:outline-none group py-1"
+                title="Odoo X D.I.C.E. Home"
+              >
+                <div className="flex items-center font-bold text-sm tracking-tight text-slate-900">
+                  <span className="px-2.5 py-1 rounded bg-[#714B67] text-white font-semibold text-xs tracking-wide shadow-2xs group-hover:bg-[#5e3d55] transition-colors">
+                    odoo
+                  </span>
+                  <span className="mx-2 text-slate-300 font-light text-sm">×</span>
+                  <span className="font-extrabold tracking-wider text-slate-900 font-mono text-xs">
+                    D.I.C.E.
                   </span>
                 </div>
               </Link>
@@ -140,18 +141,18 @@ export function AppShell({ children }: AppShellProps) {
                       key={item.name}
                       to={item.href}
                       className={cn(
-                        'relative px-2.5 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1.5',
+                        'relative px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5',
                         active
-                          ? 'text-[#5E2A52] bg-[#FAF5F9] font-semibold'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'text-[#714B67] bg-[#FAF5F9] font-semibold ring-1 ring-[#714B67]/15'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                       )}
                     >
                       <span>{item.name}</span>
                       {item.badgeKey === 'pendingApprovals' && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 ring-2 ring-white" />
                       )}
                       {active && (
-                        <span className="absolute -bottom-[9px] inset-x-2.5 h-0.5 bg-[#5E2A52]" />
+                        <span className="absolute -bottom-[11px] inset-x-3 h-0.5 bg-[#714B67]" />
                       )}
                     </Link>
                   )
@@ -160,11 +161,11 @@ export function AppShell({ children }: AppShellProps) {
             </div>
 
             {/* Right: Notifications, Active Stakeholder Badge & User Profile */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               {/* Notifications */}
               <button
                 type="button"
-                className="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none"
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
                 title="Notifications"
                 aria-label="Notifications"
               >
@@ -185,9 +186,9 @@ export function AppShell({ children }: AppShellProps) {
                 trigger={
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-xs text-left cursor-pointer"
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-xs text-left cursor-pointer shadow-2xs"
                   >
-                    <div className="w-5 h-5 rounded bg-[#FAF5F9] border border-[#E8D4E3] text-[#5E2A52] flex items-center justify-center font-bold text-[10px]">
+                    <div className="w-5 h-5 rounded bg-[#FAF5F9] border border-[#E8D4E3] text-[#714B67] flex items-center justify-center font-bold text-[10px]">
                       {currentUser.name.charAt(0)}
                     </div>
                     <div className="hidden sm:flex flex-col">
@@ -241,7 +242,7 @@ export function AppShell({ children }: AppShellProps) {
                   className={cn(
                     'block px-3 py-2 rounded-md text-xs font-medium transition-colors',
                     active
-                      ? 'bg-[#FAF5F9] text-[#5E2A52] font-semibold'
+                      ? 'bg-[#FAF5F9] text-[#714B67] font-semibold'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   )}
                 >
@@ -260,11 +261,15 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Enterprise Subtle Footer */}
       <footer className="bg-white border-t border-slate-200 py-3 text-center text-[11px] text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>DealFlow360 Enterprise Sales Operations Platform</span>
-          <span className="flex items-center gap-1.5 font-mono">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">Odoo X D.I.C.E.</span>
+            <span>•</span>
+            <span>Commercial Policy & Governance Engine</span>
+          </div>
+          <span className="flex items-center gap-1.5 font-mono text-slate-500">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Decision Engine Online • Active Profile: {currentStakeholder.title} ({currentUser.username})
+            Decision Engine Online • Active: {currentStakeholder.title} ({currentUser.username})
           </span>
         </div>
       </footer>

@@ -69,7 +69,7 @@ export const mockAdapter = {
     const newUser: UserSession = {
       username: req.username,
       name: req.fullName || req.username,
-      email: req.email || `${req.username}@dealflow360.com`,
+      email: req.email || `${req.username}@odoo-dice.internal`,
       role: req.role,
       token,
       departmentOrCompany: req.departmentOrCompany,

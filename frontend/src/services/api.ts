@@ -82,7 +82,7 @@ export async function safeRequest<T>(
 
     if (isFallbackCandidate) {
       console.warn(
-        `[DealFlow360] Backend status ${status ?? axiosErr.code}. Serving response via mock resilience layer.`
+        `[Odoo X D.I.C.E.] Backend status ${status ?? axiosErr.code}. Serving response via mock resilience layer.`
       )
       return await mockFallbackFn()
     }

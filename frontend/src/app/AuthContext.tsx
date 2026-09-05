@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role,
       token: tokenResp.token,
       name: existing?.name || demo?.name || tokenResp.username,
-      email: existing?.email || demo?.email || `${tokenResp.username}@dealflow360.internal`,
+      email: existing?.email || demo?.email || `${tokenResp.username}@odoo-dice.internal`,
       departmentOrCompany: existing?.departmentOrCompany || demo?.departmentOrCompany,
       territory: existing?.territory || demo?.territory,
       warehouseDepot: existing?.warehouseDepot || demo?.warehouseDepot,
