@@ -1,0 +1,551 @@
+import React, { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  Briefcase,
+  CheckCircle2,
+  Landmark,
+  Warehouse,
+  ShieldCheck,
+  Building2,
+  Lock,
+  Mail,
+  User,
+  ArrowRight,
+  Shield,
+  MapPin,
+  Building,
+  Key,
+  FileText,
+  AlertCircle,
+  Check,
+} from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
+import type { Role, RegisterRequest } from '../../types/auth'
+import { STAKEHOLDER_DEFINITIONS } from '../../types/auth'
+import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
+
+interface RoleOption {
+  role: Role
+  icon: React.ElementType
+}
+
+const ROLE_OPTIONS: RoleOption[] = [
+  { role: 'SALES_REP', icon: Briefcase },
+  { role: 'SALES_MANAGER', icon: CheckCircle2 },
+  { role: 'FINANCE', icon: Landmark },
+  { role: 'OPERATIONS', icon: Warehouse },
+  { role: 'ADMIN', icon: ShieldCheck },
+  { role: 'CUSTOMER', icon: Building2 },
+]
+
+export default function SignupPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { register, getDefaultDashboard } = useAuth()
+
+  // Pre-select role from search query or default to SALES_REP
+  const initialRole = (searchParams.get('role') as Role) || 'SALES_REP'
+  const [selectedRole, setSelectedRole] = useState<Role>(
+    STAKEHOLDER_DEFINITIONS[initialRole] ? initialRole : 'SALES_REP'
+  )
+
+  // Standard fields
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  // Role-tailored dynamic fields
+  const [territory, setTerritory] = useState('North India Commercial')
+  const [departmentOrCompany, setDepartmentOrCompany] = useState('')
+  const [warehouseDepot, setWarehouseDepot] = useState('WH-A (Mumbai Central)')
+  const [adminCode, setAdminCode] = useState('')
+  const [customerGstin, setCustomerGstin] = useState('27AABCA1234F1Z5')
+
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const currentMeta = STAKEHOLDER_DEFINITIONS[selectedRole]
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMessage(null)
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match. Please re-enter.')
+      return
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.')
+      return
+    }
+
+    if (selectedRole === 'ADMIN' && adminCode !== 'DF360-ADMIN-ROOT' && adminCode.trim() === '') {
+      setErrorMessage('Admin master provisioning requires an authorization code (e.g. DF360-ADMIN-ROOT).')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const payload: RegisterRequest = {
+        username: username.trim().toLowerCase().replace(/\s+/g, '_'),
+        password,
+        email,
+        fullName,
+        role: selectedRole,
+        territory: selectedRole === 'SALES_REP' ? territory : undefined,
+        departmentOrCompany:
+          selectedRole === 'CUSTOMER'
+            ? departmentOrCompany || 'Client Partner'
+            : departmentOrCompany || currentMeta.title,
+        warehouseDepot: selectedRole === 'OPERATIONS' ? warehouseDepot : undefined,
+      }
+
+      const resp = await register(payload)
+      const userRole = resp.roles?.[0] || selectedRole
+      const targetDashboard = getDefaultDashboard(userRole)
+      navigate(targetDashboard, { replace: true })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please try a different username.'
+      setErrorMessage(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-slate-900">
+      {/* Top Header */}
+      <div className="w-full border-b border-slate-200 bg-white px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-[#5E2A52] flex items-center justify-center text-white shadow-xs">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-sm font-bold tracking-tight text-slate-900">
+              DealFlow<span className="text-[#5E2A52]">360</span>
+            </span>
+            <span className="text-[10px] uppercase font-mono tracking-widest text-slate-400 block -mt-0.5">
+              Stakeholder Provisioning Portal
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs">
+          <span className="text-slate-500">Already registered?</span>
+          <Link
+            to={`/login?role=${selectedRole}`}
+            className="font-semibold text-[#5E2A52] hover:underline"
+          >
+            Sign In Here
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Form Container */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* Left Column: Stakeholder Role Selection */}
+          <div className="lg:col-span-5 bg-white border border-slate-200 rounded p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="w-3.5 h-3.5 text-[#5E2A52]" />
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                  Step 1: Stakeholder Role
+                </span>
+              </div>
+              <h2 className="text-base font-bold text-slate-900">
+                Register Profile As:
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 mb-3.5 leading-relaxed">
+                Choose the stakeholder role for your account. Each role configures specific operational permissions, module access, and routing.
+              </p>
+
+              <div className="space-y-1.5">
+                {ROLE_OPTIONS.map((item) => {
+                  const meta = STAKEHOLDER_DEFINITIONS[item.role]
+                  const isSelected = selectedRole === item.role
+                  const Icon = item.icon
+
+                  return (
+                    <button
+                      key={item.role}
+                      type="button"
+                      onClick={() => setSelectedRole(item.role)}
+                      className={`w-full text-left p-2.5 rounded border transition-colors flex items-start gap-2.5 ${
+                        isSelected
+                          ? 'border-[#5E2A52] bg-[#FAF5F9]'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div
+                        className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 text-sm ${
+                          isSelected
+                            ? 'bg-[#5E2A52] text-white'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-semibold truncate ${isSelected ? 'text-[#5E2A52]' : 'text-slate-900'}`}>
+                            {meta.title}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#5E2A52] flex-shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                          {meta.subtitle}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Scope Box */}
+            <div className="mt-5 pt-3.5 border-t border-slate-200 bg-slate-50/80 -mx-5 -mb-5 p-4 rounded-b">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
+                  Assigned Default Dashboard:
+                </span>
+                <Badge variant={currentMeta.badgeVariant}>
+                  {currentMeta.defaultDashboard}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-2.5">
+                {currentMeta.description}
+              </p>
+              <div className="text-[11px] text-slate-500 font-mono">
+                Access: {currentMeta.allowedRoutes.length} Authorized Application Modules
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Dynamic Role Registration Form */}
+          <div className="lg:col-span-7 bg-white border border-slate-200 rounded p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-200">
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                    Step 2: Profile Specifications
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span>{currentMeta.title} Profile</span>
+                    <Badge variant={currentMeta.badgeVariant} size="sm">
+                      {selectedRole}
+                    </Badge>
+                  </h3>
+                </div>
+              </div>
+
+              {errorMessage && (
+                <div className="mb-4 p-2.5 rounded bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
+                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Registration Notice</span>
+                    <span>{errorMessage}</span>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSignup} className="space-y-3.5">
+                {/* Full Name & Username */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Full Legal Name:
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        placeholder="e.g. Ramesh Kulkarni"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      System Username:
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-slate-400 font-mono text-xs">@</span>
+                      <input
+                        type="text"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        placeholder="e.g. ramesh_k"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Corporate Email Address:
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                      placeholder="ramesh@dealflow360.internal"
+                    />
+                  </div>
+                </div>
+
+                {/* Role-Specific Dynamic Fields */}
+                {selectedRole === 'SALES_REP' && (
+                  <div className="p-3 bg-[#FAF5F9] border border-[#E8D4E3] rounded space-y-2.5">
+                    <span className="text-[10px] font-bold text-[#5E2A52] uppercase tracking-wider block">
+                      Sales Rep Configuration
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-[#5E2A52]" />
+                          Assigned Territory:
+                        </label>
+                        <select
+                          value={territory}
+                          onChange={(e) => setTerritory(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        >
+                          <option value="North India Commercial">North India Commercial</option>
+                          <option value="South India Enterprise">South India Enterprise</option>
+                          <option value="West India Key Accounts">West India Key Accounts</option>
+                          <option value="East India Public Sector">East India Public Sector</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Annual Quota Target:
+                        </label>
+                        <input
+                          type="text"
+                          readOnly
+                          value="₹50,00,000 (Commercial SaaS)"
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-slate-100 text-xs font-mono text-slate-600 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedRole === 'SALES_MANAGER' && (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded space-y-2.5">
+                    <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
+                      Sales Manager Cost Center & Authority
+                    </span>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Building className="w-3 h-3 text-amber-700" />
+                        Cost Center / Region:
+                      </label>
+                      <input
+                        type="text"
+                        value={departmentOrCompany}
+                        onChange={(e) => setDepartmentOrCompany(e.target.value)}
+                        placeholder="e.g. CC-402 Commercial Sales Division"
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedRole === 'FINANCE' && (
+                  <div className="p-3 bg-sky-50/70 border border-sky-200 rounded space-y-2.5">
+                    <span className="text-[10px] font-bold text-sky-900 uppercase tracking-wider block">
+                      Finance Entity & Ledger
+                    </span>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Building className="w-3 h-3 text-sky-700" />
+                        Billing Legal Entity:
+                      </label>
+                      <input
+                        type="text"
+                        value={departmentOrCompany}
+                        onChange={(e) => setDepartmentOrCompany(e.target.value)}
+                        placeholder="e.g. DealFlow India Pvt Ltd (HQ Mumbai)"
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-600"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedRole === 'OPERATIONS' && (
+                  <div className="p-3 bg-slate-100 border border-slate-300 rounded space-y-2.5">
+                    <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">
+                      WMS Primary Depot Allocation
+                    </span>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Warehouse className="w-3 h-3 text-slate-700" />
+                        Assigned Warehouse Depot:
+                      </label>
+                      <select
+                        value={warehouseDepot}
+                        onChange={(e) => setWarehouseDepot(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-600"
+                      >
+                        <option value="WH-A (Mumbai Central)">WH-A (Mumbai Central Depot - 1,200 units capacity)</option>
+                        <option value="WH-B (Bengaluru Hub)">WH-B (Bengaluru Tech Hub - 900 units capacity)</option>
+                        <option value="WH-C (Delhi NCR)">WH-C (Delhi NCR Logistics Depot - 650 units capacity)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {selectedRole === 'CUSTOMER' && (
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded space-y-2.5">
+                    <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
+                      Client Organization Credentials
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                          <Building className="w-3 h-3 text-emerald-700" />
+                          Company Name:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={departmentOrCompany}
+                          onChange={(e) => setDepartmentOrCompany(e.target.value)}
+                          placeholder="e.g. Acme Corporation"
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-emerald-700" />
+                          GSTIN Tax ID:
+                        </label>
+                        <input
+                          type="text"
+                          value={customerGstin}
+                          onChange={(e) => setCustomerGstin(e.target.value)}
+                          placeholder="27AABCA1234F1Z5"
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedRole === 'ADMIN' && (
+                  <div className="p-3 bg-rose-50/70 border border-rose-200 rounded space-y-2">
+                    <span className="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">
+                      Master Administrator Authorization
+                    </span>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Key className="w-3 h-3 text-rose-700" />
+                        Admin Master Key / Passcode:
+                      </label>
+                      <input
+                        type="password"
+                        value={adminCode}
+                        onChange={(e) => setAdminCode(e.target.value)}
+                        placeholder="DF360-ADMIN-ROOT"
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-600"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Hint for evaluation: <code className="text-slate-600 font-semibold">DF360-ADMIN-ROOT</code>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Password & Confirm Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Password:
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Confirm Password:
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    disabled={loading}
+                    className="w-full bg-[#5E2A52] hover:bg-[#4d2243] flex items-center justify-center gap-2 rounded text-xs py-2"
+                  >
+                    <span>{loading ? 'Provisioning Stakeholder Account...' : `Register & Launch ${currentMeta.title} Hub`}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            <div className="mt-5 pt-3.5 border-t border-slate-200 text-center text-xs text-slate-500">
+              Already have credentials?{' '}
+              <Link to={`/login?role=${selectedRole}`} className="font-semibold text-[#5E2A52] hover:underline">
+                Sign In to Existing Session
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subtle Footer */}
+      <div className="w-full border-t border-slate-200 bg-white py-3 px-6 text-center text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <span>DealFlow360 Enterprise Sales Operations Platform</span>
+        <span className="font-mono text-slate-400">Strict RBAC Enforced • Multi-Tenant Architecture</span>
+      </div>
+    </div>
+  )
+}

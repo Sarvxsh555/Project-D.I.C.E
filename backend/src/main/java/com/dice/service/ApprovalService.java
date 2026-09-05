@@ -2,32 +2,34 @@ package com.dice.service;
 
 import com.dice.domain.Approval;
 import com.dice.domain.ApprovalSnapshot;
-import com.dice.domain.ApprovalSnapshotItem;
 import com.dice.domain.Deal;
-import com.dice.domain.DealLine;
 import com.dice.domain.Evaluation;
 import com.dice.domain.enums.ApprovalLevel;
 import com.dice.domain.enums.ApprovalStatus;
 import com.dice.domain.enums.DealStatus;
 import com.dice.domain.enums.QuotationDecision;
+import com.dice.engine.approval.LineSnapshot;
 import com.dice.engine.decision.DecisionResolver;
 import com.dice.events.DealEvent;
 import com.dice.events.EventPublisher;
 import com.dice.repository.ApprovalRepository;
 import com.dice.repository.ApprovalSnapshotRepository;
 import com.dice.repository.DealRepository;
+import com.dice.repository.EvaluationRepository;
 import com.dice.security.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 /**
  * Handles the approval queue: who sees what, and what happens when they decide.
@@ -37,11 +39,14 @@ import java.util.UUID;
  *
  * <p>Two independent things share the {@link Approval} entity and this
  * service: the original per-policy-violation requests opened by
- * {@code DealService#openApprovals} (routed by role, unordered, {@link
- * Approval#getApprovalLevel()} null), and the DealFlow360 sequential
- * quotation chain added here (routed by {@link ApprovalLevel}, strictly
- * ordered). {@link #decide} branches on which kind a row is; neither branch
- * changes the other's behaviour.
+ * {@code DealService#openApprovals}/{@code openReapprovalRequest} (routed by
+ * role, unordered, {@link Approval#getApprovalLevel()} null), and the
+ * DealFlow360 sequential quotation chain added here (routed by
+ * {@link ApprovalLevel}, strictly ordered: SALES_MANAGER then
+ * FINANCE_OPERATIONS). {@link #decide} branches on which kind a row is;
+ * neither branch changes the other's behaviour. Both paths write to the same
+ * {@link ApprovalSnapshot} shape via {@link #captureApprovalSnapshot} — there
+ * is one snapshot design, not two, even though two flows can produce one.
  */
 @Service
 @RequiredArgsConstructor
@@ -54,9 +59,11 @@ public class ApprovalService {
 
     private final ApprovalRepository approvalRepository;
     private final ApprovalSnapshotRepository approvalSnapshotRepository;
+    private final EvaluationRepository evaluationRepository;
     private final DealRepository dealRepository;
     private final EventPublisher eventPublisher;
     private final AuditService auditService;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<Approval> pendingFor(Role role) {
@@ -100,11 +107,17 @@ public class ApprovalService {
         approval.setStatus(ApprovalStatus.PENDING);
         approval.setReason(append(approval.getReason(), "Escalated by %s: %s".formatted(actor, comment)));
         // Escalation resets the clock; the new approver gets a full window.
-        approval.setSlaDueAt(Instant.now().plus(java.time.Duration.ofHours(24)));
+        approval.setSlaDueAt(Instant.now().plus(Duration.ofHours(24)));
 
         return approvalRepository.save(approval);
     }
 
+    /**
+     * @param reason required — every decided request must say why, both for the
+     *               audit trail and because "approve"/"reject" with no
+     *               explanation is exactly the kind of unexplainable decision
+     *               this project exists to avoid.
+     */
     private Approval decide(UUID approvalId,
                             Role actorRole,
                             String actor,
@@ -157,7 +170,7 @@ public class ApprovalService {
         if (saved.getApprovalLevel() != null) {
             advanceDealForSequentialChain(saved, outcome);
         } else {
-            advanceDealForPolicyViolations(deal, outcome);
+            advanceDealForPolicyViolations(deal, outcome, actorRole);
         }
 
         eventPublisher.publish(eventTypeFor(outcome), deal.getId(), actor,
@@ -192,9 +205,11 @@ public class ApprovalService {
 
     /**
      * A rejection stops the deal outright. An approval only advances it once
-     * every outstanding request is cleared — a deal can need several.
+     * every outstanding request is cleared — a deal can need several. Clearing
+     * the last one is also what captures the {@link ApprovalSnapshot} that
+     * {@code DealService.evaluate} later compares against.
      */
-    private void advanceDealForPolicyViolations(Deal deal, ApprovalStatus outcome) {
+    private void advanceDealForPolicyViolations(Deal deal, ApprovalStatus outcome, Role decidingRole) {
         if (outcome == ApprovalStatus.REJECTED) {
             deal.setStatus(DealStatus.REJECTED);
             dealRepository.save(deal);
@@ -211,7 +226,57 @@ public class ApprovalService {
         if (!stillWaiting) {
             deal.setStatus(DealStatus.APPROVED);
             dealRepository.save(deal);
-            log.info("Deal {} fully approved", deal.getDealNumber());
+            captureApprovalSnapshot(deal, decidingRole.name());
+            log.info("Deal {} fully approved; approval snapshot captured", deal.getDealNumber());
+        }
+    }
+
+    /**
+     * Freezes the approval-sensitive state of {@code deal} right now, for
+     * {@code MaterialChangeDetector} to compare future evaluations against.
+     * Shared by both approval flows — see class doc.
+     *
+     * <p>Any snapshot still active from a prior approval cycle is superseded
+     * first — the partial unique index on {@code approval_snapshots} would
+     * reject a second active row for the same deal otherwise, and logically
+     * there can only be one "current" approved state at a time.
+     *
+     * @param approvedByRole the role (or {@link ApprovalLevel} name) whose
+     *                       clearance finalised the deal — where a future
+     *                       reapproval routes back to
+     */
+    private void captureApprovalSnapshot(Deal deal, String approvedByRole) {
+        approvalSnapshotRepository.findByDealIdAndSupersededFalse(deal.getId())
+                .ifPresent(previous -> {
+                    previous.supersede("Superseded by a new approval cycle on the same deal");
+                    approvalSnapshotRepository.save(previous);
+                });
+
+        Evaluation latestEvaluation = evaluationRepository
+                .findFirstByDealIdOrderByCreatedAtDesc(deal.getId())
+                .orElse(null);
+
+        approvalSnapshotRepository.save(ApprovalSnapshot.builder()
+                .deal(deal)
+                .evaluation(latestEvaluation)
+                .approvedByRole(approvedByRole)
+                .subtotal(deal.getSubtotal())
+                .discountAmount(deal.getDiscountAmount())
+                .totalAmount(deal.getTotalAmount())
+                .marginPercent(deal.getMarginPercent())
+                .riskScore(deal.getRiskScore())
+                .riskLevel(deal.getRiskLevel())
+                .customerPaymentTermsDays(deal.getCustomer().getPaymentTermsDays())
+                .lineSnapshot(toJson(LineSnapshot.of(deal.getLines())))
+                .build());
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JacksonException e) {
+            log.warn("Could not serialise approval snapshot lines: {}", e.getMessage());
+            return "[]";
         }
     }
 
@@ -351,39 +416,7 @@ public class ApprovalService {
         deal.setStatus(DealStatus.APPROVED);
         dealRepository.save(deal);
         log.info("Deal {} fully cleared the sequential approval chain", deal.getDealNumber());
-        takeApprovalSnapshot(deal, approval);
-    }
-
-    private void takeApprovalSnapshot(Deal deal, Approval finalizingApproval) {
-        ApprovalSnapshot snapshot = ApprovalSnapshot.builder()
-                .deal(deal)
-                .approval(finalizingApproval)
-                .dealVersion(deal.getVersion())
-                .customerName(deal.getCustomer().getName())
-                .currency(deal.getCurrency())
-                .subtotal(deal.getSubtotal())
-                .discountAmount(deal.getDiscountAmount())
-                .discountPercent(deal.effectiveDiscountPercent())
-                .totalAmount(deal.getTotalAmount())
-                .marginPercent(deal.getMarginPercent())
-                .riskLevel(deal.getRiskLevel() != null ? deal.getRiskLevel().name() : null)
-                .approvalLevel(finalizingApproval.getApprovalLevel() != null
-                        ? finalizingApproval.getApprovalLevel().name() : null)
-                .build();
-
-        for (DealLine line : deal.getLines()) {
-            snapshot.addItem(ApprovalSnapshotItem.builder()
-                    .productSku(line.getProduct().getSku())
-                    .productName(line.getProduct().getName())
-                    .quantity(line.getQuantity())
-                    .unitPrice(line.getUnitPrice())
-                    .discountPercent(line.getDiscountPercent())
-                    .lineTotal(line.getLineTotal())
-                    .marginPercent(line.getMarginPercent())
-                    .build());
-        }
-
-        approvalSnapshotRepository.save(snapshot);
+        captureApprovalSnapshot(deal, level.name());
     }
 
     // ------------------------------------------------------------------
@@ -403,9 +436,11 @@ public class ApprovalService {
      * Withdraws all pending sequential-chain approvals for a deal when a material
      * quotation change has voided the prior commercial state.
      *
-     * <p>Called by {@link DealService} after it detects a material change against
-     * the last approved snapshot. Audit events are written for each withdrawn
-     * approval so the audit trail explains why the chain was reset.
+     * <p>Called by {@code DealService} after it detects a material change against
+     * the last approved snapshot (see {@code DealService.checkMaterialChange},
+     * the real, verified comparison — not a re-derivation here). Audit events
+     * are written for each withdrawn approval so the audit trail explains why
+     * the chain was reset.
      *
      * @param deal   the deal whose sequential approvals should be invalidated
      * @param reason human-readable material-change reason for the audit trail
@@ -444,4 +479,3 @@ public class ApprovalService {
                 pending.size(), deal.getDealNumber());
     }
 }
-

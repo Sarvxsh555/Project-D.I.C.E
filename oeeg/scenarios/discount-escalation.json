@@ -1,9 +1,15 @@
 {
   "name": "discount-escalation",
-  "description": "Rep pushes a discount past the approval threshold; expect REQUIRE_APPROVAL, then an approver clears it.",
+  "description": "Rep pushes a discount past the approval threshold; DICE moves the deal to PENDING_APPROVAL.",
+  "setup": {
+    "customerName": "Acme Enterprises",
+    "lines": [ { "sku": "SKU-1001", "quantity": 10 } ]
+  },
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9001, "partnerId": 201 } },
-    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9001, "discountPercent": 25 } },
-    { "type": "APPROVAL_GRANTED", "payload": { "quotationId": 9001, "approvedBy": "sales_manager" } }
+    { "type": "DISCOUNT_CHANGED", "payload": { "dealId": "$SETUP_DEAL_ID", "discountPercent": 25 }, "note": "breaches the 20% GLOBAL_DISCOUNT_CAP — expect REQUIRE_APPROVAL" }
+  ],
+  "manualSteps": [
+    "Log in as sales_manager in DealFlow360 and approve the resulting request via the Approvals screen (or POST /api/approvals/{id}/approve) — granting an approval is a DICE-internal decision, not something OEEG simulates.",
+    "To see the resulting approval snapshot get invalidated by a material change, apply another POST /api/deals/{id}/discount to this same deal afterward — see docs/decision-contract.md's 'Approval snapshot / reapproval' section for the verified example. Not automated as a scenario here because it genuinely requires the manual approval step above to happen in between two OEEG-triggered changes."
   ]
 }

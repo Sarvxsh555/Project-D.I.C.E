@@ -121,14 +121,24 @@ class DecisionResolverQuotationDecisionTest {
         assertThat(resolution.quotationDecision().nextAction()).isEqualTo("WAIT_FOR_SALES_MANAGER");
     }
 
+    /**
+     * Reconciled: the resolver has no notion of "previously approved with this
+     * exact state" — only {@code DealService}'s {@code MaterialChangeDetector}
+     * does, by comparing against a real {@code ApprovalSnapshot}. A status
+     * check alone (the original version of this test) would fire on a bare
+     * re-evaluation of an approved deal with zero underlying change, which is
+     * a false positive. See {@code DecisionResolver.decideQuotation}'s javadoc
+     * and docs/decision-contract.md's "Approval snapshot / reapproval" section
+     * for the real, verified promotion path.
+     */
     @Test
-    void sameBreachOnAnAlreadyApprovedDealNeedsReapproval() {
+    void sameBreachOnAnAlreadyApprovedDealStillReadsAsApprovalRequired() {
         Deal deal = deal(DealStatus.APPROVED, line("Hardware", 10, "15"));
         List<Policy> policies = List.of(discountLimit("Hardware", "10", PolicySeverity.APPROVAL_REQUIRED));
 
         var resolution = resolver.resolve(deal, DecisionResolver.Context.of(policies, List.of()));
 
-        assertThat(resolution.quotationDecision().decision()).isEqualTo(QuotationDecision.REAPPROVAL_REQUIRED);
+        assertThat(resolution.quotationDecision().decision()).isEqualTo(QuotationDecision.APPROVAL_REQUIRED);
         assertThat(resolution.quotationDecision().approvalRequired()).isTrue();
     }
 

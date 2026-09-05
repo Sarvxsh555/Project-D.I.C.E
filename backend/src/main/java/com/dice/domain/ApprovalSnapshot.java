@@ -1,20 +1,30 @@
 package com.dice.domain;
 
+import com.dice.domain.enums.RiskLevel;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
- * The commercial state actually approved, frozen at the moment a quotation
- * clears its final sequential sign-off. {@link Deal} and {@link DealLine} stay
- * live and mutable after this point, so without a snapshot there would be no
- * record of what a since-edited or since-repriced deal looked like when it
- * was approved.
+ * The approval-sensitive deal state at the moment an approval was fully
+ * granted — pricing, discounts, quantities, margin, risk, payment terms.
+ *
+ * <p>A deal has at most one <em>active</em> ({@link #superseded} false)
+ * snapshot at a time, enforced by a partial unique index
+ * ({@code idx_approval_snapshots_one_active}). When {@code MaterialChangeDetector}
+ * finds the live deal has drifted from it, {@code DealService} marks it
+ * superseded (never deletes it — it's the audit record of what was actually
+ * approved) and, once the deal is re-approved, a fresh snapshot is captured by
+ * {@code ApprovalService}.
+ *
+ * <p>{@link #lineSnapshot} is a JSON array of {@code {productId, quantity,
+ * unitPrice, discountPercent}}, serialised by the service layer — see
+ * {@code MaterialChangeDetector.LineSnapshot}. Kept as text rather than a
+ * child entity for the same reason {@code Evaluation.policyResults} is: it's a
+ * frozen record of the past, never queried into, and the shape may evolve.
  */
 @Entity
 @Table(name = "approval_snapshots")
@@ -33,23 +43,14 @@ public class ApprovalSnapshot {
     @JoinColumn(name = "deal_id", nullable = false)
     private Deal deal;
 
-    /** The FINANCE_OPERATIONS approval whose clearance finalised the quotation. */
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "approval_id", nullable = false)
-    private Approval approval;
+    /** The evaluation that produced the decision this approval was granted for. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evaluation_id")
+    private Evaluation evaluation;
 
-    /**
-     * The JPA {@code @Version} counter on {@link Deal} at snapshot time.
-     * A later version number is a quick signal that the deal row was mutated.
-     */
-    @Column(name = "deal_version")
-    private Long dealVersion;
-
-    @Column(name = "customer_name", nullable = false)
-    private String customerName;
-
-    @Column(nullable = false, length = 3)
-    private String currency;
+    /** Role of the approval that completed the deal — where a reapproval routes back to. */
+    @Column(name = "approved_by_role", nullable = false, length = 64)
+    private String approvedByRole;
 
     @Column(nullable = false, precision = 18, scale = 2)
     private BigDecimal subtotal;
@@ -57,28 +58,38 @@ public class ApprovalSnapshot {
     @Column(name = "discount_amount", nullable = false, precision = 18, scale = 2)
     private BigDecimal discountAmount;
 
-    /** Blended discount at snapshot time; used for material-change comparison. */
-    @Column(name = "discount_percent", precision = 7, scale = 4)
-    private BigDecimal discountPercent;
-
     @Column(name = "total_amount", nullable = false, precision = 18, scale = 2)
     private BigDecimal totalAmount;
 
-    @Column(name = "margin_percent", precision = 7, scale = 4)
+    @Column(name = "margin_percent", nullable = false, precision = 7, scale = 4)
     private BigDecimal marginPercent;
 
-    @Column(name = "risk_level")
-    private String riskLevel;
+    @Column(name = "risk_score")
+    private Integer riskScore;
 
-    @Column(name = "approval_level")
-    private String approvalLevel;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_level", nullable = false, length = 16)
+    private RiskLevel riskLevel;
+
+    @Column(name = "customer_payment_terms_days")
+    private Integer customerPaymentTermsDays;
+
+    @Column(name = "line_snapshot", nullable = false, columnDefinition = "text")
+    private String lineSnapshot;
 
     @Column(name = "captured_at", nullable = false, updatable = false)
     private Instant capturedAt;
 
-    @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(nullable = false)
     @Builder.Default
-    private List<ApprovalSnapshotItem> items = new ArrayList<>();
+    private boolean superseded = false;
+
+    @Column(name = "superseded_at")
+    private Instant supersededAt;
+
+    /** Human-readable list of what changed — what invalidated this snapshot. */
+    @Column(name = "superseded_reason", columnDefinition = "text")
+    private String supersededReason;
 
     @PrePersist
     void onCreate() {
@@ -87,37 +98,9 @@ public class ApprovalSnapshot {
         }
     }
 
-    public void addItem(ApprovalSnapshotItem item) {
-        items.add(item);
-        item.setSnapshot(this);
-    }
-
-    /**
-     * Returns {@code true} when the current deal's commercial values have moved
-     * materially from the state this snapshot captured.
-     *
-     * <p>Threshold: ½ percentage-point on discount or ½ percent on total amount.
-     * Any change this large voids the original approval.
-     */
-    public boolean isMateriallyDifferentFrom(BigDecimal currentDiscountPercent,
-                                             BigDecimal currentTotalAmount) {
-        if (discountPercent != null && currentDiscountPercent != null) {
-            BigDecimal discountDelta = currentDiscountPercent
-                    .subtract(discountPercent).abs();
-            if (discountDelta.compareTo(BigDecimal.valueOf(0.5)) > 0) {
-                return true;
-            }
-        }
-        if (totalAmount != null && currentTotalAmount != null
-                && totalAmount.signum() != 0) {
-            BigDecimal totalDeltaPct = currentTotalAmount
-                    .subtract(totalAmount).abs()
-                    .divide(totalAmount, 6, java.math.RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-            if (totalDeltaPct.compareTo(BigDecimal.valueOf(0.5)) > 0) {
-                return true;
-            }
-        }
-        return false;
+    public void supersede(String reason) {
+        this.superseded = true;
+        this.supersededAt = Instant.now();
+        this.supersededReason = reason;
     }
 }

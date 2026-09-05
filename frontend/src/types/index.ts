@@ -1,3 +1,9 @@
-// TODO: mirror the backend's DealController record types (DealSummary,
-// DealDetail, LineView, EvaluationSummary, etc.) once the UI needs them typed.
-export {}
+export * from './api'
+export * from './auth'
+export * from './deal'
+export * from './approval'
+export * from './fulfillment'
+export * from './billing'
+export * from './negotiation'
+export * from './health'
+export * from './product'

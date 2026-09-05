@@ -81,7 +81,13 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpStatus.UNAUTHORIZED.value(), "Unauthorized")))
+                                response.sendError(HttpStatus.UNAUTHORIZED.value(), "Unauthorized"))
+                        // Without this, an authenticated-but-forbidden request (e.g. a
+                        // non-CUSTOMER hitting /api/portal/**) falls through to
+                        // GlobalExceptionHandler's generic 500 instead of a clean 403 —
+                        // found while verifying CustomerPortalController's role guard.
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden")))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();

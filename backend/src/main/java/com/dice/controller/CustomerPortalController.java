@@ -91,13 +91,19 @@ public class CustomerPortalController {
     public record CommentRequest(@NotBlank String content, UUID dealLineId) {
     }
 
+    /**
+     * Deliberately excludes margin — the customer sees their own commercial
+     * terms, never DICE's profitability view of the deal. See docs/architecture.md's
+     * portal authorization rule: this must be enforced here, not just hidden
+     * in the frontend.
+     */
     public record QuotationSummary(
             UUID id, String dealNumber, DealStatus status, String currency,
-            BigDecimal totalAmount, BigDecimal marginPercent) {
+            BigDecimal totalAmount) {
 
         static QuotationSummary from(Deal deal) {
             return new QuotationSummary(deal.getId(), deal.getDealNumber(), deal.getStatus(),
-                    deal.getCurrency(), deal.getTotalAmount(), deal.getMarginPercent());
+                    deal.getCurrency(), deal.getTotalAmount());
         }
     }
 
@@ -123,14 +129,15 @@ public class CustomerPortalController {
         }
     }
 
+    /** Margin excluded — see {@link QuotationSummary}'s doc. */
     public record NegotiationVersionView(
             UUID id, Integer versionNumber, NegotiationVersionStatus status,
-            BigDecimal discountPercent, BigDecimal totalAmount, BigDecimal marginPercent,
+            BigDecimal discountPercent, BigDecimal totalAmount,
             String createdBy, Instant createdAt) {
 
         static NegotiationVersionView from(NegotiationVersion v) {
             return new NegotiationVersionView(v.getId(), v.getVersionNumber(), v.getStatus(),
-                    v.getDiscountPercent(), v.getTotalAmount(), v.getMarginPercent(),
+                    v.getDiscountPercent(), v.getTotalAmount(),
                     v.getCreatedBy(), v.getCreatedAt());
         }
     }

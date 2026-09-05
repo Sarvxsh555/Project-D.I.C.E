@@ -4,11 +4,15 @@ import com.dice.domain.*;
 import com.dice.domain.enums.ApprovalStatus;
 import com.dice.domain.enums.DealStatus;
 import com.dice.domain.enums.DecisionOutcome;
+import com.dice.domain.enums.QuotationDecision;
 import com.dice.engine.approval.ApprovalEngine;
+import com.dice.engine.approval.LineSnapshot;
+import com.dice.engine.approval.MaterialChangeDetector;
 import com.dice.engine.decision.DecisionResolver;
 import com.dice.events.DealEvent;
 import com.dice.events.EventPublisher;
 import com.dice.repository.*;
+import com.dice.security.Role;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -30,7 +35,9 @@ import java.util.UUID;
  *
  * <p>The important method is {@link #evaluate}: it runs the engines, persists an
  * {@link Evaluation} + {@link Decision}, opens any {@link Approval}s the outcome
- * demands, and moves the deal's status. Call it after any commercial change.
+ * demands (both the per-policy-violation kind and, via {@link ApprovalService},
+ * the sequential quotation chain), and moves the deal's status. Call it after
+ * any commercial change.
  */
 @Service
 @RequiredArgsConstructor
@@ -45,16 +52,17 @@ public class DealService {
     private final EvaluationRepository evaluationRepository;
     private final DecisionRepository decisionRepository;
     private final ApprovalRepository approvalRepository;
+    private final ApprovalSnapshotRepository approvalSnapshotRepository;
 
     private final PricingService pricingService;
     private final DecisionResolver decisionResolver;
+    private final ApprovalEngine approvalEngine;
     private final ApprovalService approvalService;
-    private final EventPublisher eventPublisher;
-    private final ObjectMapper objectMapper;
-    private final AuditService auditService;
-    private final com.dice.repository.ApprovalSnapshotRepository approvalSnapshotRepository;
     private final MaterialChangeDetector materialChangeDetector;
     private final DiscountAnomalyService discountAnomalyService;
+    private final EventPublisher eventPublisher;
+    private final AuditService auditService;
+    private final ObjectMapper objectMapper;
 
     // ------------------------------------------------------------------
     // Reads
@@ -177,31 +185,20 @@ public class DealService {
     /**
      * Runs the engines and records the outcome.
      *
-     * <p>Before running engines: detects whether a material quotation change has
-     * occurred relative to the last approved snapshot. If so, pending approvals
-     * are invalidated — a prior approval must not cover a materially different deal.
-     *
      * <p>Idempotent in the sense that re-running produces a fresh evaluation
      * rather than corrupting state — the trail is append-only by design.
+     *
+     * <p>After the engines resolve a fresh outcome from current state alone,
+     * this checks it against any still-active {@link ApprovalSnapshot} — the
+     * engines have no notion of "previously approved," so a deal that changed
+     * after being signed off would otherwise silently re-clear. See
+     * {@link #checkMaterialChange} and docs/decision-contract.md. When a
+     * material change invalidates the snapshot, any still-pending sequential
+     * approval steps are also withdrawn ({@link ApprovalService#invalidatePriorApprovals}) —
+     * a prior sign-off must not cover a state that no longer exists.
      */
     public Deal evaluate(UUID dealId, String triggeredBy, String actor) {
         Deal deal = require(dealId);
-
-        // §13: material-change protection — check before running engines so the
-        // invalidation is audited in the same transaction as the new evaluation.
-        approvalSnapshotRepository.findLatestByDealId(dealId).ifPresent(snapshot -> {
-            MaterialChangeDetector.MaterialChangeResult change =
-                    materialChangeDetector.detect(deal, snapshot);
-            if (change.material()) {
-                log.info("Material change detected for deal {}: {}",
-                        deal.getDealNumber(), change.reason());
-                approvalService.invalidatePriorApprovals(deal, change.reason());
-                auditService.record(
-                        AuditService.DEAL, dealId,
-                        "MATERIAL_CHANGE_DETECTED", actor,
-                        null, null, change.reason());
-            }
-        });
 
         var context = DecisionResolver.Context.of(
                 policyRepository.findByActiveTrueOrderByPriorityAsc(),
@@ -215,39 +212,187 @@ public class DealService {
         // but never blocks the evaluation itself.
         discountAnomalyService.evaluate(deal);
 
+        ReapprovalOverlay overlay = checkMaterialChange(deal, resolution, actor);
+        DecisionOutcome finalOutcome = overlay == null ? resolution.outcome() : overlay.outcome();
+        String finalRationale = overlay == null ? resolution.rationale() : overlay.rationale();
+        DecisionResolver.QuotationDecisionResult quotationDecision =
+                patchQuotationDecision(resolution.quotationDecision(), overlay);
+
         Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
                 .deal(deal)
                 .triggeredBy(triggeredBy)
                 .marginPercent(resolution.margin().marginPercent())
                 .discountPercent(deal.effectiveDiscountPercent())
+                .riskScore(resolution.risk().score())
                 .riskLevel(resolution.risk().level())
                 .healthScore(resolution.health().score())
-                .outcome(resolution.outcome())
+                .outcome(finalOutcome)
                 .policyResults(toJson(resolution.policies().violations()))
                 .build());
 
         decisionRepository.save(Decision.builder()
                 .deal(deal)
                 .evaluation(evaluation)
-                .outcome(resolution.outcome())
-                .rationale(resolution.rationale())
+                .outcome(finalOutcome)
+                .rationale(finalRationale)
                 .recommendations(toJson(resolution.recommendations()))
                 .build());
 
         openApprovals(deal, evaluation, resolution.approvals(), actor);
-        approvalService.ensureSequentialApproval(deal, evaluation, resolution.quotationDecision());
+        if (overlay != null && overlay.opensApproval()) {
+            openReapprovalRequest(deal, evaluation, overlay.approverRole(), actor);
+        }
+        approvalService.ensureSequentialApproval(deal, evaluation, quotationDecision);
 
         deal.setMarginPercent(resolution.margin().marginPercent());
+        deal.setRiskScore(resolution.risk().score());
         deal.setRiskLevel(resolution.risk().level());
         deal.setHealthScore(resolution.health().score());
-        deal.setStatus(statusFor(resolution.outcome()));
+        deal.setStatus(statusFor(finalOutcome));
         Deal saved = dealRepository.save(deal);
 
         eventPublisher.publish(DealEvent.Type.DEAL_EVALUATED, dealId, actor,
-                Map.of("outcome", resolution.outcome().name(),
+                Map.of("outcome", finalOutcome.name(),
                         "healthScore", resolution.health().score()));
 
         return saved;
+    }
+
+    /**
+     * Reflects a material-change overlay into the DealFlow360-facing decision
+     * shape too, so {@code ApprovalService#ensureSequentialApproval} sees the
+     * same "needs reapproval" signal as {@link DecisionOutcome} does — one
+     * source of truth ({@link #checkMaterialChange}), two vocabularies fed
+     * from it, never two independent detections.
+     */
+    private DecisionResolver.QuotationDecisionResult patchQuotationDecision(
+            DecisionResolver.QuotationDecisionResult original, ReapprovalOverlay overlay) {
+        if (overlay == null || overlay.outcome() != DecisionOutcome.REAPPROVAL_REQUIRED) {
+            return original;
+        }
+        return new DecisionResolver.QuotationDecisionResult(
+                QuotationDecision.REAPPROVAL_REQUIRED,
+                original.riskScore(),
+                true,
+                original.requiredApprovals(),
+                "WAIT_FOR_" + overlay.approverRole().name(),
+                original.reasons());
+    }
+
+    /**
+     * Compares the deal against its last granted approval snapshot, if any.
+     * When it has drifted materially:
+     * <ul>
+     *   <li>the snapshot is superseded (kept, not deleted — the audit record of
+     *       what was actually approved) and any pending sequential-chain
+     *       approvals are withdrawn, both audited;</li>
+     *   <li>if the fresh policy check would otherwise silently clear the deal
+     *       ({@code AUTO_APPROVE}/{@code RECOMMEND_ALTERNATIVE}), the outcome is
+     *       upgraded to {@code REAPPROVAL_REQUIRED} and a fresh approval is
+     *       opened, addressed back to whoever approved it last time;</li>
+     *   <li>otherwise ({@code REQUIRE_APPROVAL}/{@code BLOCK}) the fresh outcome
+     *       already forces a human to look again, so it's left as-is — just
+     *       annotated with the fact that it also invalidated the old approval.</li>
+     * </ul>
+     *
+     * @return null when there is no active snapshot, or no material change
+     */
+    private ReapprovalOverlay checkMaterialChange(Deal deal, DecisionResolver.Resolution resolution, String actor) {
+        Optional<ApprovalSnapshot> activeSnapshot =
+                approvalSnapshotRepository.findByDealIdAndSupersededFalse(deal.getId());
+        if (activeSnapshot.isEmpty()) {
+            return null;
+        }
+        ApprovalSnapshot snapshot = activeSnapshot.get();
+
+        List<LineSnapshot> snapshotLines = parseLineSnapshot(snapshot);
+        List<LineSnapshot> currentLines = LineSnapshot.of(deal.getLines());
+        MaterialChangeDetector.Result changeResult = materialChangeDetector.detect(
+                snapshot, deal, resolution.risk().level(), snapshotLines, currentLines,
+                deal.getCustomer().getPaymentTermsDays());
+
+        if (!changeResult.material()) {
+            return null;
+        }
+
+        String changeSummary = String.join("; ", changeResult.changedFields());
+        snapshot.supersede(changeSummary);
+        approvalSnapshotRepository.save(snapshot);
+        approvalService.invalidatePriorApprovals(deal, changeSummary);
+        auditService.record(AuditService.DEAL, deal.getId(),
+                "MATERIAL_CHANGE_DETECTED", actor, null, null, changeSummary);
+
+        boolean wouldSilentlyClear = resolution.outcome() == DecisionOutcome.AUTO_APPROVE
+                || resolution.outcome() == DecisionOutcome.RECOMMEND_ALTERNATIVE;
+
+        if (!wouldSilentlyClear) {
+            String rationale = resolution.rationale()
+                    + "\n(Note: this change also invalidates the approval %s granted by %s — changed: %s)"
+                            .formatted(snapshot.getCapturedAt(), snapshot.getApprovedByRole(), changeSummary);
+            return new ReapprovalOverlay(resolution.outcome(), rationale, false, null);
+        }
+
+        Role approverRole = parseRoleOrDefault(snapshot.getApprovedByRole());
+        String rationale = "Previously approved by %s on %s, but the deal changed since: %s. Needs reconfirmation before it can proceed."
+                .formatted(snapshot.getApprovedByRole(), snapshot.getCapturedAt(), changeSummary);
+        return new ReapprovalOverlay(DecisionOutcome.REAPPROVAL_REQUIRED, rationale, true, approverRole);
+    }
+
+    /**
+     * Raises the reapproval request a material change demands. Not driven by
+     * {@code ApprovalEngine.Requirement} like {@link #openApprovals} — there is
+     * no policy violation behind it, only "this changed after someone signed
+     * off on it" — so it's built directly.
+     */
+    private void openReapprovalRequest(Deal deal, Evaluation evaluation, Role approverRole, String actor) {
+        boolean alreadyPending = approvalRepository.findByDealIdOrderByRequestedAtDesc(deal.getId()).stream()
+                .anyMatch(a -> a.getStatus() == ApprovalStatus.PENDING
+                        && a.getRequiredRole().equals(approverRole.name()));
+        if (alreadyPending) {
+            return;
+        }
+
+        Approval approval = approvalRepository.save(Approval.builder()
+                .deal(deal)
+                .evaluation(evaluation)
+                .policyCode("MATERIAL_CHANGE")
+                .requiredRole(approverRole.name())
+                .status(ApprovalStatus.PENDING)
+                .requestedBy(actor)
+                .reason("Deal changed after approval; reconfirmation required.")
+                .slaDueAt(approvalEngine.slaDueFor(approverRole))
+                .build());
+
+        eventPublisher.publish(DealEvent.Type.APPROVAL_REQUESTED, deal.getId(), actor,
+                Map.of("approvalId", approval.getId(), "role", approverRole.name(),
+                        "reason", "MATERIAL_CHANGE"));
+    }
+
+    private List<LineSnapshot> parseLineSnapshot(ApprovalSnapshot snapshot) {
+        try {
+            return List.of(objectMapper.readValue(snapshot.getLineSnapshot(), LineSnapshot[].class));
+        } catch (JacksonException e) {
+            log.warn("Could not parse approval snapshot lines for deal {}: {}",
+                    snapshot.getDeal().getId(), e.getMessage());
+            return List.of();
+        }
+    }
+
+    private Role parseRoleOrDefault(String raw) {
+        try {
+            return Role.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            return Role.SALES_MANAGER;
+        }
+    }
+
+    /**
+     * @param opensApproval true only when {@code outcome} is {@code REAPPROVAL_REQUIRED}
+     *                       — the other branch (REQUIRE_APPROVAL/BLOCK) already
+     *                       opens its own approval via {@link #openApprovals}
+     */
+    private record ReapprovalOverlay(DecisionOutcome outcome, String rationale,
+                                     boolean opensApproval, Role approverRole) {
     }
 
     /**
@@ -288,7 +433,7 @@ public class DealService {
     private DealStatus statusFor(DecisionOutcome outcome) {
         return switch (outcome) {
             case AUTO_APPROVE -> DealStatus.APPROVED;
-            case REQUIRE_APPROVAL -> DealStatus.PENDING_APPROVAL;
+            case REQUIRE_APPROVAL, REAPPROVAL_REQUIRED -> DealStatus.PENDING_APPROVAL;
             case BLOCK -> DealStatus.REJECTED;
             case RECOMMEND_ALTERNATIVE -> DealStatus.IN_NEGOTIATION;
         };

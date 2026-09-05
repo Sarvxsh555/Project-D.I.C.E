@@ -13,6 +13,7 @@ import com.dice.events.EventPublisher;
 import com.dice.repository.ApprovalRepository;
 import com.dice.repository.ApprovalSnapshotRepository;
 import com.dice.repository.DealRepository;
+import com.dice.repository.EvaluationRepository;
 import com.dice.security.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +38,7 @@ class ApprovalServiceTest {
 
     @Mock private ApprovalRepository approvalRepository;
     @Mock private ApprovalSnapshotRepository approvalSnapshotRepository;
+    @Mock private EvaluationRepository evaluationRepository;
     @Mock private DealRepository dealRepository;
     @Mock private EventPublisher eventPublisher;
     @Mock private AuditService auditService;
@@ -45,7 +48,8 @@ class ApprovalServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ApprovalService(approvalRepository, approvalSnapshotRepository, dealRepository, eventPublisher, auditService);
+        service = new ApprovalService(approvalRepository, approvalSnapshotRepository, evaluationRepository,
+                dealRepository, eventPublisher, auditService, new ObjectMapper());
 
         deal = Deal.builder()
                 .id(UUID.randomUUID())

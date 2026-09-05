@@ -1,9 +1,14 @@
 {
   "name": "complete-deal-flow",
-  "description": "End-to-end happy path: quote -> discount -> approval -> fulfillment -> billing.",
+  "description": "End-to-end happy path: a deal is created, a modest discount applied, and it clears every policy on its own.",
+  "setup": {
+    "customerName": "Acme Enterprises",
+    "lines": [ { "sku": "SKU-1001", "quantity": 10 } ]
+  },
   "steps": [
-    { "type": "QUOTE_CREATED", "payload": { "quotationId": 9004, "partnerId": 201 } },
-    { "type": "DISCOUNT_CHANGED", "payload": { "quotationId": 9004, "discountPercent": 10 } },
-    { "type": "APPROVAL_GRANTED", "payload": { "quotationId": 9004, "approvedBy": "sales_manager" } }
+    { "type": "DISCOUNT_CHANGED", "payload": { "dealId": "$SETUP_DEAL_ID", "discountPercent": 10 }, "note": "expect AUTO_APPROVE — within every policy" }
+  ],
+  "manualSteps": [
+    "For the escalation branch of this flow, run the discount-escalation scenario instead."
   ]
 }
