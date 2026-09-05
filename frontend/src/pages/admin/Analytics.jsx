@@ -26,10 +26,7 @@ function BarList({ title, data }) {
                 style={{ width: `${(d.value / max) * 100}%` }}
               />
             </div>
-            <span className="text-right font-medium text-odooink">
-              {d.value}
-              {title === 'Discount distribution' ? '%' : ''}
-            </span>
+            <span className="text-right font-medium text-odooink">{d.value}</span>
           </div>
         ))}
       </div>
@@ -73,9 +70,9 @@ export default function Analytics() {
             ))}
           </div>
 
-          <BarList title="Discount distribution" data={summary.discountDistribution} />
-          <BarList title="Product performance" data={summary.productPerformance} />
-          <BarList title="Sales performance" data={summary.salesPerformance} />
+          <BarList title="Discount rules by risk level" data={summary.discountDistribution} />
+          <BarList title="Top products by list price" data={summary.productPerformance} />
+          <BarList title="Users by role" data={summary.salesPerformance} />
         </>
       )}
     </div>

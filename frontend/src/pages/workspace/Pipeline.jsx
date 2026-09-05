@@ -58,6 +58,27 @@ export default function Pipeline() {
 
       {error && <p className="status-banner-error mb-4">{error}</p>}
 
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total quotes</div>
+          <div className="stat-value">{quotes.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Pipeline value</div>
+          <div className="stat-value">{formatInr(quotes.reduce((s, q) => s + q.total, 0))}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Avg. deal size</div>
+          <div className="stat-value">
+            {formatInr(quotes.length > 0 ? quotes.reduce((s, q) => s + q.total, 0) / quotes.length : 0)}
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Won</div>
+          <div className="stat-value">{quotes.filter((q) => q.stage === 'COMPLETED').length}</div>
+        </div>
+      </div>
+
       <div className="grid grid-flow-col auto-cols-[minmax(230px,1fr)] gap-4 overflow-x-auto pb-2">
         {PIPELINE_STAGES.map((stage) => {
           const stageQuotes = quotes.filter((q) => q.stage === stage);

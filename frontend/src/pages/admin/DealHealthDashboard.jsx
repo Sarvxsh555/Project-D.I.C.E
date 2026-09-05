@@ -47,20 +47,33 @@ export default function DealHealthDashboard() {
         <div className="empty-state">Loading...</div>
       ) : (
         <>
-          <div className="stat-grid">
-            <div className="stat-card">
-              <div className="stat-label">Healthy</div>
-              <div className="stat-value">{data.summary.healthy}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">At Risk</div>
-              <div className="stat-value">{data.summary.atRisk}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Critical</div>
-              <div className="stat-value">{data.summary.critical}</div>
-            </div>
-          </div>
+          {(() => {
+            const total = data.summary.healthy + data.summary.atRisk + data.summary.critical;
+            const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+            return (
+              <div className="stat-grid">
+                <div className="stat-card">
+                  <div className="stat-label">Healthy</div>
+                  <div className="stat-value">{data.summary.healthy}</div>
+                  <div className="text-xs text-gray-400 mt-1">{pct(data.summary.healthy)}% of pipeline</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">At Risk</div>
+                  <div className="stat-value">{data.summary.atRisk}</div>
+                  <div className="text-xs text-gray-400 mt-1">{pct(data.summary.atRisk)}% of pipeline</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Critical</div>
+                  <div className="stat-value">{data.summary.critical}</div>
+                  <div className="text-xs text-gray-400 mt-1">{pct(data.summary.critical)}% of pipeline</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Total tracked</div>
+                  <div className="stat-value">{total}</div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="table-wrap">
             <table className="table-base">

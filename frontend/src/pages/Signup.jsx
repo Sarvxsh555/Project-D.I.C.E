@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
 import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 function Signup() {
   const [username, setUsername] = useState('');
@@ -78,10 +79,8 @@ function Signup() {
           <label htmlFor="password" className="label">
             Password
           </label>
-          <input
+          <PasswordField
             id="password"
-            type="password"
-            className="input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"

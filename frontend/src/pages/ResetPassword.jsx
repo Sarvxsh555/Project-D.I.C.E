@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 function ResetPassword() {
   const { token } = useParams();
@@ -45,10 +46,8 @@ function ResetPassword() {
           <label htmlFor="newPassword" className="label">
             New password
           </label>
-          <input
+          <PasswordField
             id="newPassword"
-            type="password"
-            className="input"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"

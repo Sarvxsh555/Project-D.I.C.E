@@ -1,3 +1,5 @@
+import { toast, describeHttpError } from './toast.js';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 async function request(path, { method = 'GET', body, token } = {}) {
@@ -6,13 +8,23 @@ async function request(path, { method = 'GET', body, token } = {}) {
     'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    toast.error('Network error — could not reach the server. Please check your connection and try again.');
+    throw networkErr;
+  }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error?.message || data.message || 'Request failed');
+  if (!response.ok) {
+    const message = describeHttpError(response.status, data);
+    toast.error(message);
+    throw new Error(message);
+  }
   return data;
 }
 

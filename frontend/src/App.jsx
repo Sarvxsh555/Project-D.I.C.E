@@ -29,10 +29,12 @@ import Customers from './pages/workspace/Customers.jsx';
 import Tasks from './pages/workspace/Tasks.jsx';
 import Notifications from './pages/workspace/Notifications.jsx';
 import CustomerPortal from './pages/portal/CustomerPortal.jsx';
+import ToastContainer from './components/ToastContainer.jsx';
 
 function App() {
   return (
     <AuthProvider>
+      <ToastContainer />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />

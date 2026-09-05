@@ -1,3 +1,5 @@
+import { toast, describeHttpError } from './toast.js';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 class UnauthorizedError extends Error {}
@@ -18,12 +20,18 @@ async function request(path, { method = 'GET', body, token, withCsrf = false } =
     if (csrfToken) headers['X-XSRF-TOKEN'] = csrfToken;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    toast.error('Network error — could not reach the server. Please check your connection and try again.');
+    throw networkErr;
+  }
 
   const data = await response.json().catch(() => ({}));
 
@@ -31,7 +39,9 @@ async function request(path, { method = 'GET', body, token, withCsrf = false } =
     throw new UnauthorizedError(data.error?.message || data.message || 'Unauthorized');
   }
   if (!response.ok) {
-    throw new Error(data.error?.message || data.message || 'Request failed');
+    const message = describeHttpError(response.status, data);
+    toast.error(message);
+    throw new Error(message);
   }
   return data;
 }
