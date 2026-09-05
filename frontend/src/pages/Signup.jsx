@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
-import '../auth.css';
+import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function Signup() {
   const [username, setUsername] = useState('');
@@ -30,52 +30,69 @@ function Signup() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Create account</h1>
+    <AuthShell
+      title="Create account"
+      subtitle="Set up your workspace access in a minute."
+      footer={
+        <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
+          Already have an account? Sign in
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="username" className="label">
+            Username
+          </label>
+          <input
+            id="username"
+            type="text"
+            className="input"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            required
+          />
+        </div>
 
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoComplete="username"
-          required
-        />
+        <div>
+          <label htmlFor="email" className="label">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            className="input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
+        </div>
 
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
+        <div>
+          <label htmlFor="password" className="label">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            className="input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+        </div>
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Creating account...' : 'Sign up'}
         </button>
 
-        {status.type && <p className={`status ${status.type}`}>{status.message}</p>}
-
-        <div className="auth-links">
-          <Link to="/login">Already have an account? Sign in</Link>
-        </div>
+        <StatusMessage status={status} />
       </form>
-    </div>
+    </AuthShell>
   );
 }
 

@@ -5,28 +5,33 @@ import { adminApi } from '../../api.js';
 function BarList({ title, data }) {
   if (!data?.length) {
     return (
-      <div className="bar-list">
-        <h3>{title}</h3>
-        <p className="admin-subtitle">No data yet.</p>
+      <div className="panel mb-5">
+        <h3 className="font-semibold text-odooink mb-3">{title}</h3>
+        <p className="page-subtitle mb-0">No data yet.</p>
       </div>
     );
   }
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
-    <div className="bar-list">
-      <h3>{title}</h3>
-      {data.map((d) => (
-        <div className="bar-row" key={d.label}>
-          <span>{d.label}</span>
-          <div className="bar-track">
-            <div className="bar-fill" style={{ width: `${(d.value / max) * 100}%` }} />
+    <div className="panel mb-5">
+      <h3 className="font-semibold text-odooink mb-4">{title}</h3>
+      <div className="space-y-3">
+        {data.map((d) => (
+          <div className="grid grid-cols-[140px_1fr_60px] items-center gap-3 text-sm" key={d.label}>
+            <span className="text-gray-600 truncate">{d.label}</span>
+            <div className="h-2 rounded-pill bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-pill bg-odoo-600"
+                style={{ width: `${(d.value / max) * 100}%` }}
+              />
+            </div>
+            <span className="text-right font-medium text-odooink">
+              {d.value}
+              {title === 'Discount distribution' ? '%' : ''}
+            </span>
           </div>
-          <span>
-            {d.value}
-            {title === 'Discount distribution' ? '%' : ''}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -45,11 +50,11 @@ export default function Analytics() {
 
   return (
     <div>
-      <h1>Analytics</h1>
-      <p className="admin-subtitle">Revenue, quotes, orders, approval rate, discount distribution and performance.</p>
+      <h1 className="page-title">Analytics</h1>
+      <p className="page-subtitle">Revenue, quotes, orders, approval rate, discount distribution and performance.</p>
 
-      {error && <p className="status error">{error}</p>}
-      {!summary && !error && <p className="admin-subtitle">Loading...</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
+      {!summary && !error && <p className="page-subtitle">Loading...</p>}
 
       {summary && (
         <>

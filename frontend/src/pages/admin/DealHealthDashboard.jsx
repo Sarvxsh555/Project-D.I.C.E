@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { dealHealthApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
-import './admin.css';
+import Badge from '../../components/Badge.jsx';
 
-const RISK_PILL = { HEALTHY: 'active', AT_RISK: 'medium', CRITICAL: 'high' };
-const RISK_ICON = { HEALTHY: '', AT_RISK: '⚠ ', CRITICAL: '⚠ ' };
+const RISK_TONE = { HEALTHY: 'green', AT_RISK: 'amber', CRITICAL: 'red' };
 
 export default function DealHealthDashboard() {
   const { token } = useAuth();
@@ -26,17 +26,20 @@ export default function DealHealthDashboard() {
 
   return (
     <div>
-      <div className="admin-toolbar" style={{ justifyContent: 'space-between' }}>
+      <div className="toolbar">
         <div>
-          <h1>Deal Health</h1>
-          <p className="admin-subtitle">Computed live from approval delay, discount deviation, inventory, negotiation count and margin.</p>
+          <h1 className="page-title">Deal Health</h1>
+          <p className="page-subtitle mb-0">Computed live from approval delay, discount deviation, inventory, negotiation count and margin.</p>
         </div>
-        <button className="admin-btn secondary" onClick={load}>Refresh</button>
+        <button className="btn-secondary" onClick={load}>
+          <RefreshCw size={15} />
+          Refresh
+        </button>
       </div>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
       {loading ? (
-        <div className="admin-empty">Loading...</div>
+        <div className="empty-state">Loading...</div>
       ) : (
         <>
           <div className="stat-grid">
@@ -54,8 +57,8 @@ export default function DealHealthDashboard() {
             </div>
           </div>
 
-          <div className="admin-table-wrap" style={{ marginTop: '1rem' }}>
-            <table className="admin-table">
+          <div className="table-wrap">
+            <table className="table-base">
               <thead>
                 <tr>
                   <th>Quote</th>
@@ -69,23 +72,27 @@ export default function DealHealthDashboard() {
               <tbody>
                 {data.deals.map((d) => (
                   <tr key={d.quotationId}>
-                    <td>{d.quoteNo}</td>
+                    <td className="font-medium">{d.quoteNo}</td>
                     <td>{d.customerName}</td>
                     <td>{formatInr(d.total)}</td>
                     <td>{d.score}</td>
                     <td>
-                      <span className={`pill ${RISK_PILL[d.risk]}`}>
-                        {RISK_ICON[d.risk]}
-                        {d.risk.replace('_', ' ')}
-                      </span>
+                      <Badge tone={RISK_TONE[d.risk]}>
+                        <span className="inline-flex items-center gap-1">
+                          {d.risk !== 'HEALTHY' && <AlertTriangle size={11} />}
+                          {d.risk.replace('_', ' ')}
+                        </span>
+                      </Badge>
                     </td>
                     <td>
                       {d.reasons.length === 0 ? (
-                        <span style={{ color: '#9aa1b1' }}>-</span>
+                        <span className="text-gray-300">-</span>
                       ) : (
-                        <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                        <ul className="list-disc pl-4 space-y-0.5">
                           {d.reasons.map((r, i) => (
-                            <li key={i} style={{ fontSize: '0.8rem' }}>{r}</li>
+                            <li key={i} className="text-xs text-gray-500">
+                              {r}
+                            </li>
                           ))}
                         </ul>
                       )}

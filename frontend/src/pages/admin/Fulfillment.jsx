@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Search, Plus } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { fulfillmentApi, dealApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
-import './admin.css';
+import Badge from '../../components/Badge.jsx';
 
 export default function Fulfillment() {
   const { token } = useAuth();
@@ -78,37 +79,42 @@ export default function Fulfillment() {
 
   return (
     <div>
-      <h1>Fulfillment</h1>
-      <p className="admin-subtitle">Warehouse split, shipment estimate and backorders for an order.</p>
+      <h1 className="page-title">Fulfillment</h1>
+      <p className="page-subtitle">Warehouse split, shipment estimate and backorders for an order.</p>
 
-      <div className="admin-toolbar">
-        <input
-          className="admin-search"
-          placeholder="Order ID (e.g. 2)"
-          value={orderIdInput}
-          onChange={(e) => setOrderIdInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && loadOrder()}
-        />
-        <button className="admin-btn" onClick={loadOrder}>Look up</button>
+      <div className="toolbar">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="input pl-9 max-w-xs"
+            placeholder="Order ID (e.g. 2)"
+            value={orderIdInput}
+            onChange={(e) => setOrderIdInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && loadOrder()}
+          />
+        </div>
+        <button className="btn-primary" onClick={loadOrder}>
+          Look up
+        </button>
       </div>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
       {order && (
-        <div className="builder-panel">
-          <h2>
+        <div className="panel">
+          <h2 className="font-bold text-odooink mb-1">
             {order.orderNo} - {order.customerName}
           </h2>
-          <p className="ws-subtitle">Required: {requiredQty}</p>
+          <p className="text-sm text-gray-500 mb-4">Required: {requiredQty}</p>
 
           {!plan ? (
-            <button className="admin-btn" disabled={busy} onClick={propose}>
+            <button className="btn-primary" disabled={busy} onClick={propose}>
               Propose warehouse split
             </button>
           ) : (
             <>
-              <div className="admin-table-wrap">
-                <table className="admin-table">
+              <div className="table-wrap">
+                <table className="table-base">
                   <thead>
                     <tr>
                       <th>Warehouse</th>
@@ -119,7 +125,7 @@ export default function Fulfillment() {
                   <tbody>
                     {plan.lines.map((l) => (
                       <tr key={l.id}>
-                        <td>{l.backordered ? <span className="pill high">Backorder</span> : l.warehouseName}</td>
+                        <td>{l.backordered ? <Badge tone="red">Backorder</Badge> : l.warehouseName}</td>
                         <td>{l.quantity}</td>
                         <td>{l.backordered ? '-' : formatInr(l.shippingCost)}</td>
                       </tr>
@@ -128,82 +134,88 @@ export default function Fulfillment() {
                 </table>
               </div>
 
-              <div className="builder-totals">
-                <div>
+              <div className="stat-grid mt-4">
+                <div className="stat-card">
                   <div className="stat-label">Shipment count</div>
-                  <div className="stat-value">{plan.shipmentCount}</div>
+                  <div className="stat-value text-lg">{plan.shipmentCount}</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <div className="stat-label">Shipping cost</div>
-                  <div className="stat-value">{formatInr(plan.totalShippingCost)}</div>
+                  <div className="stat-value text-lg">{formatInr(plan.totalShippingCost)}</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <div className="stat-label">Shipped</div>
-                  <div className="stat-value">{shippedQty}</div>
+                  <div className="stat-value text-lg">{shippedQty}</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <div className="stat-label">Backorder</div>
-                  <div className="stat-value">{backorderQty}</div>
+                  <div className="stat-value text-lg">{backorderQty}</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <div className="stat-label">Status</div>
-                  <div className="stat-value">{plan.status}</div>
+                  <div className="stat-value text-lg">{plan.status}</div>
                 </div>
               </div>
 
               {plan.status === 'PROPOSED' && (
-                <div className="builder-actions">
-                  <button className="admin-btn" disabled={busy} onClick={accept}>
+                <div className="panel-actions">
+                  <button className="btn-primary" disabled={busy} onClick={accept}>
                     Accept Suggested Split
                   </button>
-                  <button className="admin-btn secondary" disabled={busy} onClick={() => setShowOverride((s) => !s)}>
+                  <button className="btn-secondary" disabled={busy} onClick={() => setShowOverride((s) => !s)}>
                     Manual Override
                   </button>
                 </div>
               )}
 
               {showOverride && (
-                <div style={{ marginTop: '1rem' }}>
-                  <h3 style={{ fontSize: '0.9rem' }}>Manual override lines</h3>
-                  {overrideLines.map((l, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <input
-                        placeholder="Product ID"
-                        value={l.productId}
-                        onChange={(e) => {
-                          const next = [...overrideLines];
-                          next[i].productId = e.target.value;
-                          setOverrideLines(next);
-                        }}
-                      />
-                      <input
-                        placeholder="Warehouse ID"
-                        value={l.warehouseId}
-                        onChange={(e) => {
-                          const next = [...overrideLines];
-                          next[i].warehouseId = e.target.value;
-                          setOverrideLines(next);
-                        }}
-                      />
-                      <input
-                        placeholder="Quantity"
-                        value={l.quantity}
-                        onChange={(e) => {
-                          const next = [...overrideLines];
-                          next[i].quantity = e.target.value;
-                          setOverrideLines(next);
-                        }}
-                      />
-                    </div>
-                  ))}
-                  <div className="builder-actions">
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold text-odooink mb-3">Manual override lines</h3>
+                  <div className="space-y-3">
+                    {overrideLines.map((l, i) => (
+                      <div key={i} className="flex gap-3">
+                        <input
+                          className="input"
+                          placeholder="Product ID"
+                          value={l.productId}
+                          onChange={(e) => {
+                            const next = [...overrideLines];
+                            next[i].productId = e.target.value;
+                            setOverrideLines(next);
+                          }}
+                        />
+                        <input
+                          className="input"
+                          placeholder="Warehouse ID"
+                          value={l.warehouseId}
+                          onChange={(e) => {
+                            const next = [...overrideLines];
+                            next[i].warehouseId = e.target.value;
+                            setOverrideLines(next);
+                          }}
+                        />
+                        <input
+                          className="input"
+                          placeholder="Quantity"
+                          value={l.quantity}
+                          onChange={(e) => {
+                            const next = [...overrideLines];
+                            next[i].quantity = e.target.value;
+                            setOverrideLines(next);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="panel-actions">
                     <button
-                      className="admin-btn secondary"
+                      className="btn-secondary"
                       onClick={() => setOverrideLines([...overrideLines, { productId: '', warehouseId: '', quantity: '' }])}
                     >
-                      + Add line
+                      <Plus size={15} />
+                      Add line
                     </button>
-                    <button className="admin-btn" disabled={busy} onClick={submitOverride}>
+                    <button className="btn-primary" disabled={busy} onClick={submitOverride}>
                       Submit Override
                     </button>
                   </div>

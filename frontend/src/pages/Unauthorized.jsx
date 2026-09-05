@@ -1,19 +1,15 @@
 import { Link } from 'react-router-dom';
-import '../auth.css';
+import AuthShell from '../components/AuthShell.jsx';
 
 function Unauthorized() {
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h1>Unauthorized</h1>
-        <p className="subtitle">You need to sign in to view this page.</p>
-        <Link to="/login">
-          <button type="button" style={{ width: '100%' }}>
-            Go to sign in
-          </button>
-        </Link>
-      </div>
-    </div>
+    <AuthShell title="Unauthorized" subtitle="You need to sign in to view this page.">
+      <Link to="/login">
+        <button type="button" className="btn-primary w-full">
+          Go to sign in
+        </button>
+      </Link>
+    </AuthShell>
   );
 }
 

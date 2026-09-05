@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, UnauthorizedError } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
-import '../auth.css';
+import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function Portal() {
   const { token, logout } = useAuth();
@@ -34,28 +34,30 @@ function Portal() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card portal-card">
-        <h1>Customer portal</h1>
+    <AuthShell title="Customer portal">
+      <StatusMessage status={error ? { type: 'error', message: error } : null} />
 
-        {error && <p className="status error">{error}</p>}
+      {profile && (
+        <dl className="space-y-3 mb-6">
+          <div>
+            <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Username</dt>
+            <dd className="text-odooink font-medium">{profile.username}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Email</dt>
+            <dd className="text-odooink font-medium">{profile.email}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Member since</dt>
+            <dd className="text-odooink font-medium">{new Date(profile.memberSince).toLocaleString()}</dd>
+          </div>
+        </dl>
+      )}
 
-        {profile && (
-          <dl>
-            <dt>Username</dt>
-            <dd>{profile.username}</dd>
-            <dt>Email</dt>
-            <dd>{profile.email}</dd>
-            <dt>Member since</dt>
-            <dd>{new Date(profile.memberSince).toLocaleString()}</dd>
-          </dl>
-        )}
-
-        <button type="button" onClick={handleLogout}>
-          Log out
-        </button>
-      </div>
-    </div>
+      <button type="button" className="btn-primary w-full" onClick={handleLogout}>
+        Log out
+      </button>
+    </AuthShell>
   );
 }
 

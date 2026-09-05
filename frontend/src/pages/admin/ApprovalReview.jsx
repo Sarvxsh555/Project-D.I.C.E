@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, X, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr, stageLabel } from '../../quotationApi.js';
-import './admin.css';
+import Badge from '../../components/Badge.jsx';
 
 export default function ApprovalReview() {
   const { token, role } = useAuth();
@@ -48,7 +49,7 @@ export default function ApprovalReview() {
     }
   };
 
-  if (!quote) return <div className="admin-empty">{error || 'Loading...'}</div>;
+  if (!quote) return <div className="empty-state">{error || 'Loading...'}</div>;
 
   const discountPercent = quote.subtotal > 0 ? ((quote.discountTotal / quote.subtotal) * 100).toFixed(1) : 0;
   const pendingStep = chain.find((s) => s.status === 'PENDING');
@@ -60,14 +61,15 @@ export default function ApprovalReview() {
 
   return (
     <div>
-      <button className="admin-btn secondary" onClick={() => navigate('/admin/approvals')} style={{ marginBottom: '1rem' }}>
+      <button className="btn-secondary mb-4" onClick={() => navigate('/admin/approvals')}>
+        <ArrowLeft size={15} />
         Back to queue
       </button>
 
-      <h1>QUOTE #{quote.quoteNo}</h1>
-      <p className="admin-subtitle">Stage: {stageLabel(quote.stage)}</p>
+      <h1 className="page-title">Quote #{quote.quoteNo}</h1>
+      <p className="page-subtitle">Stage: {stageLabel(quote.stage)}</p>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
       <div className="stat-grid">
         <div className="stat-card">
@@ -88,26 +90,28 @@ export default function ApprovalReview() {
         </div>
       </div>
 
-      <div className="builder-panel" style={{ marginTop: '1rem' }}>
-        <h2>Approval Chain</h2>
-        {chain.map((step) => (
-          <div key={step.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0' }}>
-            <span>
-              {step.status === 'APPROVED' ? '✓' : step.status === 'REJECTED' ? '✕' : '●'}
-            </span>
-            <span>{step.name}</span>
-            <span className={`pill ${step.status === 'APPROVED' ? 'active' : step.status === 'REJECTED' ? 'high' : 'medium'}`}>
-              {step.status}
-            </span>
-          </div>
-        ))}
+      <div className="panel mt-4">
+        <h2 className="font-bold text-odooink mb-3">Approval Chain</h2>
+        <div className="space-y-2">
+          {chain.map((step) => (
+            <div key={step.id} className="flex items-center gap-2 text-sm">
+              <span className="text-gray-400">
+                {step.status === 'APPROVED' ? <Check size={15} className="text-green-600" /> : step.status === 'REJECTED' ? <X size={15} className="text-red-600" /> : '●'}
+              </span>
+              <span className="text-odooink">{step.name}</span>
+              <Badge tone={step.status === 'APPROVED' ? 'green' : step.status === 'REJECTED' ? 'red' : 'amber'}>
+                {step.status}
+              </Badge>
+            </div>
+          ))}
+        </div>
       </div>
 
       {intelEvents.length > 0 && (
-        <div className="builder-panel" style={{ marginTop: '1rem' }}>
-          <h2>D.I.C.E.</h2>
+        <div className="panel mt-4">
+          <h2 className="font-bold text-odooink mb-3">D.I.C.E.</h2>
           {intelEvents.map((event) => (
-            <p key={event.id} className="ws-subtitle" style={{ margin: '0.25rem 0' }}>
+            <p key={event.id} className="text-sm text-gray-500 my-1">
               {event.reason}
             </p>
           ))}
@@ -115,41 +119,44 @@ export default function ApprovalReview() {
       )}
 
       {canDecide && pendingStep && (
-        <div className="builder-panel" style={{ marginTop: '1rem' }}>
-          <h2>Decision on: {pendingStep.name}</h2>
+        <div className="panel mt-4">
+          <h2 className="font-bold text-odooink mb-3">Decision on: {pendingStep.name}</h2>
           {role !== 'ADMIN' && (
-            <p className="ws-subtitle">You can act on this step because it matches your role.</p>
+            <p className="text-sm text-gray-500 mb-3">You can act on this step because it matches your role.</p>
           )}
           <textarea
             placeholder="Reason (e.g. Hardware discount exceeds ceiling.)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            style={{ width: '100%', minHeight: '70px', marginBottom: '0.75rem' }}
+            className="input min-h-[80px] resize-y mb-4"
           />
-          <div className="builder-actions">
-            <button className="admin-btn" disabled={busy} onClick={() => act('approve')}>
-              APPROVE
+          <div className="panel-actions mt-0">
+            <button className="btn-primary" disabled={busy} onClick={() => act('approve')}>
+              <Check size={16} />
+              Approve
             </button>
-            <button className="admin-btn danger" disabled={busy} onClick={() => act('reject')}>
-              REJECT
+            <button className="btn bg-red-600 text-white hover:bg-red-700" disabled={busy} onClick={() => act('reject')}>
+              <X size={16} />
+              Reject
             </button>
-            <button className="admin-btn secondary" disabled={busy} onClick={() => act('return')}>
-              RETURN
+            <button className="btn-secondary" disabled={busy} onClick={() => act('return')}>
+              <RotateCcw size={16} />
+              Return
             </button>
           </div>
         </div>
       )}
 
       {canAct && pendingStep && !canDecide && (
-        <p className="status error" style={{ marginTop: '1rem' }}>
+        <p className="status-banner-error mt-4">
           Waiting on {pendingStep.name}. Your role cannot clear this step.
         </p>
       )}
 
-      <div className="builder-panel" style={{ marginTop: '1rem' }}>
-        <h2>Audit History</h2>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
+      <div className="panel mt-4">
+        <h2 className="font-bold text-odooink mb-3">Audit History</h2>
+        <div className="table-wrap">
+          <table className="table-base">
             <thead>
               <tr>
                 <th>Who</th>

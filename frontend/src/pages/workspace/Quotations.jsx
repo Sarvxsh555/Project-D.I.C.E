@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, PIPELINE_STAGES, stageLabel, formatInr } from '../../quotationApi.js';
 import { useWorkspace } from './WorkspaceContext.jsx';
-import '../admin/admin.css';
+import Badge from '../../components/Badge.jsx';
 
-const STAGE_PILL = {
-  DRAFT: 'inactive',
-  PENDING_APPROVAL: 'medium',
-  NEGOTIATION: 'medium',
-  APPROVED: 'active',
-  ORDERED: 'active',
-  FULFILLMENT: 'active',
-  COMPLETED: 'active',
+const STAGE_TONE = {
+  DRAFT: 'gray',
+  PENDING_APPROVAL: 'amber',
+  NEGOTIATION: 'amber',
+  APPROVED: 'green',
+  ORDERED: 'green',
+  FULFILLMENT: 'green',
+  COMPLETED: 'green',
 };
 
 const PAGE_SIZE = 9;
@@ -73,98 +74,102 @@ export default function Quotations() {
 
   return (
     <div>
-      <div className="admin-toolbar" style={{ justifyContent: 'space-between' }}>
+      <div className="toolbar">
         <div>
-          <h1>Quotations</h1>
-          <p className="ws-subtitle">Track quotes from draft through approval.</p>
+          <h1 className="page-title">Quotations</h1>
+          <p className="page-subtitle mb-0">Track quotes from draft through approval.</p>
         </div>
-        <button className="admin-btn" onClick={() => navigate('/workspace/quotations/new')}>
-          + New quotation
+        <button className="btn-primary" onClick={() => navigate('/workspace/quotations/new')}>
+          <Plus size={16} />
+          New quotation
         </button>
       </div>
 
-      <div className="admin-toolbar" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-        <input
-          className="admin-search"
-          placeholder="Search quote no. or customer..."
-          value={q}
-          onChange={(e) => resetToFirstPage(setQ)(e.target.value)}
-        />
-        <select value={status} onChange={(e) => resetToFirstPage(setStatus)(e.target.value)}>
-          <option value="">All statuses</option>
-          {PIPELINE_STAGES.map((s) => (
-            <option key={s} value={s}>
-              {stageLabel(s)}
-            </option>
-          ))}
-        </select>
-        <select value={customerId} onChange={(e) => resetToFirstPage(setCustomerId)(e.target.value)}>
-          <option value="">All customers</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder="Rep username"
-          value={rep}
-          onChange={(e) => resetToFirstPage(setRep)(e.target.value)}
-          style={{ width: '140px' }}
-        />
-        <input type="date" value={from} onChange={(e) => resetToFirstPage(setFrom)(e.target.value)} />
-        <input type="date" value={to} onChange={(e) => resetToFirstPage(setTo)(e.target.value)} />
-        <input
-          type="number"
-          placeholder="Min amount"
-          value={minAmount}
-          onChange={(e) => resetToFirstPage(setMinAmount)(e.target.value)}
-          style={{ width: '110px' }}
-        />
-        <input
-          type="number"
-          placeholder="Max amount"
-          value={maxAmount}
-          onChange={(e) => resetToFirstPage(setMaxAmount)(e.target.value)}
-          style={{ width: '110px' }}
-        />
-        <select
-          value={`${sortBy}:${direction}`}
-          onChange={(e) => {
-            const [sb, dir] = e.target.value.split(':');
-            setSortBy(sb);
-            setDirection(dir);
-            setPage(0);
-          }}
-        >
-          <option value="createdAt:DESC">Newest first</option>
-          <option value="createdAt:ASC">Oldest first</option>
-          <option value="total:DESC">Amount: high to low</option>
-          <option value="total:ASC">Amount: low to high</option>
-        </select>
+      <div className="panel mb-5">
+        <div className="flex flex-wrap gap-3">
+          <input
+            className="input max-w-xs"
+            placeholder="Search quote no. or customer..."
+            value={q}
+            onChange={(e) => resetToFirstPage(setQ)(e.target.value)}
+          />
+          <select className="input w-auto" value={status} onChange={(e) => resetToFirstPage(setStatus)(e.target.value)}>
+            <option value="">All statuses</option>
+            {PIPELINE_STAGES.map((s) => (
+              <option key={s} value={s}>
+                {stageLabel(s)}
+              </option>
+            ))}
+          </select>
+          <select className="input w-auto" value={customerId} onChange={(e) => resetToFirstPage(setCustomerId)(e.target.value)}>
+            <option value="">All customers</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <input
+            className="input w-36"
+            placeholder="Rep username"
+            value={rep}
+            onChange={(e) => resetToFirstPage(setRep)(e.target.value)}
+          />
+          <input className="input w-auto" type="date" value={from} onChange={(e) => resetToFirstPage(setFrom)(e.target.value)} />
+          <input className="input w-auto" type="date" value={to} onChange={(e) => resetToFirstPage(setTo)(e.target.value)} />
+          <input
+            className="input w-28"
+            type="number"
+            placeholder="Min amount"
+            value={minAmount}
+            onChange={(e) => resetToFirstPage(setMinAmount)(e.target.value)}
+          />
+          <input
+            className="input w-28"
+            type="number"
+            placeholder="Max amount"
+            value={maxAmount}
+            onChange={(e) => resetToFirstPage(setMaxAmount)(e.target.value)}
+          />
+          <select
+            className="input w-auto"
+            value={`${sortBy}:${direction}`}
+            onChange={(e) => {
+              const [sb, dir] = e.target.value.split(':');
+              setSortBy(sb);
+              setDirection(dir);
+              setPage(0);
+            }}
+          >
+            <option value="createdAt:DESC">Newest first</option>
+            <option value="createdAt:ASC">Oldest first</option>
+            <option value="total:DESC">Amount: high to low</option>
+            <option value="total:ASC">Amount: low to high</option>
+          </select>
+        </div>
       </div>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
       {loading ? (
-        <div className="admin-empty">Loading...</div>
+        <div className="empty-state">Loading...</div>
       ) : data.content.length === 0 ? (
-        <div className="admin-empty">No quotations match these filters.</div>
+        <div className="empty-state">No quotations match these filters.</div>
       ) : (
-        <div className="quote-card-grid">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.content.map((quote) => (
             <div
               key={quote.id}
-              className="quote-card"
+              className="card p-5 cursor-pointer hover:border-odoo-300 transition-colors"
               onClick={() => navigate(`/workspace/quotations/${quote.id}`)}
             >
-              <div className="quote-card-top">
-                <span className="quote-no">{quote.quoteNo}</span>
-                <span className={`pill ${STAGE_PILL[quote.stage]}`}>{stageLabel(quote.stage)}</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400">{quote.quoteNo}</span>
+                <Badge tone={STAGE_TONE[quote.stage]}>{stageLabel(quote.stage)}</Badge>
               </div>
-              <h3>{quote.customerName}</h3>
-              <div className="quote-amount">{formatInr(quote.total)}</div>
-              <div className="quote-card-meta">
+              <h3 className="font-bold text-odooink mb-1">{quote.customerName}</h3>
+              <div className="text-xl font-extrabold text-odooink mb-2">{formatInr(quote.total)}</div>
+              <div className="flex justify-between text-xs text-gray-400">
                 <span>{quote.repUsername}</span>
                 <span>{new Date(quote.createdAt).toLocaleDateString()}</span>
               </div>
@@ -174,15 +179,15 @@ export default function Quotations() {
       )}
 
       {data.totalPages > 1 && (
-        <div className="admin-toolbar" style={{ justifyContent: 'center', gap: '1rem' }}>
-          <button className="admin-btn secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button className="btn-secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
             Previous
           </button>
-          <span>
+          <span className="text-sm text-gray-500">
             Page {page + 1} of {data.totalPages}
           </span>
           <button
-            className="admin-btn secondary"
+            className="btn-secondary"
             disabled={page + 1 >= data.totalPages}
             onClick={() => setPage((p) => p + 1)}
           >

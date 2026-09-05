@@ -14,6 +14,7 @@ import DealHealthDashboard from './pages/admin/DealHealthDashboard.jsx';
 import Fulfillment from './pages/admin/Fulfillment.jsx';
 import Billing from './pages/admin/Billing.jsx';
 import Products from './pages/admin/Products.jsx';
+import AdminCustomers from './pages/admin/Customers.jsx';
 import PriceLists from './pages/admin/PriceLists.jsx';
 import DiscountPolicies from './pages/admin/DiscountPolicies.jsx';
 import Warehouses from './pages/admin/Warehouses.jsx';
@@ -71,6 +72,7 @@ function App() {
             <Route path="fulfillment" element={<Fulfillment />} />
             <Route path="billing" element={<Billing />} />
             <Route path="products" element={<Products />} />
+            <Route path="customers" element={<AdminCustomers />} />
             <Route path="price-lists" element={<PriceLists />} />
             <Route path="discount-policies" element={<DiscountPolicies />} />
             <Route path="warehouses" element={<Warehouses />} />

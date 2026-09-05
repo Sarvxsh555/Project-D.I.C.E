@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import '../auth.css';
+import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function ResetPassword() {
   const { token } = useParams();
@@ -27,32 +27,39 @@ function ResetPassword() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Reset password</h1>
+    <AuthShell
+      title="Reset password"
+      subtitle="Choose a new password for your account."
+      footer={
+        <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
+          Back to sign in
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="newPassword" className="label">
+            New password
+          </label>
+          <input
+            id="newPassword"
+            type="password"
+            className="input"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+        </div>
 
-        <label htmlFor="newPassword">New password</label>
-        <input
-          id="newPassword"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Resetting...' : 'Reset password'}
         </button>
 
-        {status.type && <p className={`status ${status.type}`}>{status.message}</p>}
-
-        <div className="auth-links">
-          <Link to="/login">Back to sign in</Link>
-        </div>
+        <StatusMessage status={status} />
       </form>
-    </div>
+    </AuthShell>
   );
 }
 

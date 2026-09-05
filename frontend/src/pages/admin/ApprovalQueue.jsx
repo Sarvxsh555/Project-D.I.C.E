@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr } from '../../quotationApi.js';
-import './admin.css';
 
 export default function ApprovalQueue() {
   const { token } = useAuth();
@@ -21,18 +20,18 @@ export default function ApprovalQueue() {
 
   return (
     <div>
-      <h1>Approvals</h1>
-      <p className="admin-subtitle">Quotations awaiting sign-off, oldest first.</p>
+      <h1 className="page-title">Approvals</h1>
+      <p className="page-subtitle">Quotations awaiting sign-off, oldest first.</p>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
       {loading ? (
-        <div className="admin-empty">Loading...</div>
+        <div className="empty-state">Loading...</div>
       ) : data.content.length === 0 ? (
-        <div className="admin-empty">Nothing waiting on approval.</div>
+        <div className="empty-state">Nothing waiting on approval.</div>
       ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
+        <div className="table-wrap">
+          <table className="table-base">
             <thead>
               <tr>
                 <th>Quote No.</th>
@@ -47,8 +46,12 @@ export default function ApprovalQueue() {
               {data.content.map((q) => {
                 const discountPercent = q.subtotal > 0 ? ((q.discountTotal / q.subtotal) * 100).toFixed(1) : 0;
                 return (
-                  <tr key={q.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/admin/approvals/${q.id}`)}>
-                    <td>{q.quoteNo}</td>
+                  <tr
+                    key={q.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/admin/approvals/${q.id}`)}
+                  >
+                    <td className="font-medium">{q.quoteNo}</td>
                     <td>{q.customerName}</td>
                     <td>{q.repUsername}</td>
                     <td>{formatInr(q.total)}</td>

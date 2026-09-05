@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Search, Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 
 function emptyRecord(fields) {
@@ -20,64 +21,75 @@ function RecordForm({ title, fields, initial, onCancel, onSave }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2>{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-odooink/40 p-4" onClick={onCancel}>
+      <div
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-7 shadow-popover"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold text-odooink mb-5">{title}</h2>
         <form onSubmit={handleSubmit}>
-          {fields.map((f) => (
-            <div className="form-field" key={f.key}>
-              <label htmlFor={f.key}>{f.label}</label>
-              {f.type === 'select' ? (
-                <select
-                  id={f.key}
-                  value={values[f.key]}
-                  onChange={(e) => update(f.key, e.target.value)}
-                  required={f.required}
-                >
-                  <option value="" disabled>
-                    Select {f.label.toLowerCase()}
-                  </option>
-                  {f.options.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
+          <div className="space-y-4">
+            {fields.map((f) => (
+              <div key={f.key}>
+                <label htmlFor={f.key} className="label">
+                  {f.label}
+                </label>
+                {f.type === 'select' ? (
+                  <select
+                    id={f.key}
+                    className="input"
+                    value={values[f.key]}
+                    onChange={(e) => update(f.key, e.target.value)}
+                    required={f.required}
+                  >
+                    <option value="" disabled>
+                      Select {f.label.toLowerCase()}
                     </option>
-                  ))}
-                </select>
-              ) : f.type === 'textarea' ? (
-                <textarea
-                  id={f.key}
-                  value={values[f.key]}
-                  onChange={(e) => update(f.key, e.target.value)}
-                  required={f.required}
-                />
-              ) : f.type === 'boolean' ? (
-                <select
-                  id={f.key}
-                  value={values[f.key] ? 'true' : 'false'}
-                  onChange={(e) => update(f.key, e.target.value === 'true')}
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              ) : (
-                <input
-                  id={f.key}
-                  type={f.type || 'text'}
-                  value={values[f.key]}
-                  onChange={(e) =>
-                    update(f.key, f.type === 'number' ? e.target.valueAsNumber || 0 : e.target.value)
-                  }
-                  required={f.required}
-                  step={f.type === 'number' ? 'any' : undefined}
-                />
-              )}
-            </div>
-          ))}
-          <div className="form-actions">
-            <button type="button" className="admin-btn secondary" onClick={onCancel}>
+                    {f.options.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : f.type === 'textarea' ? (
+                  <textarea
+                    id={f.key}
+                    className="input min-h-[80px] resize-y"
+                    value={values[f.key]}
+                    onChange={(e) => update(f.key, e.target.value)}
+                    required={f.required}
+                  />
+                ) : f.type === 'boolean' ? (
+                  <select
+                    id={f.key}
+                    className="input"
+                    value={values[f.key] ? 'true' : 'false'}
+                    onChange={(e) => update(f.key, e.target.value === 'true')}
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                ) : (
+                  <input
+                    id={f.key}
+                    type={f.type || 'text'}
+                    className="input"
+                    value={values[f.key]}
+                    onChange={(e) =>
+                      update(f.key, f.type === 'number' ? e.target.valueAsNumber || 0 : e.target.value)
+                    }
+                    required={f.required}
+                    step={f.type === 'number' ? 'any' : undefined}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <button type="button" className="btn-secondary" onClick={onCancel}>
               Cancel
             </button>
-            <button type="submit" className="admin-btn">
+            <button type="submit" className="btn-primary">
               Save
             </button>
           </div>
@@ -177,30 +189,34 @@ export default function CrudTable({
 
   return (
     <div>
-      {title && <h1>{title}</h1>}
-      {subtitle && <p className="admin-subtitle">{subtitle}</p>}
+      {title && <h1 className="page-title">{title}</h1>}
+      {subtitle && <p className="page-subtitle">{subtitle}</p>}
 
-      <div className="admin-toolbar">
-        <input
-          className="admin-search"
-          placeholder="Search..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button className="admin-btn" onClick={() => setEditing('new')}>
-          + Add new
+      <div className="toolbar">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="input pl-9 max-w-xs"
+            placeholder="Search..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <button className="btn-primary" onClick={() => setEditing('new')}>
+          <Plus size={16} />
+          Add new
         </button>
       </div>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
-      <div className="admin-table-wrap">
+      <div className="table-wrap">
         {loading ? (
-          <div className="admin-empty">Loading...</div>
+          <div className="empty-state">Loading...</div>
         ) : filtered.length === 0 ? (
-          <div className="admin-empty">No records found.</div>
+          <div className="empty-state">No records found.</div>
         ) : (
-          <table className="admin-table">
+          <table className="table-base">
             <thead>
               <tr>
                 {fields.map((f) => (
@@ -216,15 +232,29 @@ export default function CrudTable({
                     <td key={f.key}>{renderCell(f, row)}</td>
                   ))}
                   <td>
-                    <div className="row-actions">
-                      <button onClick={() => setEditing(row)}>Edit</button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        className="text-gray-400 hover:text-odoo-600"
+                        title="Edit"
+                        onClick={() => setEditing(row)}
+                      >
+                        <Pencil size={16} />
+                      </button>
                       {archivable && (
-                        <button onClick={() => handleArchiveToggle(row)}>
-                          {row.status === 'archived' ? 'Unarchive' : 'Archive'}
+                        <button
+                          className="text-gray-400 hover:text-odoo-600"
+                          title={row.status === 'archived' ? 'Unarchive' : 'Archive'}
+                          onClick={() => handleArchiveToggle(row)}
+                        >
+                          {row.status === 'archived' ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                         </button>
                       )}
-                      <button className="danger" onClick={() => handleDelete(row)}>
-                        Delete
+                      <button
+                        className="text-gray-400 hover:text-red-600"
+                        title="Delete"
+                        onClick={() => handleDelete(row)}
+                      >
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>

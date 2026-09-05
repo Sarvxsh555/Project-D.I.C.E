@@ -25,23 +25,24 @@ export default function Notifications() {
 
   return (
     <div>
-      <h1>Notifications</h1>
-      <p className="ws-subtitle">{items.filter((n) => n.unread).length} unread.</p>
-      {items.length === 0 && <p>No notifications yet.</p>}
-      {items.map((n) => (
-        <div
-          className={`notif-row ${n.unread ? 'unread' : ''}`}
-          key={n.id}
-          onClick={() => markRead(n.id, n.unread)}
-          style={{ cursor: n.unread ? 'pointer' : 'default' }}
-        >
-          <span className="notif-icon">{n.icon}</span>
-          <div className="notif-body">
-            <div className="notif-title">{n.title}</div>
-            <div className="notif-time">{n.time}</div>
+      <h1 className="page-title">Notifications</h1>
+      <p className="page-subtitle">{items.filter((n) => n.unread).length} unread.</p>
+      {items.length === 0 && <p className="empty-state">No notifications yet.</p>}
+      <div className="space-y-2">
+        {items.map((n) => (
+          <div
+            className={`card flex gap-3 px-4 py-3.5 items-start ${n.unread ? 'border-l-4 border-l-odoo-600' : ''} ${n.unread ? 'cursor-pointer' : ''}`}
+            key={n.id}
+            onClick={() => markRead(n.id, n.unread)}
+          >
+            <span className="text-lg leading-none">{n.icon}</span>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-odooink">{n.title}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{n.time}</div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Flame, X } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, stageLabel, formatInr } from '../../quotationApi.js';
-import '../admin/admin.css';
 
 const APPROVAL_DISCOUNT_THRESHOLD = 15;
 
@@ -187,18 +187,18 @@ export default function QuotationBuilder() {
     }
   };
 
-  if (loading) return <div className="admin-empty">Loading quotation...</div>;
+  if (loading) return <div className="empty-state">Loading quotation...</div>;
 
   return (
     <div>
-      <div className="admin-toolbar" style={{ justifyContent: 'space-between' }}>
+      <div className="toolbar">
         <div>
-          <h1>{isNew ? 'New Quotation' : quoteNo}</h1>
-          <p className="ws-subtitle">
+          <h1 className="page-title">{isNew ? 'New Quotation' : quoteNo}</h1>
+          <p className="page-subtitle mb-0">
             {isNew ? 'Build a quote for a customer.' : `Stage: ${stageLabel(stage)}`}
           </p>
         </div>
-        <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={!isDraft}>
+        <select className="input w-auto" value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={!isDraft}>
           <option value="">Select customer...</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
@@ -208,19 +208,18 @@ export default function QuotationBuilder() {
         </select>
       </div>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
-      <div className="builder-layout">
-        <div className="builder-panel">
-          <h2>Product Selector</h2>
+      <div className="grid gap-5 items-start lg:grid-cols-[minmax(260px,320px)_1fr_minmax(260px,300px)]">
+        <div className="panel">
+          <h2 className="font-bold text-odooink mb-3">Product Selector</h2>
           <input
-            className="admin-search"
+            className="input w-full mb-2"
             placeholder="Search products..."
             value={productQuery}
             onChange={(e) => setProductQuery(e.target.value)}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
           />
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: '100%', marginBottom: '0.5rem' }}>
+          <select className="input w-full mb-2" value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">All categories</option>
             {categories.map((c) => (
               <option key={c} value={c}>
@@ -228,16 +227,16 @@ export default function QuotationBuilder() {
               </option>
             ))}
           </select>
-          <div>
+          <div className="divide-y divide-gray-100">
             {filteredProducts.map((p) => (
-              <div className="product-result" key={p.id}>
+              <div className="flex justify-between items-center py-2.5 text-sm" key={p.id}>
                 <div>
-                  <div>{p.name}</div>
-                  <div className="product-result-meta">
+                  <div className="text-odooink font-medium">{p.name}</div>
+                  <div className="text-xs text-gray-400">
                     {p.variant} - {formatInr(p.unitPrice)}
                   </div>
                 </div>
-                <button className="admin-btn secondary" disabled={!isDraft} onClick={() => addToCart(p)}>
+                <button className="btn-secondary !px-3 !py-1.5 text-xs" disabled={!isDraft} onClick={() => addToCart(p)}>
                   Add
                 </button>
               </div>
@@ -245,142 +244,148 @@ export default function QuotationBuilder() {
           </div>
         </div>
 
-        <div className="builder-panel">
-          <h2>Cart</h2>
+        <div className="panel">
+          <h2 className="font-bold text-odooink mb-3">Cart</h2>
           {lines.length === 0 ? (
-            <div className="admin-empty">No products added yet.</div>
+            <div className="empty-state">No products added yet.</div>
           ) : (
-            <table className="cart-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Qty</th>
-                  <th>Unit Price</th>
-                  <th>Discount %</th>
-                  <th>Tax %</th>
-                  <th>Subtotal</th>
-                  <th>Margin</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l) => (
-                  <tr key={l.productId}>
-                    <td>{l.productName}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        value={l.quantity}
-                        disabled={!isDraft}
-                        onChange={(e) => updateLine(l.productId, { quantity: Number(e.target.value) || 1 })}
-                      />
-                    </td>
-                    <td>{formatInr(l.unitPrice)}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={l.discountPercent}
-                        disabled={!isDraft}
-                        onChange={(e) => updateLine(l.productId, { discountPercent: Number(e.target.value) || 0 })}
-                      />
-                    </td>
-                    <td>{l.taxPercent}%</td>
-                    <td>{formatInr(l.lineTotal)}</td>
-                    <td>{formatInr(l.margin)}</td>
-                    <td>
-                      {isDraft && (
-                        <button className="admin-btn secondary" onClick={() => removeLine(l.productId)}>
-                          x
-                        </button>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr>
+                    {['Product', 'Qty', 'Unit Price', 'Discount %', 'Tax %', 'Subtotal', 'Margin', ''].map((h) => (
+                      <th key={h} className="text-left px-2 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {lines.map((l) => (
+                    <tr key={l.productId}>
+                      <td className="px-2 py-2 border-b border-gray-50">{l.productName}</td>
+                      <td className="px-2 py-2 border-b border-gray-50">
+                        <input
+                          type="number"
+                          min="1"
+                          className="input !w-16 !py-1"
+                          value={l.quantity}
+                          disabled={!isDraft}
+                          onChange={(e) => updateLine(l.productId, { quantity: Number(e.target.value) || 1 })}
+                        />
+                      </td>
+                      <td className="px-2 py-2 border-b border-gray-50">{formatInr(l.unitPrice)}</td>
+                      <td className="px-2 py-2 border-b border-gray-50">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="input !w-16 !py-1"
+                          value={l.discountPercent}
+                          disabled={!isDraft}
+                          onChange={(e) => updateLine(l.productId, { discountPercent: Number(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="px-2 py-2 border-b border-gray-50">{l.taxPercent}%</td>
+                      <td className="px-2 py-2 border-b border-gray-50">{formatInr(l.lineTotal)}</td>
+                      <td className="px-2 py-2 border-b border-gray-50">{formatInr(l.margin)}</td>
+                      <td className="px-2 py-2 border-b border-gray-50">
+                        {isDraft && (
+                          <button className="text-gray-400 hover:text-red-600" onClick={() => removeLine(l.productId)}>
+                            <X size={15} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
-          <div className="builder-totals">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 mt-4 card p-4">
             <div>
               <div className="stat-label">Subtotal</div>
-              <div className="stat-value">{formatInr(totals.subtotal)}</div>
+              <div className="text-lg font-bold text-odooink">{formatInr(totals.subtotal)}</div>
             </div>
             <div>
               <div className="stat-label">Discount</div>
-              <div className="stat-value">{formatInr(totals.discountTotal)}</div>
+              <div className="text-lg font-bold text-odooink">{formatInr(totals.discountTotal)}</div>
             </div>
             <div>
               <div className="stat-label">Tax</div>
-              <div className="stat-value">{formatInr(totals.taxTotal)}</div>
+              <div className="text-lg font-bold text-odooink">{formatInr(totals.taxTotal)}</div>
             </div>
             <div>
               <div className="stat-label">Total</div>
-              <div className="stat-value">{formatInr(totals.total)}</div>
+              <div className="text-lg font-bold text-odooink">{formatInr(totals.total)}</div>
             </div>
             <div>
               <div className="stat-label">Gross Margin</div>
-              <div className="stat-value">{formatInr(totals.grossMargin)}</div>
+              <div className="text-lg font-bold text-odooink">{formatInr(totals.grossMargin)}</div>
             </div>
             <div>
               <div className="stat-label">Margin %</div>
-              <div className="stat-value">{totals.marginPercent}%</div>
+              <div className="text-lg font-bold text-odooink">{totals.marginPercent}%</div>
             </div>
-            <div>
+            <div className="col-span-2">
               <div className="stat-label">Approval</div>
-              <div className="stat-value">
+              <div className="text-lg font-bold text-odooink">
                 {isNew || isDraft ? (needsApproval ? 'Needs Approval' : 'Auto-eligible') : approvalStatus}
               </div>
             </div>
           </div>
 
-          <div className="builder-actions">
-            <button className="admin-btn secondary" disabled={!isDraft || saving} onClick={save}>
+          <div className="panel-actions">
+            <button className="btn-secondary" disabled={!isDraft || saving} onClick={save}>
               Save Draft
             </button>
-            <button className="admin-btn" disabled={!isDraft || saving} onClick={submitApproval}>
+            <button className="btn-primary" disabled={!isDraft || saving} onClick={submitApproval}>
               Submit Approval
             </button>
-            <button className="admin-btn" disabled={stage !== 'APPROVED'} onClick={sendToCustomer}>
+            <button className="btn-primary" disabled={stage !== 'APPROVED'} onClick={sendToCustomer}>
               Send Customer
             </button>
           </div>
         </div>
 
-        <div className="builder-panel">
-          <h2>🔥 Recommended</h2>
+        <div className="panel">
+          <h2 className="font-bold text-odooink mb-3 flex items-center gap-1.5">
+            <Flame size={17} className="text-amber-500" />
+            Recommended
+          </h2>
           {recommendations.filter((r) => !dismissed.includes(r.productId)).length === 0 ? (
-            <div className="admin-empty">No suggestions for this cart.</div>
+            <div className="empty-state">No suggestions for this cart.</div>
           ) : (
-            recommendations
-              .filter((r) => !dismissed.includes(r.productId))
-              .map((r) => (
-                <div className="recommendation-card" key={r.productId}>
-                  <div className="rec-title">{r.productName}</div>
-                  <div className="rec-why">Why: {r.reason}</div>
-                  <div className="rec-stats">
-                    <span>Margin: +{r.marginImpactPercent}%</span>
-                    <span>{r.promotion}</span>
+            <div className="space-y-3">
+              {recommendations
+                .filter((r) => !dismissed.includes(r.productId))
+                .map((r) => (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm" key={r.productId}>
+                    <div className="font-bold text-amber-800 mb-1">{r.productName}</div>
+                    <div className="text-gray-600 mb-1.5">Why: {r.reason}</div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>Margin: +{r.marginImpactPercent}%</span>
+                      <span>{r.promotion}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn-primary !px-3 !py-1.5 text-xs"
+                        disabled={!isDraft}
+                        onClick={() => {
+                          const product = products.find((p) => p.id === r.productId);
+                          if (product) addToCart(product);
+                        }}
+                      >
+                        Add
+                      </button>
+                      <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setDismissed((d) => [...d, r.productId])}>
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
-                  <div className="rec-actions">
-                    <button
-                      className="admin-btn"
-                      disabled={!isDraft}
-                      onClick={() => {
-                        const product = products.find((p) => p.id === r.productId);
-                        if (product) addToCart(product);
-                      }}
-                    >
-                      Add
-                    </button>
-                    <button className="admin-btn secondary" onClick={() => setDismissed((d) => [...d, r.productId])}>
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              ))
+                ))}
+            </div>
           )}
         </div>
       </div>

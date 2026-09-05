@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(forbiddenAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/webhooks/odoo").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customers")
+                        .hasRole("ADMIN")
                         .requestMatchers("/api/quotations/*/approve", "/api/quotations/*/reject", "/api/quotations/*/return")
                         .hasAnyRole("ADMIN", "SALES_MANAGER", "FINANCE")
                         .requestMatchers("/api/quotations/*/customer-confirm")

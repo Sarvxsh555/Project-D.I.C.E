@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
-import '../auth.css';
+import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -24,32 +24,38 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Forgot password</h1>
-        <p className="subtitle">Enter your email and we'll send you a reset link.</p>
+    <AuthShell
+      title="Forgot password"
+      subtitle="Enter your email and we'll send you a reset link."
+      footer={
+        <Link to="/login" className="text-odoo-600 hover:text-odoo-700 font-medium">
+          Back to sign in
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="label">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            className="input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
+        </div>
 
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
-
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Sending...' : 'Send reset link'}
         </button>
 
-        {status.type && <p className={`status ${status.type}`}>{status.message}</p>}
-
-        <div className="auth-links">
-          <Link to="/login">Back to sign in</Link>
-        </div>
+        <StatusMessage status={status} />
       </form>
-    </div>
+    </AuthShell>
   );
 }
 

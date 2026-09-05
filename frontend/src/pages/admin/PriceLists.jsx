@@ -1,4 +1,5 @@
 import CrudTable from './CrudTable.jsx';
+import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum'];
@@ -15,7 +16,7 @@ const fields = [
     label: 'Active / Inactive',
     type: 'select',
     options: ['active', 'inactive'],
-    render: (v) => <span className={`pill ${v}`}>{v}</span>,
+    render: (v) => <Badge>{v}</Badge>,
   },
 ];
 

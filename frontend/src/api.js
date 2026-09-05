@@ -73,6 +73,11 @@ export const adminApi = {
   subscriptionPlans: adminResource('subscription-plans'),
   recommendationRules: adminResource('recommendation-rules'),
   analyticsSummary: (token) => request('/admin/analytics/summary', { token }),
+  users: {
+    list: (token) => request('/admin/users', { token }),
+    create: (token, body) => request('/admin/users', { method: 'POST', token, body }),
+    resetPassword: (token, id) => request(`/admin/users/${id}/reset-password`, { method: 'POST', token }),
+  },
 };
 
 export { UnauthorizedError };

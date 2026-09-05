@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
-import '../auth.css';
+import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -33,48 +33,64 @@ function Login() {
   };
 
   return (
-    <div className="auth-page">
-      <div>
-        {sessionExpired && (
-          <p className="session-banner">Your session expired. Please sign in again.</p>
-        )}
-        <form className="auth-card" onSubmit={handleSubmit}>
-          <h1>Sign in</h1>
-
-          <label htmlFor="username">Username</label>
+    <AuthShell
+      title="Sign in"
+      subtitle="Welcome back. Enter your details to continue."
+      footer={
+        <>
+          <Link to="/forgot-password" className="text-odoo-600 hover:text-odoo-700 font-medium">
+            Forgot password?
+          </Link>
+          <span className="mx-2 text-gray-300">·</span>
+          <Link to="/signup" className="text-odoo-600 hover:text-odoo-700 font-medium">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {sessionExpired && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          Your session expired. Please sign in again.
+        </p>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="username" className="label">
+            Username
+          </label>
           <input
             id="username"
             type="text"
+            className="input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
             required
           />
+        </div>
 
-          <label htmlFor="password">Password</label>
+        <div>
+          <label htmlFor="password" className="label">
+            Password
+          </label>
           <input
             id="password"
             type="password"
+            className="input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
           />
+        </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
 
-          {status.type && <p className={`status ${status.type}`}>{status.message}</p>}
-
-          <div className="auth-links">
-            <Link to="/forgot-password">Forgot password?</Link>
-            <span> · </span>
-            <Link to="/signup">Create an account</Link>
-          </div>
-        </form>
-      </div>
-    </div>
+        <StatusMessage status={status} />
+      </form>
+    </AuthShell>
   );
 }
 

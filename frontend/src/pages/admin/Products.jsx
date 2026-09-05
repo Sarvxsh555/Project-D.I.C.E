@@ -1,4 +1,5 @@
 import CrudTable from './CrudTable.jsx';
+import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
 
 const CATEGORIES = ['Electronics', 'Apparel', 'Home & Kitchen', 'Sporting Goods', 'Office Supplies'];
@@ -18,7 +19,7 @@ const fields = [
     label: 'Status',
     type: 'select',
     options: ['active', 'archived'],
-    render: (v) => <span className={`pill ${v}`}>{v}</span>,
+    render: (v) => <Badge>{v}</Badge>,
   },
 ];
 

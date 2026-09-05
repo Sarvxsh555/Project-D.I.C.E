@@ -19,7 +19,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -188,5 +190,55 @@ public class AuthService {
 
         resetToken.setUsed(true);
         resetTokenRepository.save(resetToken);
+    }
+
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private String generateRandomPassword() {
+        StringBuilder sb = new StringBuilder(14);
+        for (int i = 0; i < 14; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
+
+    public List<com.example.login.dto.UserSummary> adminListUsers() {
+        return userRepository.findAll().stream().map(com.example.login.dto.UserSummary::from).toList();
+    }
+
+    public com.example.login.dto.AdminCreateUserResponse adminCreateUser(com.example.login.dto.AdminCreateUserRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+        }
+
+        String generatedPassword = generateRandomPassword();
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setRole(request.getRole());
+        user.setCustomerId(request.getCustomerId());
+        user.setPasswordHash(passwordEncoder.encode(generatedPassword));
+        userRepository.save(user);
+
+        return new com.example.login.dto.AdminCreateUserResponse(
+                user.getId(), user.getUsername(), user.getEmail(), user.getRole(), user.getCustomerId(), generatedPassword);
+    }
+
+    public com.example.login.dto.AdminResetPasswordResponse adminResetPassword(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        String generatedPassword = generateRandomPassword();
+        user.setPasswordHash(passwordEncoder.encode(generatedPassword));
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        userRepository.save(user);
+
+        return new com.example.login.dto.AdminResetPasswordResponse(user.getUsername(), generatedPassword);
     }
 }

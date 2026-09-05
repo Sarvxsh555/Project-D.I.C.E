@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import CrudTable from './CrudTable.jsx';
+import Badge from '../../components/Badge.jsx';
 import { adminApi } from '../../api.js';
-import './admin.css';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum'];
 const CATEGORIES = ['Electronics', 'Apparel', 'Home & Kitchen', 'Sporting Goods', 'Office Supplies'];
@@ -18,21 +19,21 @@ const ruleFields = [
     type: 'select',
     options: RISK_LEVELS,
     required: true,
-    render: (v) => <span className={`pill ${v}`}>{v}</span>,
+    render: (v) => <Badge>{v}</Badge>,
   },
   { key: 'approvalLevel', label: 'Approval level', type: 'select', options: ['Sales Manager', 'Finance'], required: true },
 ];
 
 function ApprovalChain() {
+  const steps = ['Discount Request', 'Sales Manager', 'Finance', 'Approved'];
   return (
-    <div className="chain-flow">
-      <div className="chain-step">Discount Request</div>
-      <span className="chain-arrow">→</span>
-      <div className="chain-step">Sales Manager</div>
-      <span className="chain-arrow">→</span>
-      <div className="chain-step">Finance</div>
-      <span className="chain-arrow">→</span>
-      <div className="chain-step">Approved</div>
+    <div className="panel flex flex-wrap items-center gap-3">
+      {steps.map((step, i) => (
+        <div key={step} className="flex items-center gap-3">
+          <div className="rounded-lg bg-odoo-50 text-odoo-700 px-4 py-2 text-sm font-semibold">{step}</div>
+          {i < steps.length - 1 && <ArrowRight size={16} className="text-gray-300" />}
+        </div>
+      ))}
     </div>
   );
 }
@@ -42,19 +43,27 @@ export default function DiscountPolicies() {
 
   return (
     <div>
-      <h1>Discount Policies</h1>
-      <p className="admin-subtitle">
+      <h1 className="page-title">Discount Policies</h1>
+      <p className="page-subtitle">
         Configure discount rules by customer tier and category, and view the approval chain for
         discounts that exceed policy limits.
       </p>
 
-      <div className="module-tabs">
-        <button className={tab === 'rules' ? 'active' : ''} onClick={() => setTab('rules')}>
-          Discount Rules
-        </button>
-        <button className={tab === 'chain' ? 'active' : ''} onClick={() => setTab('chain')}>
-          Approval Chains
-        </button>
+      <div className="flex gap-1 mb-5 border-b border-gray-200">
+        {[
+          { key: 'rules', label: 'Discount Rules' },
+          { key: 'chain', label: 'Approval Chains' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === t.key ? 'border-odoo-600 text-odoo-700' : 'border-transparent text-gray-500 hover:text-odooink'
+            }`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {tab === 'rules' ? (

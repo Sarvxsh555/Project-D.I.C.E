@@ -45,20 +45,22 @@ export default function Pipeline() {
 
   return (
     <div>
-      <h1>Pipeline</h1>
-      <p className="ws-subtitle">
+      <h1 className="page-title">Pipeline</h1>
+      <p className="page-subtitle">
         Drag a card to move it forward. Illegal transitions are rejected by the backend and snap back.
       </p>
 
-      {error && <p className="status error">{error}</p>}
+      {error && <p className="status-banner-error mb-4">{error}</p>}
 
-      <div className="pipeline-board">
+      <div className="grid grid-flow-col auto-cols-[minmax(230px,1fr)] gap-4 overflow-x-auto pb-2">
         {PIPELINE_STAGES.map((stage) => {
           const stageQuotes = quotes.filter((q) => q.stage === stage);
           const total = stageQuotes.reduce((sum, q) => sum + q.total, 0);
           return (
             <div
-              className={`pipeline-col ${dragOverStage === stage ? 'drag-over' : ''}`}
+              className={`rounded-xl p-3 min-w-[230px] transition-shadow ${
+                dragOverStage === stage ? 'bg-odoo-50 ring-2 ring-odoo-400 ring-inset' : 'bg-gray-100'
+              }`}
               key={stage}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -70,25 +72,27 @@ export default function Pipeline() {
                 handleDrop(stage);
               }}
             >
-              <h3>
-                {stageLabel(stage)} <span>{formatInr(total)}</span>
+              <h3 className="flex justify-between text-sm font-semibold text-odooink mb-3">
+                {stageLabel(stage)} <span className="text-gray-400 font-medium">{formatInr(total)}</span>
               </h3>
-              {stageQuotes.map((quote) => (
-                <div
-                  className={`deal-card ${draggingId === quote.id ? 'dragging' : ''}`}
-                  key={quote.id}
-                  draggable
-                  onDragStart={() => setDraggingId(quote.id)}
-                  onDragEnd={() => setDraggingId(null)}
-                  onClick={() => navigate(`/workspace/quotations/${quote.id}`)}
-                >
-                  <div className="deal-name">{quote.customerName}</div>
-                  <div className="deal-meta">
-                    <span>{quote.quoteNo}</span>
-                    <span>{formatInr(quote.total)}</span>
+              <div className="space-y-2">
+                {stageQuotes.map((quote) => (
+                  <div
+                    className={`card p-3 cursor-grab transition-opacity ${draggingId === quote.id ? 'opacity-40' : ''}`}
+                    key={quote.id}
+                    draggable
+                    onDragStart={() => setDraggingId(quote.id)}
+                    onDragEnd={() => setDraggingId(null)}
+                    onClick={() => navigate(`/workspace/quotations/${quote.id}`)}
+                  >
+                    <div className="font-semibold text-sm text-odooink mb-0.5">{quote.customerName}</div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>{quote.quoteNo}</span>
+                      <span>{formatInr(quote.total)}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           );
         })}
