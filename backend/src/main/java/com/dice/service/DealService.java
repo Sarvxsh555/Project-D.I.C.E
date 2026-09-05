@@ -70,7 +70,7 @@ public class DealService {
 
     @Transactional(readOnly = true)
     public Page<Deal> list(Pageable pageable) {
-        return dealRepository.findAll(pageable);
+        return dealRepository.findAllWithCustomer(pageable);
     }
 
     @Transactional(readOnly = true)

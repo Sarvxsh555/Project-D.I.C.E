@@ -34,6 +34,7 @@ public class DevDataSeeder implements CommandLineRunner {
             "db/seed/products.sql",
             "db/seed/price_lists.sql",
             "db/seed/warehouses.sql",
+            "db/seed/inventory.sql",
             "db/seed/policies.sql",
             "db/seed/policy_discount_tiers.sql",
             "db/seed/co_purchase_pairs.sql",

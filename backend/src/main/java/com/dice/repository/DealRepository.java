@@ -22,7 +22,15 @@ public interface DealRepository extends JpaRepository<Deal, UUID> {
 
     Optional<Deal> findByOdooQuotationId(Long odooQuotationId);
 
+    /** DealSummary needs customer.name; without this it lazy-inits outside the
+     *  session once Page.map() runs back in the controller and throws. */
+    @EntityGraph(attributePaths = {"customer"})
     Page<Deal> findByStatus(DealStatus status, Pageable pageable);
+
+    /** Same reasoning as findByStatus above — used by the unfiltered list. */
+    @EntityGraph(attributePaths = {"customer"})
+    @Query("select d from Deal d")
+    Page<Deal> findAllWithCustomer(Pageable pageable);
 
     Page<Deal> findByOwnerUsername(String ownerUsername, Pageable pageable);
 
