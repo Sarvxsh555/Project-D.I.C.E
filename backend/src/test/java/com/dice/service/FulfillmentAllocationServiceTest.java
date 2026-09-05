@@ -53,7 +53,7 @@ class FulfillmentAllocationServiceTest {
     @BeforeEach
     void setUp() {
         allocationEngine = new AllocationEngine(new DiceProperties(null, null, null,
-                new DiceProperties.Fulfillment(1.0, 1.0, 0.25)));
+                new DiceProperties.Fulfillment(1.0, 1.0, 0.25), null, null, null));
         service = new FulfillmentAllocationService(dealRepository, warehouseRepository, inventoryService,
                 allocationEngine, fulfillmentPlanRepository, auditService, eventPublisher);
 

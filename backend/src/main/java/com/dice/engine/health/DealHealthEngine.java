@@ -1,6 +1,8 @@
 package com.dice.engine.health;
 
+import com.dice.config.DiceProperties;
 import com.dice.domain.Deal;
+import com.dice.domain.enums.HealthStatus;
 import com.dice.engine.margin.MarginEngine;
 import com.dice.engine.policy.PolicyEngine;
 import com.dice.engine.risk.RiskEngine;
@@ -12,7 +14,10 @@ import java.util.List;
 
 /**
  * Rolls margin, risk and policy compliance into a single 0–100 score (higher is
- * healthier) for the pipeline view.
+ * healthier) for the pipeline view. Commit 22 extends the same score with
+ * inactivity, approval delay, discount anomaly, delivery slippage and
+ * negotiation-cycle signals, each an independent, configurable deduction —
+ * no machine learning, every number is explained.
  *
  * <p>Starts at 100 and deducts. Every deduction is named so the deal detail
  * page can show the breakdown rather than an unexplained number.
@@ -32,10 +37,40 @@ public class DealHealthEngine {
     private static final int PER_APPROVAL_VIOLATION = 8;
     private static final int MAX_MARGIN_DEDUCTION = 30;
 
+    private static final DiceProperties.Health DEFAULT_HEALTH_CONFIG =
+            new DiceProperties.Health(14, 15, 48, 15, 20, 7, 15, 3, 10, 70, 40);
+
+    private final DiceProperties.Health config;
+
+    /** Spring wiring — falls back to the documented defaults if not configured. */
+    public DealHealthEngine(DiceProperties properties) {
+        this.config = properties != null && properties.health() != null
+                ? properties.health() : DEFAULT_HEALTH_CONFIG;
+    }
+
+    /** For direct construction outside Spring (existing tests). */
+    public DealHealthEngine() {
+        this(null);
+    }
+
     public HealthScore score(Deal deal,
                              MarginEngine.MarginResult margin,
                              RiskEngine.RiskAssessment risk,
                              PolicyEngine.PolicyReport policies) {
+        return score(deal, margin, risk, policies, HealthSignals.NONE);
+    }
+
+    /**
+     * Commit 22: the same margin/risk/policy score, plus deductions from
+     * inactivity, approval delay, an already-detected discount anomaly,
+     * delivery slippage and negotiation-cycle count. Pass
+     * {@link HealthSignals#NONE} to get exactly the original behaviour.
+     */
+    public HealthScore score(Deal deal,
+                             MarginEngine.MarginResult margin,
+                             RiskEngine.RiskAssessment risk,
+                             PolicyEngine.PolicyReport policies,
+                             HealthSignals signals) {
 
         List<Deduction> deductions = new ArrayList<>();
 
@@ -68,10 +103,48 @@ public class DealHealthEngine {
                     "%d breach(es) awaiting sign-off".formatted(approvalCount)));
         }
 
+        deductions.addAll(signalDeductions(signals));
+
         int total = deductions.stream().mapToInt(Deduction::points).sum();
         int score = Math.clamp(MAX_SCORE - total, 0, MAX_SCORE);
 
-        return new HealthScore(score, bandFor(score), List.copyOf(deductions));
+        return new HealthScore(score, bandFor(score), statusFor(score), List.copyOf(deductions));
+    }
+
+    /** The commit-22 signal inputs, each an independent configurable-threshold deduction. */
+    private List<Deduction> signalDeductions(HealthSignals signals) {
+        List<Deduction> extra = new ArrayList<>();
+
+        if (signals.inactivityDays() > config.inactivityDays()) {
+            extra.add(new Deduction("INACTIVITY", config.inactivityWeight(),
+                    "No activity for %d days (threshold %d)"
+                            .formatted(signals.inactivityDays(), config.inactivityDays())));
+        }
+
+        if (signals.approvalDelayHours() > config.approvalDelayHours()) {
+            extra.add(new Deduction("APPROVAL_DELAY", config.approvalDelayWeight(),
+                    "Approval has been pending %d hours (threshold %d)"
+                            .formatted(signals.approvalDelayHours(), config.approvalDelayHours())));
+        }
+
+        if (signals.discountAnomalyDetected()) {
+            extra.add(new Deduction("DISCOUNT_ANOMALY", config.discountAnomalyWeight(),
+                    "Discount anomaly detected: " + signals.discountAnomalyReason()));
+        }
+
+        if (signals.deliverySlippageDays() > config.deliverySlippageDays()) {
+            extra.add(new Deduction("DELIVERY_SLIPPAGE", config.deliverySlippageWeight(),
+                    "Delivery is %d days behind the requested date (threshold %d)"
+                            .formatted(signals.deliverySlippageDays(), config.deliverySlippageDays())));
+        }
+
+        if (signals.negotiationCycles() > config.negotiationCycleThreshold()) {
+            extra.add(new Deduction("NEGOTIATION_CYCLES", config.negotiationCycleWeight(),
+                    "%d negotiation cycles so far (threshold %d)"
+                            .formatted(signals.negotiationCycles(), config.negotiationCycleThreshold())));
+        }
+
+        return extra;
     }
 
     /** Linear penalty from the healthy line down to zero margin. */
@@ -101,9 +174,35 @@ public class DealHealthEngine {
         return Band.CRITICAL;
     }
 
+    /** The commit-22 required three-value status, using the configurable thresholds. */
+    private HealthStatus statusFor(int score) {
+        if (score >= config.healthyThreshold()) {
+            return HealthStatus.HEALTHY;
+        }
+        if (score >= config.atRiskThreshold()) {
+            return HealthStatus.AT_RISK;
+        }
+        return HealthStatus.CRITICAL;
+    }
+
     public enum Band { HEALTHY, WATCH, AT_RISK, CRITICAL }
 
-    public record HealthScore(int score, Band band, List<Deduction> deductions) {
+    /**
+     * Deal-health inputs beyond margin/risk/policy. Every field defaults to
+     * "no signal" so {@link #NONE} reproduces the pre-commit-22 score exactly.
+     */
+    public record HealthSignals(
+            int inactivityDays,
+            int approvalDelayHours,
+            boolean discountAnomalyDetected,
+            String discountAnomalyReason,
+            int deliverySlippageDays,
+            int negotiationCycles) {
+
+        public static final HealthSignals NONE = new HealthSignals(0, 0, false, null, 0, 0);
+    }
+
+    public record HealthScore(int score, Band band, HealthStatus status, List<Deduction> deductions) {
 
         public boolean isAtRisk() {
             return score < AT_RISK_THRESHOLD;
@@ -112,6 +211,14 @@ public class DealHealthEngine {
         /** Biggest problem first — what to show when there is room for one line. */
         public java.util.Optional<Deduction> primaryDrag() {
             return deductions.stream().max(java.util.Comparator.comparingInt(Deduction::points));
+        }
+
+        /** Reasons behind the current status, most-severe first. */
+        public List<String> reasons() {
+            return deductions.stream()
+                    .sorted(java.util.Comparator.comparingInt(Deduction::points).reversed())
+                    .map(Deduction::explanation)
+                    .toList();
         }
     }
 

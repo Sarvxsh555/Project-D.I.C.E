@@ -78,8 +78,11 @@ public class OdooWebhookController {
     }
 
     /**
-     * @param type    one of {@code DealEvent.Type}
-     * @param payload event-specific fields; see docs/event-contracts.md
+     * @param type    one of {@code DealEvent.Type} (or an OEEG/Odoo alias the
+     *                adapter normalizes, e.g. {@code CUSTOMER_COUNTEROFFER})
+     * @param payload event-specific fields; see docs/event-contracts.md. An
+     *                {@code eventId} key, when present, drives idempotent
+     *                dedup — see {@code OdooEventAdapter}.
      */
     public record EventEnvelope(
             @NotBlank String type,

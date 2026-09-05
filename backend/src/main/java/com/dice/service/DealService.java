@@ -54,6 +54,7 @@ public class DealService {
     private final AuditService auditService;
     private final com.dice.repository.ApprovalSnapshotRepository approvalSnapshotRepository;
     private final MaterialChangeDetector materialChangeDetector;
+    private final DiscountAnomalyService discountAnomalyService;
 
     // ------------------------------------------------------------------
     // Reads
@@ -207,6 +208,12 @@ public class DealService {
                 productRepository.findByActiveTrue());
 
         DecisionResolver.Resolution resolution = decisionResolver.resolve(deal, context);
+
+        // Rule-based discount anomaly check (commit 23) — baseline comes from
+        // evaluation history strictly before this run, so it runs before the
+        // new Evaluation row below is persisted. Persists/resolves an alert
+        // but never blocks the evaluation itself.
+        discountAnomalyService.evaluate(deal);
 
         Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
                 .deal(deal)

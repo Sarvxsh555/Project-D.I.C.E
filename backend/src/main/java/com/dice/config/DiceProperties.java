@@ -17,7 +17,10 @@ public record DiceProperties(
         Security security,
         Cors cors,
         Odoo odoo,
-        Fulfillment fulfillment) {
+        Fulfillment fulfillment,
+        Billing billing,
+        Health health,
+        Anomaly anomaly) {
 
     public record Security(Jwt jwt) {
         public record Jwt(
@@ -47,5 +50,33 @@ public record DiceProperties(
             @DefaultValue("") String apiKey,
             /** Shared secret expected in the X-Odoo-Signature header. */
             @DefaultValue("") String webhookSecret) {
+    }
+
+    /** Configurable proration policy for a mid-cycle subscription/plan change. */
+    public record Billing(Proration proration) {
+        public record Proration(
+                /** When true, unused time on the old plan is credited against the new charge. */
+                @DefaultValue("true") boolean creditUnusedTime) {
+        }
+    }
+
+    /** Thresholds and weights feeding the deal-health deductions beyond margin/risk/policy. */
+    public record Health(
+            @DefaultValue("14") int inactivityDays,
+            @DefaultValue("15") int inactivityWeight,
+            @DefaultValue("48") int approvalDelayHours,
+            @DefaultValue("15") int approvalDelayWeight,
+            @DefaultValue("20") int discountAnomalyWeight,
+            @DefaultValue("7") int deliverySlippageDays,
+            @DefaultValue("15") int deliverySlippageWeight,
+            @DefaultValue("3") int negotiationCycleThreshold,
+            @DefaultValue("10") int negotiationCycleWeight,
+            @DefaultValue("70") int healthyThreshold,
+            @DefaultValue("40") int atRiskThreshold) {
+    }
+
+    /** Rule-based discount anomaly detection — no ML. */
+    public record Anomaly(
+            @DefaultValue("1.5") double ratioThreshold) {
     }
 }
