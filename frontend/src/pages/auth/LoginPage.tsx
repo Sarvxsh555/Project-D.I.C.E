@@ -48,7 +48,7 @@ export default function LoginPage() {
   )
 
   const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('demo1234')
+  const [password, setPassword] = useState('dice-demo')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [forgotSent, setForgotSent] = useState(false)
@@ -91,7 +91,7 @@ export default function LoginPage() {
     const targetDemo = DEMO_ACCOUNTS.find((a) => a.role === role)
     if (targetDemo) {
       try {
-        await login({ username: targetDemo.username, password: 'password123' })
+        await login({ username: targetDemo.username, password: 'dice-demo' })
         const targetDashboard = getDefaultDashboard(role)
         navigate(targetDashboard, { replace: true })
       } catch {

@@ -70,6 +70,22 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ProblemDetail onNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        problem.setTitle("Resource not found");
+        problem.setType(TYPE_NOT_FOUND);
+        return problem;
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ProblemDetail onMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Malformed JSON request body");
+        problem.setTitle("Malformed request");
+        problem.setType(TYPE_VALIDATION);
+        return problem;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail onValidationFailure(MethodArgumentNotValidException e) {
         String detail = e.getBindingResult().getFieldErrors().stream()

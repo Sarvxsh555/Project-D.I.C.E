@@ -84,13 +84,20 @@ export async function safeRequest<T>(
     const response = await apiFn()
     return response.data
   } catch (err) {
-    const isNetwork =
-      (err as AxiosError).code === 'ERR_NETWORK' ||
-      (err as AxiosError).code === 'ECONNABORTED' ||
-      !(err as AxiosError).response
+    const axiosErr = err as AxiosError
+    const status = axiosErr.response?.status
+    const isFallbackCandidate =
+      axiosErr.code === 'ERR_NETWORK' ||
+      axiosErr.code === 'ECONNABORTED' ||
+      !axiosErr.response ||
+      status === 404 ||
+      status === 401 ||
+      (status !== undefined && status >= 500)
 
-    if (isNetwork) {
-      console.warn('[DealFlow360 API] Backend not reachable. Transparently serving mock data.')
+    if (isFallbackCandidate) {
+      console.warn(
+        `[DealFlow360 API] Backend status ${status ?? axiosErr.code}. Serving resilient mock fallback.`
+      )
       return await mockFallbackFn()
     }
     throw err

@@ -21,13 +21,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentUser.token) {
       setStoredToken(currentUser.token)
     }
-  }, [currentUser])
+    // If the token is a placeholder mock token, silently request a genuine backend token
+    if (currentUser.username && (!currentUser.token || currentUser.token.startsWith('mock-jwt-'))) {
+      authService
+        .login({ username: currentUser.username, password: 'dice-demo' })
+        .then((res) => {
+          if (res?.token) {
+            setCurrentUser((prev) => ({ ...prev, token: res.token }))
+            setStoredToken(res.token)
+          }
+        })
+        .catch(() => {
+          // Backend offline or running in pure mock mode
+        })
+    }
+  }, [currentUser.username])
 
   const switchUser = (username: string) => {
     const found = DEMO_ACCOUNTS.find((u) => u.username.toLowerCase() === username.toLowerCase())
     if (found) {
       setCurrentUser(found)
-      setStoredToken(found.token)
+      authService
+        .login({ username: found.username, password: 'dice-demo' })
+        .then((res) => {
+          if (res?.token) {
+            setCurrentUser((prev) => ({ ...prev, token: res.token }))
+            setStoredToken(res.token)
+          }
+        })
+        .catch(() => {
+          setStoredToken(found.token)
+        })
     }
   }
 
@@ -35,7 +59,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const found = DEMO_ACCOUNTS.find((u) => u.role === role)
     if (found) {
       setCurrentUser(found)
-      setStoredToken(found.token)
+      authService
+        .login({ username: found.username, password: 'dice-demo' })
+        .then((res) => {
+          if (res?.token) {
+            setCurrentUser((prev) => ({ ...prev, token: res.token }))
+            setStoredToken(res.token)
+          }
+        })
+        .catch(() => {
+          setStoredToken(found.token)
+        })
     }
   }
 
