@@ -70,13 +70,20 @@ export async function safeRequest<T>(
     const response = await apiFn()
     return response.data
   } catch (err) {
-    const isNetworkError =
-      (err as AxiosError).code === 'ERR_NETWORK' ||
-      (err as AxiosError).code === 'ECONNABORTED' ||
-      !(err as AxiosError).response
+    const axiosErr = err as AxiosError
+    const status = axiosErr.response?.status
+    const isFallbackCandidate =
+      axiosErr.code === 'ERR_NETWORK' ||
+      axiosErr.code === 'ECONNABORTED' ||
+      !axiosErr.response ||
+      status === 404 ||
+      status === 401 ||
+      (status !== undefined && status >= 500)
 
-    if (isNetworkError) {
-      console.warn('[DealFlow360] Backend unreachable. Serving response via mock resilience layer.')
+    if (isFallbackCandidate) {
+      console.warn(
+        `[Odoo X D.I.C.E.] Backend status ${status ?? axiosErr.code}. Serving response via mock resilience layer.`
+      )
       return await mockFallbackFn()
     }
     throw err

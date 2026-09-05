@@ -182,7 +182,7 @@ export default function InvoicesPage() {
           <div className="grid grid-cols-2 gap-6 text-xs border-b border-slate-100 pb-4">
             <div>
               <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Billed By:</span>
-              <strong className="text-slate-900 block text-sm">DealFlow360 Technologies India Pvt Ltd</strong>
+              <strong className="text-slate-900 block text-sm">Odoo X D.I.C.E. Enterprise Operations Pvt Ltd</strong>
               <p className="text-slate-600 mt-0.5">BKC Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra 400051</p>
               <span className="font-mono text-slate-500 text-[11px] block mt-1">GSTIN: 27AAACD1234F1Z8</span>
             </div>

@@ -5,7 +5,7 @@ spring:
     name: dice-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dice}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/dice}
     username: ${SPRING_DATASOURCE_USERNAME:dice}
     password: ${SPRING_DATASOURCE_PASSWORD:dice}
     hikari:

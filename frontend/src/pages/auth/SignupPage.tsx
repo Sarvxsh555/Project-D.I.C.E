@@ -83,8 +83,8 @@ export default function SignupPage() {
       return
     }
 
-    if (selectedRole === 'ADMIN' && adminCode !== 'DF360-ADMIN-ROOT' && adminCode.trim() === '') {
-      setErrorMessage('Admin master provisioning requires an authorization code (e.g. DF360-ADMIN-ROOT).')
+    if (selectedRole === 'ADMIN' && adminCode !== 'DICE-ADMIN-ROOT' && adminCode !== 'DF360-ADMIN-ROOT' && adminCode.trim() === '') {
+      setErrorMessage('Admin master provisioning requires an authorization code (e.g. DICE-ADMIN-ROOT).')
       return
     }
 
@@ -118,59 +118,57 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-slate-900">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-slate-900 antialiased">
       {/* Top Header */}
-      <div className="w-full border-b border-slate-200 bg-white px-6 py-3 flex items-center justify-between">
+      <header className="w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-xs px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#5E2A52] flex items-center justify-center text-white shadow-xs">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-          </div>
-          <div>
-            <span className="text-sm font-bold tracking-tight text-slate-900">
-              DealFlow<span className="text-[#5E2A52]">360</span>
+          <div className="flex items-center font-bold text-sm tracking-tight text-slate-900">
+            <span className="px-2.5 py-1 rounded bg-[#714B67] text-white font-semibold text-xs tracking-wide shadow-xs">
+              odoo
             </span>
-            <span className="text-[10px] uppercase font-mono tracking-widest text-slate-400 block -mt-0.5">
-              Stakeholder Provisioning Portal
+            <span className="mx-2 text-slate-300 font-light text-sm">×</span>
+            <span className="font-extrabold tracking-wider text-slate-900 font-mono text-xs">
+              D.I.C.E.
             </span>
           </div>
+          <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono text-slate-500 bg-slate-100 border border-slate-200">
+            Stakeholder Provisioning
+          </span>
         </div>
 
         <div className="flex items-center gap-4 text-xs">
           <span className="text-slate-500">Already registered?</span>
           <Link
             to={`/login?role=${selectedRole}`}
-            className="font-semibold text-[#5E2A52] hover:underline"
+            className="font-semibold text-[#714B67] hover:underline"
           >
-            Sign In Here
+            Sign In Here →
           </Link>
         </div>
-      </div>
+      </header>
 
       {/* Main Form Container */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <main className="flex-1 flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch shadow-lg shadow-slate-200/50 rounded-xl overflow-hidden border border-slate-200 bg-white">
           
           {/* Left Column: Stakeholder Role Selection */}
-          <div className="lg:col-span-5 bg-white border border-slate-200 rounded p-5 flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-slate-50/70 p-6 sm:p-7 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-200">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-3.5 h-3.5 text-[#5E2A52]" />
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-[#714B67]" />
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#714B67] font-bold">
                   Step 1: Stakeholder Role
                 </span>
               </div>
-              <h2 className="text-base font-bold text-slate-900">
-                Register Profile As:
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight mb-1">
+                Provisioning Role
               </h2>
-              <p className="text-xs text-slate-500 mt-1 mb-3.5 leading-relaxed">
-                Choose the stakeholder role for your account. Each role configures specific operational permissions, module access, and routing.
+              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+                Select your functional domain to bind contextual policies, approval matrices, and role clearances.
               </p>
 
-              <div className="space-y-1.5">
+              {/* Role Option List */}
+              <div className="space-y-2">
                 {ROLE_OPTIONS.map((item) => {
                   const meta = STAKEHOLDER_DEFINITIONS[item.role]
                   const isSelected = selectedRole === item.role
@@ -181,16 +179,16 @@ export default function SignupPage() {
                       key={item.role}
                       type="button"
                       onClick={() => setSelectedRole(item.role)}
-                      className={`w-full text-left p-2.5 rounded border transition-colors flex items-start gap-2.5 ${
+                      className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 cursor-pointer ${
                         isSelected
-                          ? 'border-[#5E2A52] bg-[#FAF5F9]'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-[#714B67] bg-white shadow-xs ring-1 ring-[#714B67]/20 border-l-4 border-l-[#714B67]'
+                          : 'border-slate-200/80 bg-white/60 hover:bg-white hover:border-slate-300'
                       }`}
                     >
                       <div
-                        className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 text-sm ${
+                        className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 text-sm transition-colors ${
                           isSelected
-                            ? 'bg-[#5E2A52] text-white'
+                            ? 'bg-[#714B67] text-white'
                             : 'bg-slate-100 text-slate-600'
                         }`}
                       >
@@ -198,10 +196,10 @@ export default function SignupPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className={`text-xs font-semibold truncate ${isSelected ? 'text-[#5E2A52]' : 'text-slate-900'}`}>
+                          <span className={`text-xs font-bold truncate ${isSelected ? 'text-[#714B67]' : 'text-slate-900'}`}>
                             {meta.title}
                           </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-[#5E2A52] flex-shrink-0" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#714B67] flex-shrink-0" />}
                         </div>
                         <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
                           {meta.subtitle}
@@ -214,7 +212,7 @@ export default function SignupPage() {
             </div>
 
             {/* Scope Box */}
-            <div className="mt-5 pt-3.5 border-t border-slate-200 bg-slate-50/80 -mx-5 -mb-5 p-4 rounded-b">
+            <div className="mt-6 pt-3.5 border-t border-slate-200 bg-white/80 -mx-6 sm:-mx-7 -mb-6 sm:-mb-7 p-5 rounded-b">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
                   Assigned Default Dashboard:
@@ -223,7 +221,7 @@ export default function SignupPage() {
                   {currentMeta.defaultDashboard}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed mb-2.5">
+              <p className="text-xs text-slate-600 leading-relaxed mb-2">
                 {currentMeta.description}
               </p>
               <div className="text-[11px] text-slate-500 font-mono">
@@ -233,14 +231,14 @@ export default function SignupPage() {
           </div>
 
           {/* Right Column: Dynamic Role Registration Form */}
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded p-6 flex flex-col justify-between">
+          <div className="lg:col-span-7 bg-white p-6 sm:p-8 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-200">
+              <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-slate-200">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                     Step 2: Profile Specifications
                   </span>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                     <span>{currentMeta.title} Profile</span>
                     <Badge variant={currentMeta.badgeVariant} size="sm">
                       {selectedRole}
@@ -250,7 +248,7 @@ export default function SignupPage() {
               </div>
 
               {errorMessage && (
-                <div className="mb-4 p-2.5 rounded bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
+                <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
                   <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-semibold block">Registration Notice</span>
@@ -259,12 +257,12 @@ export default function SignupPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSignup} className="space-y-3.5">
+              <form onSubmit={handleSignup} className="space-y-4">
                 {/* Full Name & Username */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Full Legal Name:
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Full Legal Name
                     </label>
                     <div className="relative">
                       <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -273,15 +271,15 @@ export default function SignupPage() {
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                         placeholder="e.g. Ramesh Kulkarni"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      System Username:
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      System Username
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-slate-400 font-mono text-xs">@</span>
@@ -290,7 +288,7 @@ export default function SignupPage() {
                         required
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                         placeholder="e.g. ramesh_k"
                       />
                     </div>
@@ -299,8 +297,8 @@ export default function SignupPage() {
 
                 {/* Email Address */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Corporate Email Address:
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Corporate Email Address
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -309,28 +307,28 @@ export default function SignupPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
-                      placeholder="ramesh@dealflow360.internal"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
+                      placeholder="ramesh@odoo-dice.internal"
                     />
                   </div>
                 </div>
 
                 {/* Role-Specific Dynamic Fields */}
                 {selectedRole === 'SALES_REP' && (
-                  <div className="p-3 bg-[#FAF5F9] border border-[#E8D4E3] rounded space-y-2.5">
-                    <span className="text-[10px] font-bold text-[#5E2A52] uppercase tracking-wider block">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                    <span className="text-[10px] font-bold text-[#714B67] uppercase tracking-wider block">
                       Sales Rep Configuration
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-[#5E2A52]" />
+                          <MapPin className="w-3.5 h-3.5 text-[#714B67]" />
                           Assigned Territory:
                         </label>
                         <select
                           value={territory}
                           onChange={(e) => setTerritory(e.target.value)}
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67]"
                         >
                           <option value="North India Commercial">North India Commercial</option>
                           <option value="South India Enterprise">South India Enterprise</option>
@@ -345,8 +343,8 @@ export default function SignupPage() {
                         <input
                           type="text"
                           readOnly
-                          value="₹50,00,000 (Commercial SaaS)"
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-slate-100 text-xs font-mono text-slate-600 cursor-not-allowed"
+                          value="₹50,00,000 (Commercial Enterprise)"
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-slate-100/80 text-xs font-mono text-slate-600 cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -354,61 +352,61 @@ export default function SignupPage() {
                 )}
 
                 {selectedRole === 'SALES_MANAGER' && (
-                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded space-y-2.5">
+                  <div className="p-3.5 bg-amber-50/60 border border-amber-200 rounded-lg space-y-2.5">
                     <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
                       Sales Manager Cost Center & Authority
                     </span>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                        <Building className="w-3 h-3 text-amber-700" />
-                        Cost Center / Region:
+                        <Building className="w-3.5 h-3.5 text-amber-700" />
+                        Cost Center / Regional Hierarchy:
                       </label>
                       <input
                         type="text"
                         value={departmentOrCompany}
                         onChange={(e) => setDepartmentOrCompany(e.target.value)}
                         placeholder="e.g. CC-402 Commercial Sales Division"
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                        className="w-full px-2.5 py-1.5 border border-amber-300 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
                       />
                     </div>
                   </div>
                 )}
 
                 {selectedRole === 'FINANCE' && (
-                  <div className="p-3 bg-sky-50/70 border border-sky-200 rounded space-y-2.5">
+                  <div className="p-3.5 bg-sky-50/60 border border-sky-200 rounded-lg space-y-2.5">
                     <span className="text-[10px] font-bold text-sky-900 uppercase tracking-wider block">
                       Finance Entity & Ledger
                     </span>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                        <Building className="w-3 h-3 text-sky-700" />
+                        <Building className="w-3.5 h-3.5 text-sky-700" />
                         Billing Legal Entity:
                       </label>
                       <input
                         type="text"
                         value={departmentOrCompany}
                         onChange={(e) => setDepartmentOrCompany(e.target.value)}
-                        placeholder="e.g. DealFlow India Pvt Ltd (HQ Mumbai)"
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-600"
+                        placeholder="e.g. Odoo X D.I.C.E. Enterprise Operations Pvt Ltd"
+                        className="w-full px-2.5 py-1.5 border border-sky-300 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600"
                       />
                     </div>
                   </div>
                 )}
 
                 {selectedRole === 'OPERATIONS' && (
-                  <div className="p-3 bg-slate-100 border border-slate-300 rounded space-y-2.5">
+                  <div className="p-3.5 bg-slate-50 border border-slate-300 rounded-lg space-y-2.5">
                     <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">
                       WMS Primary Depot Allocation
                     </span>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                        <Warehouse className="w-3 h-3 text-slate-700" />
+                        <Warehouse className="w-3.5 h-3.5 text-slate-700" />
                         Assigned Warehouse Depot:
                       </label>
                       <select
                         value={warehouseDepot}
                         onChange={(e) => setWarehouseDepot(e.target.value)}
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-600"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-600"
                       >
                         <option value="WH-A (Mumbai Central)">WH-A (Mumbai Central Depot - 1,200 units capacity)</option>
                         <option value="WH-B (Bengaluru Hub)">WH-B (Bengaluru Tech Hub - 900 units capacity)</option>
@@ -419,14 +417,14 @@ export default function SignupPage() {
                 )}
 
                 {selectedRole === 'CUSTOMER' && (
-                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded space-y-2.5">
+                  <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-lg space-y-2.5">
                     <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
                       Client Organization Credentials
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                          <Building className="w-3 h-3 text-emerald-700" />
+                          <Building className="w-3.5 h-3.5 text-emerald-700" />
                           Company Name:
                         </label>
                         <input
@@ -435,12 +433,12 @@ export default function SignupPage() {
                           value={departmentOrCompany}
                           onChange={(e) => setDepartmentOrCompany(e.target.value)}
                           placeholder="e.g. Acme Corporation"
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                          className="w-full px-2.5 py-1.5 border border-emerald-300 rounded bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                         />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                          <FileText className="w-3 h-3 text-emerald-700" />
+                          <FileText className="w-3.5 h-3.5 text-emerald-700" />
                           GSTIN Tax ID:
                         </label>
                         <input
@@ -448,7 +446,7 @@ export default function SignupPage() {
                           value={customerGstin}
                           onChange={(e) => setCustomerGstin(e.target.value)}
                           placeholder="27AABCA1234F1Z5"
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                          className="w-full px-2.5 py-1.5 border border-emerald-300 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                         />
                       </div>
                     </div>
@@ -456,34 +454,34 @@ export default function SignupPage() {
                 )}
 
                 {selectedRole === 'ADMIN' && (
-                  <div className="p-3 bg-rose-50/70 border border-rose-200 rounded space-y-2">
+                  <div className="p-3.5 bg-rose-50/60 border border-rose-200 rounded-lg space-y-2">
                     <span className="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">
                       Master Administrator Authorization
                     </span>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                        <Key className="w-3 h-3 text-rose-700" />
+                        <Key className="w-3.5 h-3.5 text-rose-700" />
                         Admin Master Key / Passcode:
                       </label>
                       <input
                         type="password"
                         value={adminCode}
                         onChange={(e) => setAdminCode(e.target.value)}
-                        placeholder="DF360-ADMIN-ROOT"
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-600"
+                        placeholder="DICE-ADMIN-ROOT"
+                        className="w-full px-2.5 py-1.5 border border-rose-300 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
                       />
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Hint for evaluation: <code className="text-slate-600 font-semibold">DF360-ADMIN-ROOT</code>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Hint for evaluation: <code className="text-[#714B67] font-semibold font-mono">DICE-ADMIN-ROOT</code>
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* Password & Confirm Password */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Password:
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Password
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -492,15 +490,15 @@ export default function SignupPage() {
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                         placeholder="••••••••"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Confirm Password:
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Confirm Password
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -509,7 +507,7 @@ export default function SignupPage() {
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5E2A52]"
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                         placeholder="••••••••"
                       />
                     </div>
@@ -522,7 +520,7 @@ export default function SignupPage() {
                     variant="primary"
                     size="md"
                     disabled={loading}
-                    className="w-full bg-[#5E2A52] hover:bg-[#4d2243] flex items-center justify-center gap-2 rounded text-xs py-2"
+                    className="w-full bg-[#714B67] hover:bg-[#5e3d55] text-white flex items-center justify-center gap-2 rounded-md text-xs py-2.5 font-medium shadow-xs transition-colors cursor-pointer"
                   >
                     <span>{loading ? 'Provisioning Stakeholder Account...' : `Register & Launch ${currentMeta.title} Hub`}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -531,21 +529,25 @@ export default function SignupPage() {
               </form>
             </div>
 
-            <div className="mt-5 pt-3.5 border-t border-slate-200 text-center text-xs text-slate-500">
+            <div className="mt-6 pt-4 border-t border-slate-200 text-center text-xs text-slate-500">
               Already have credentials?{' '}
-              <Link to={`/login?role=${selectedRole}`} className="font-semibold text-[#5E2A52] hover:underline">
+              <Link to={`/login?role=${selectedRole}`} className="font-semibold text-[#714B67] hover:underline">
                 Sign In to Existing Session
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Subtle Footer */}
-      <div className="w-full border-t border-slate-200 bg-white py-3 px-6 text-center text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <span>DealFlow360 Enterprise Sales Operations Platform</span>
+      <footer className="w-full border-t border-slate-200 bg-white py-3 px-6 text-center text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-slate-700">Odoo X D.I.C.E.</span>
+          <span>•</span>
+          <span>Commercial Policy & Governance Engine</span>
+        </div>
         <span className="font-mono text-slate-400">Strict RBAC Enforced • Multi-Tenant Architecture</span>
-      </div>
+      </footer>
     </div>
   )
 }

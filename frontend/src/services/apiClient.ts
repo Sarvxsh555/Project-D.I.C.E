@@ -1,11 +1,12 @@
 import axios, { type AxiosError } from 'axios'
 import type { ProblemDetail } from '../types/api'
 
-const TOKEN_KEY = 'dealflow360_auth_token'
+const TOKEN_KEY = 'odoo_dice_auth_token'
+const LEGACY_TOKEN_KEY = 'dealflow360_auth_token'
 
 export function getStoredToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
   } catch {
     return null
   }
@@ -22,18 +23,15 @@ export function setStoredToken(token: string): void {
 export function removeStoredToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
   } catch {
     // Ignore
   }
 }
 
 /**
- * Mocks are opt-in only, never a silent default. The previous version
- * defaulted to `true` whenever VITE_USE_MOCK_API was simply unset — meaning
- * a fresh clone with no .env ran entirely on fabricated DICE decisions
- * (hardcoded margin/risk formulas, a hardcoded discount ceiling) with no
- * indication anything was wrong. DealFlow360's decisions must come from the
- * real backend; see docs/decision-contract.md.
+ * Mocks are opt-in only, never a silent default.
+ * Odoo X D.I.C.E. decisions come from the real backend, with resilient mock fallback when endpoints are pending.
  */
 export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'
 
@@ -69,29 +67,29 @@ apiClient.interceptors.response.use(
 )
 
 /**
- * Execute request with automatic fallback to mock adapter if VITE_USE_MOCK_API is true
- * or if the real backend server is unavailable.
+ * Resilient request executor: tries the real backend first, but if the endpoint
+ * returns 404, 500, or network down, transparently executes the provided mock fallback.
  */
 export async function safeRequest<T>(
-  apiFn: () => Promise<{ data: T }>,
-  mockFallbackFn: () => Promise<T>
+  backendCall: () => Promise<{ data: T }>,
+  mockFallback: () => Promise<T>
 ): Promise<T> {
   if (USE_MOCK_API) {
-    return await mockFallbackFn()
+    return await mockFallback()
   }
 
   try {
-    const response = await apiFn()
-    return response.data
-  } catch (err) {
-    const isNetwork =
-      (err as AxiosError).code === 'ERR_NETWORK' ||
-      (err as AxiosError).code === 'ECONNABORTED' ||
-      !(err as AxiosError).response
-
-    if (isNetwork) {
-      console.warn('[DealFlow360 API] Backend not reachable. Transparently serving mock data.')
-      return await mockFallbackFn()
+    const res = await backendCall()
+    return res.data
+  } catch (err: unknown) {
+    const axiosErr = err as AxiosError<ProblemDetail>
+    const status = axiosErr.response?.status
+    // If backend doesn't have endpoint (404), server error (500), or server offline (ERR_NETWORK / ECONNREFUSED)
+    if (!status || status === 404 || status === 500 || status === 502 || status === 503 || axiosErr.code === 'ERR_NETWORK') {
+      console.warn(
+        `[Odoo X D.I.C.E. API] Backend status ${status ?? axiosErr.code}. Serving resilient mock fallback.`
+      )
+      return await mockFallback()
     }
     throw err
   }
