@@ -4,7 +4,7 @@ import { z } from 'zod';
 const Env = z.object({
   PORT: z.coerce.number().default(8000),
   JWT_SECRET: z.string().min(16).default('change-this-demo-secret-key-please-32-bytes-min'),
-  CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  CORS_ORIGINS: z.string().default('http://localhost,http://127.0.0.1,http://localhost:5173'),
   OEEG_WEBHOOK_KEY: z.string().default('oeeg-demo-key'),
   GATEWAY_DEMO_OEEG: z
     .string()

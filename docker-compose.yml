@@ -5,12 +5,14 @@ services:
       - "6379:6379"
   gateway:
     build: ./gateway
+    expose:
+      - "8000"
     ports:
       - "8000:8000"
     environment:
       PORT: 8000
       JWT_SECRET: change-this-demo-secret-key-please-32-bytes-min
-      CORS_ORIGINS: http://localhost:5173,http://localhost:5175
+      CORS_ORIGINS: http://localhost,http://127.0.0.1,http://localhost:80,http://localhost:5173,http://localhost:5175
       REDIS_URL: redis://redis:6379
       SERVICE_LOGIN: http://host.docker.internal:8080
       SERVICE_QUOTATION: http://host.docker.internal:8082
@@ -28,3 +30,11 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - redis
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway

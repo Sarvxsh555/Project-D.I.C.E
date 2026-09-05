@@ -1,4 +1,5 @@
-const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/negotiations';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const BASE = `${API_BASE}/negotiations`;
 
 async function request(path, { method = 'GET', body, token } = {}) {
   const headers = {

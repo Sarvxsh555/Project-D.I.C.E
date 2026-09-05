@@ -1,0 +1,9 @@
+.git
+**/.env
+**/node_modules
+**/target
+**/dist
+**/.idea
+**/*.log
+gateway/node_modules
+frontend/node_modules
