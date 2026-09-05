@@ -338,12 +338,17 @@ public class ApprovalService {
         ApprovalSnapshot snapshot = ApprovalSnapshot.builder()
                 .deal(deal)
                 .approval(finalizingApproval)
+                .dealVersion(deal.getVersion())
                 .customerName(deal.getCustomer().getName())
                 .currency(deal.getCurrency())
                 .subtotal(deal.getSubtotal())
                 .discountAmount(deal.getDiscountAmount())
+                .discountPercent(deal.effectiveDiscountPercent())
                 .totalAmount(deal.getTotalAmount())
                 .marginPercent(deal.getMarginPercent())
+                .riskLevel(deal.getRiskLevel() != null ? deal.getRiskLevel().name() : null)
+                .approvalLevel(finalizingApproval.getApprovalLevel() != null
+                        ? finalizingApproval.getApprovalLevel().name() : null)
                 .build();
 
         for (DealLine line : deal.getLines()) {
