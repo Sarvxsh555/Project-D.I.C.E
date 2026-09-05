@@ -105,6 +105,27 @@ public class InventoryService {
         return new ReservationResult(created, quantity, reserved, backorder);
     }
 
+    /**
+     * Reserves from one specific warehouse only, no fallback to others - this is what a
+     * manual warehouse-split override needs. Still goes through the same atomic conditional
+     * update as reserveStock, so a manual override can never oversell that warehouse either;
+     * the backend validates it regardless of what the caller (or UI) believes is available.
+     */
+    public InventoryReservation reserveExact(String orderRef, Long warehouseId, Long productId, int quantity) {
+        int updated = inventory.tryReserve(warehouseId, productId, quantity);
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Insufficient stock at warehouse " + warehouseId + " for the requested quantity");
+        }
+        InventoryReservation reservation = new InventoryReservation();
+        reservation.setOrderRef(orderRef);
+        reservation.setProductId(productId);
+        reservation.setWarehouseId(warehouseId);
+        reservation.setQuantity(quantity);
+        reservation.setStatus("ACTIVE");
+        return reservations.save(reservation);
+    }
+
     public WarehouseAllocation allocateStock(Long reservationId) {
         InventoryReservation reservation = reservations.findById(reservationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found"));

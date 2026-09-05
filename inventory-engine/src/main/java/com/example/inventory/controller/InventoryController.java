@@ -34,6 +34,16 @@ public class InventoryController {
                 .body(inventoryService.reserveStock(request.getOrderRef(), request.getProductId(), request.getQuantity()));
     }
 
+    @PostMapping("/reserve-exact")
+    public ResponseEntity<?> reserveExact(@RequestBody java.util.Map<String, Object> body) {
+        String orderRef = (String) body.get("orderRef");
+        Long warehouseId = Long.valueOf(String.valueOf(body.get("warehouseId")));
+        Long productId = Long.valueOf(String.valueOf(body.get("productId")));
+        int quantity = Integer.parseInt(String.valueOf(body.get("quantity")));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(inventoryService.reserveExact(orderRef, warehouseId, productId, quantity));
+    }
+
     @PostMapping("/allocate/{reservationId}")
     public WarehouseAllocation allocate(@PathVariable Long reservationId) {
         return inventoryService.allocateStock(reservationId);
