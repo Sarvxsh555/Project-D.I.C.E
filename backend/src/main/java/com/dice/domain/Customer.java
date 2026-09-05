@@ -64,6 +64,13 @@ public class Customer {
     @Builder.Default
     private boolean active = true;
 
+    /**
+     * Login identity for the customer portal — matches the authenticated JWT
+     * subject. Null for customers who have no portal access provisioned.
+     */
+    @Column(name = "portal_username", unique = true, length = 128)
+    private String portalUsername;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
