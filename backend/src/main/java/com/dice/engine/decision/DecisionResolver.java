@@ -4,17 +4,23 @@ import com.dice.domain.Customer;
 import com.dice.domain.Deal;
 import com.dice.domain.Policy;
 import com.dice.domain.Product;
+import com.dice.domain.enums.DealStatus;
 import com.dice.domain.enums.DecisionOutcome;
+import com.dice.domain.enums.QuotationDecision;
+import com.dice.domain.enums.RiskLevel;
 import com.dice.engine.approval.ApprovalEngine;
 import com.dice.engine.health.DealHealthEngine;
 import com.dice.engine.margin.MarginEngine;
 import com.dice.engine.policy.PolicyEngine;
 import com.dice.engine.recommendation.RecommendationEngine;
 import com.dice.engine.risk.RiskEngine;
+import com.dice.engine.risk.ViolationRiskEngine;
+import com.dice.security.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +42,7 @@ public class DecisionResolver {
 
     private final MarginEngine marginEngine;
     private final RiskEngine riskEngine;
+    private final ViolationRiskEngine violationRiskEngine;
     private final PolicyEngine policyEngine;
     private final ApprovalEngine approvalEngine;
     private final RecommendationEngine recommendationEngine;
@@ -49,6 +56,10 @@ public class DecisionResolver {
         PolicyEngine.PolicyReport policies =
                 policyEngine.evaluate(deal, customer, margin, context.policies());
 
+        List<PolicyEngine.LineDiscountEvaluation> lineDiscounts =
+                policyEngine.evaluateLineDiscounts(deal, customer, context.policies());
+        ViolationRiskEngine.RiskResult violationRisk = violationRiskEngine.assess(deal, lineDiscounts);
+
         List<ApprovalEngine.Requirement> approvals = approvalEngine.determineRequired(deal, policies);
         List<RecommendationEngine.Recommendation> recommendations =
                 recommendationEngine.recommend(deal, margin, policies, context.catalogue());
@@ -56,12 +67,69 @@ public class DecisionResolver {
 
         DecisionOutcome outcome = decideOutcome(policies, recommendations);
         String rationale = explain(outcome, policies, margin, risk, approvals);
+        QuotationDecisionResult quotationDecision = decideQuotation(deal, policies, approvals, violationRisk);
 
         log.debug("Deal {} resolved as {} ({} violation(s), {} approval(s))",
                 deal.getDealNumber(), outcome, policies.violations().size(), approvals.size());
 
         return new Resolution(outcome, rationale, margin, risk, policies,
-                approvals, recommendations, health);
+                approvals, recommendations, health, violationRisk, quotationDecision);
+    }
+
+    /**
+     * The DealFlow360-facing view of the same evaluation: a coarser decision
+     * vocabulary than {@link DecisionOutcome}, aimed at "what should the rep do
+     * next" rather than "what does the deal's status become". Orchestrates the
+     * results above — it never re-derives a policy or risk number itself.
+     */
+    private QuotationDecisionResult decideQuotation(Deal deal,
+                                                    PolicyEngine.PolicyReport policies,
+                                                    List<ApprovalEngine.Requirement> approvals,
+                                                    ViolationRiskEngine.RiskResult violationRisk) {
+        List<String> reasons = new ArrayList<>();
+        policies.violations().forEach(v -> reasons.add(v.policyCode()));
+        violationRisk.reasons().forEach(r -> {
+            if (!reasons.contains(r)) {
+                reasons.add(r);
+            }
+        });
+
+        boolean atRisk = policies.hasBlocking() || violationRisk.level() == RiskLevel.CRITICAL;
+        boolean needsApproval = !policies.requiringApproval().isEmpty() || violationRisk.level() == RiskLevel.HIGH;
+        boolean previouslyApproved = deal.getStatus() == DealStatus.APPROVED
+                || deal.getStatus() == DealStatus.CONFIRMED;
+
+        QuotationDecision decision;
+        if (atRisk) {
+            decision = QuotationDecision.DEAL_AT_RISK;
+        } else if (needsApproval) {
+            decision = previouslyApproved ? QuotationDecision.REAPPROVAL_REQUIRED : QuotationDecision.APPROVAL_REQUIRED;
+        } else if (policies.isClean()) {
+            decision = QuotationDecision.ORDER_READY;
+        } else {
+            decision = QuotationDecision.NO_ACTION;
+        }
+
+        boolean approvalRequired = decision == QuotationDecision.APPROVAL_REQUIRED
+                || decision == QuotationDecision.REAPPROVAL_REQUIRED;
+        List<String> requiredApprovals = approvals.stream()
+                .map(a -> a.role().name())
+                .distinct()
+                .toList();
+        String nextAction = nextActionFor(decision, approvals);
+
+        return new QuotationDecisionResult(decision, violationRisk.score(), approvalRequired,
+                requiredApprovals, nextAction, List.copyOf(reasons));
+    }
+
+    private String nextActionFor(QuotationDecision decision, List<ApprovalEngine.Requirement> approvals) {
+        return switch (decision) {
+            case APPROVAL_REQUIRED, REAPPROVAL_REQUIRED -> approvals.isEmpty()
+                    ? "WAIT_FOR_" + Role.SALES_MANAGER.name()
+                    : "WAIT_FOR_" + approvals.getFirst().role().name();
+            case DEAL_AT_RISK -> "ESCALATE_TO_" + Role.ADMIN.name();
+            case ORDER_READY, NO_ACTION -> "NONE";
+        };
     }
 
     /**
@@ -143,10 +211,26 @@ public class DecisionResolver {
             PolicyEngine.PolicyReport policies,
             List<ApprovalEngine.Requirement> approvals,
             List<RecommendationEngine.Recommendation> recommendations,
-            DealHealthEngine.HealthScore health) {
+            DealHealthEngine.HealthScore health,
+            ViolationRiskEngine.RiskResult violationRisk,
+            QuotationDecisionResult quotationDecision) {
 
         public boolean needsHumanDecision() {
             return outcome != DecisionOutcome.AUTO_APPROVE;
         }
+    }
+
+    /**
+     * The DealFlow360 decision shape: {@code decision}/{@code nextAction} tell
+     * the rep what to do, {@code requiredApprovals} and {@code reasons} explain
+     * why. Deliberately silent on fulfillment/billing — see {@link QuotationDecision}.
+     */
+    public record QuotationDecisionResult(
+            QuotationDecision decision,
+            int riskScore,
+            boolean approvalRequired,
+            List<String> requiredApprovals,
+            String nextAction,
+            List<String> reasons) {
     }
 }
