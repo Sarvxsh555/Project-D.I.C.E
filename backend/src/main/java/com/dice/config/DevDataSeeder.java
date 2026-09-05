@@ -29,6 +29,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
     /** Order matters — later files reference earlier ones. */
     private static final List<String> SCRIPTS = List.of(
+            "db/seed/users.sql",
             "db/seed/customers.sql",
             "db/seed/products.sql",
             "db/seed/warehouses.sql",
