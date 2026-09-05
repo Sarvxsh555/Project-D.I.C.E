@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { dashboardService, type DashboardSummary, type ActivityItem } from '../services/dashboardService'
-import type { ApprovalView } from '../types/approval'
+import { dashboardService, type DashboardSummary, type ActivityItem, type ApprovalQueueItem } from '../services/dashboardService'
 import { extractErrorMessage } from '../utils/errors'
 
 export function useDashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
-  const [approvalQueue, setApprovalQueue] = useState<ApprovalView[]>([])
+  const [approvalQueue, setApprovalQueue] = useState<ApprovalQueueItem[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

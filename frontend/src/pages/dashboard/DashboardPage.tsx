@@ -5,10 +5,11 @@ import { Badge } from '../../components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { dashboardService, type DashboardSummary, type ActivityItem, type RiskActivityItem } from '../../services/dashboardService'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { dashboardService, type DashboardSummary, type ActivityItem, type AtRiskDeal } from '../../services/dashboardService'
 import { useAuth } from '../../hooks/useAuth'
 import { STAKEHOLDER_DEFINITIONS } from '../../types/auth'
-import { Plus, ArrowRight, Clock, AlertTriangle } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 export default function DashboardPage() {
   const { currentUser } = useAuth()
@@ -16,8 +17,7 @@ export default function DashboardPage() {
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [activity, setActivity] = useState<ActivityItem[]>([])
-  const [riskActivity, setRiskActivity] = useState<RiskActivityItem[]>([])
-  const [period, setPeriod] = useState<'this-month' | 'this-quarter' | 'this-year'>('this-month')
+  const [atRiskDeals, setAtRiskDeals] = useState<AtRiskDeal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,11 +28,11 @@ export default function DashboardPage() {
       const [sumRes, actRes, riskRes] = await Promise.all([
         dashboardService.getSummary(),
         dashboardService.getActivity(),
-        dashboardService.getRiskActivity(),
+        dashboardService.getAtRiskDeals(),
       ])
       setSummary(sumRes)
       setActivity(actRes)
-      setRiskActivity(riskRes)
+      setAtRiskDeals(riskRes)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard metrics')
     } finally {
@@ -77,20 +77,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Period selector */}
-          <div className="flex items-center gap-2 text-xs text-slate-600 bg-white px-2.5 py-1.5 rounded-md border border-slate-200 shadow-2xs">
-            <span className="font-semibold text-slate-500 text-[11px] uppercase tracking-wider">Period:</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as 'this-month' | 'this-quarter' | 'this-year')}
-              className="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer"
-            >
-              <option value="this-month">This Month</option>
-              <option value="this-quarter">This Quarter</option>
-              <option value="this-year">This Year</option>
-            </select>
-          </div>
-
           {/* Primary Action */}
           <Link to="/quotations?action=new">
             <Button
@@ -105,21 +91,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI METRICS ROW (Human-designed enterprise cards with clean hierarchy) */}
+      {/* KPI METRICS ROW — every value is straight from DashboardController.Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
-              Open Deals
+              Total Deals
             </span>
             <span className="w-2 h-2 rounded-full bg-slate-300" />
           </div>
           <div className="text-2xl font-bold font-mono text-slate-900 mt-2 tracking-tight">
-            {summary.openQuotations || 18}
+            {summary.totalDeals}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>Active proposals in pipeline</span>
-            <span className="text-emerald-700 font-semibold font-mono">↑ 8% MoM</span>
+          <div className="text-[11px] text-slate-500 mt-1">
+            Open pipeline value: {summary.openPipelineValue.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
           </div>
         </div>
 
@@ -131,11 +116,12 @@ export default function DashboardPage() {
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           </div>
           <div className="text-2xl font-bold font-mono text-amber-700 mt-2 tracking-tight">
-            {summary.pendingApprovals || 5}
+            {summary.pendingApprovals}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>Requires manager/finance signoff</span>
-            <span className="text-amber-800 font-semibold font-mono">Action req.</span>
+          <div className="text-[11px] text-slate-500 mt-1">
+            {summary.overdueApprovals > 0
+              ? `${summary.overdueApprovals} overdue past SLA`
+              : 'None overdue'}
           </div>
         </div>
 
@@ -147,57 +133,33 @@ export default function DashboardPage() {
             <span className="w-2 h-2 rounded-full bg-rose-500" />
           </div>
           <div className="text-2xl font-bold font-mono text-rose-700 mt-2 tracking-tight">
-            {summary.atRiskDeals || 4}
+            {summary.atRiskDeals}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>D.I.C.E. risk &gt; 70 or low margin</span>
-            <span className="text-rose-700 font-semibold font-mono">Urgent</span>
+          <div className="text-[11px] text-slate-500 mt-1">
+            Health score below attention threshold
           </div>
         </div>
 
         <div className="bg-white border border-[#714B67]/20 rounded-lg p-4 shadow-2xs hover:shadow-xs transition-shadow bg-gradient-to-b from-[#FAF5F9]/30 to-white">
           <div className="flex items-center justify-between">
             <span className="text-[11px] uppercase tracking-wider font-semibold text-[#714B67]">
-              Active Negotiations
+              Deal Status Mix
             </span>
             <span className="w-2 h-2 rounded-full bg-[#714B67]" />
           </div>
-          <div className="text-2xl font-bold font-mono text-[#714B67] mt-2 tracking-tight">
-            {summary.activeNegotiations || 3}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>Counteroffers awaiting review</span>
-            <span className="text-[#714B67] font-semibold font-mono">Portal active</span>
-          </div>
-        </div>
-      </div>
-
-      {/* OPERATIONAL ATTENTION NOTICE (Acme Deal Q-1042) */}
-      <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-        <div className="flex items-start gap-3">
-          <div className="w-6 h-6 rounded-md bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 flex-shrink-0 mt-0.5">
-            <Clock className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-slate-900">
-              Quotation Q-1042 (Acme Corporation) requires policy concession signoff
-            </div>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Customer counteroffer requested a 22% service discount. Blended margin is 18.4% (below 20% floor). D.I.C.E. Risk Score: <strong className="text-rose-700 font-mono">86 (High)</strong>.
-            </p>
+          <div className="mt-2 space-y-0.5">
+            {Object.entries(summary.dealsByStatus).length === 0 ? (
+              <span className="text-xs text-slate-400">No deals yet</span>
+            ) : (
+              Object.entries(summary.dealsByStatus).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-600">{status.replaceAll('_', ' ')}</span>
+                  <span className="font-mono font-semibold text-[#714B67]">{count}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
-
-        <Link to="/quotations?id=d-1042">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs shrink-0 border-amber-300 bg-white text-slate-800 hover:bg-amber-100/50 flex items-center gap-1.5 shadow-2xs font-medium cursor-pointer"
-          >
-            <span>Review Q-1042 Concessions</span>
-            <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-          </Button>
-        </Link>
       </div>
 
       {/* SECTION 1: RECENT DEAL ACTIVITY (REAL TABLE) */}
@@ -213,47 +175,43 @@ export default function DashboardPage() {
         </div>
 
         <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/80 border-b border-slate-200">
-                <TableHead className="w-32 text-xs font-bold text-slate-600">Quotation</TableHead>
-                <TableHead className="text-xs font-bold text-slate-600">Customer</TableHead>
-                <TableHead className="text-xs font-bold text-slate-600">Change Event</TableHead>
-                <TableHead className="w-36 text-xs font-bold text-slate-600">Owner</TableHead>
-                <TableHead className="w-32 text-xs font-bold text-slate-600" align="right">Timestamp</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {activity.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                  <TableCell>
-                    <Link
-                      to={`/quotations?id=${item.dealId}`}
-                      className="font-mono font-semibold text-[#714B67] hover:underline"
-                    >
-                      {item.dealNumber}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-semibold text-slate-900">
-                    {item.customerName}
-                  </TableCell>
-                  <TableCell className="text-slate-700 text-xs">
-                    {item.action}
-                  </TableCell>
-                  <TableCell className="text-slate-600 text-xs font-medium">
-                    {item.dealId === 'd-1042' ? 'Arun / Sarah' : 'Priya'}
-                  </TableCell>
-                  <TableCell align="right" className="text-slate-500 text-xs font-mono">
-                    {item.timeAgo}
-                  </TableCell>
+          {activity.length === 0 ? (
+            <EmptyState title="No activity yet" description="Audited events will appear here as deals move through the pipeline." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/80 border-b border-slate-200">
+                  <TableHead className="text-xs font-bold text-slate-600">Event</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">Actor</TableHead>
+                  <TableHead className="w-40 text-xs font-bold text-slate-600" align="right">Timestamp</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {activity.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <TableCell>
+                      <Link
+                        to={`/quotations?id=${item.dealId}`}
+                        className="font-mono font-semibold text-[#714B67] hover:underline"
+                      >
+                        {item.eventType}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-slate-700 text-xs">
+                      {item.actor}
+                    </TableCell>
+                    <TableCell align="right" className="text-slate-500 text-xs font-mono">
+                      {new Date(item.occurredAt).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
 
-      {/* SECTION 2: DEALS REQUIRING ATTENTION (REAL TABLE) */}
+      {/* SECTION 2: DEALS REQUIRING ATTENTION */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -261,10 +219,10 @@ export default function DashboardPage() {
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 Deals Requiring Governance Attention
               </h2>
-              <p className="text-[11px] text-slate-400">Proposals exceeding standard margin concessions or policy limits</p>
+              <p className="text-[11px] text-slate-400">Deals whose D.I.C.E. health score has dropped below the attention threshold</p>
             </div>
             <Badge variant="warning" size="sm">
-              {riskActivity.length} Action Items
+              {atRiskDeals.length} Action Items
             </Badge>
           </div>
           <Link to="/deal-health" className="text-xs font-semibold text-[#714B67] hover:underline">
@@ -273,32 +231,25 @@ export default function DashboardPage() {
         </div>
 
         <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/80 border-b border-slate-200">
-                <TableHead className="w-32 text-xs font-bold text-slate-600">Quotation</TableHead>
-                <TableHead className="text-xs font-bold text-slate-600">Customer</TableHead>
-                <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">D.I.C.E. Risk</TableHead>
-                <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">Blended Margin</TableHead>
-                <TableHead className="text-xs font-bold text-slate-600">Governance Trigger</TableHead>
-                <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {riskActivity.map((r) => {
-                const margin = r.dealNumber === 'Q-1042' ? '18.4%' : r.dealNumber === 'Q-1038' ? '19.2%' : '17.8%'
-                const nextAction =
-                  r.dealNumber === 'Q-1042'
-                    ? 'Manager Approval'
-                    : r.dealNumber === 'Q-1038'
-                    ? 'Review Discount'
-                    : 'Customer Counteroffer'
-
-                return (
-                  <TableRow key={r.id} className="hover:bg-slate-50/80 transition-colors">
+          {atRiskDeals.length === 0 ? (
+            <EmptyState title="No at-risk deals" description="Every open deal is currently above the health-score attention threshold." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/80 border-b border-slate-200">
+                  <TableHead className="w-32 text-xs font-bold text-slate-600">Quotation</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">Customer</TableHead>
+                  <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">D.I.C.E. Risk</TableHead>
+                  <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">Health Score</TableHead>
+                  <TableHead className="w-28 text-xs font-bold text-slate-600" align="right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {atRiskDeals.map((r) => (
+                  <TableRow key={r.dealId} className="hover:bg-slate-50/80 transition-colors">
                     <TableCell>
                       <Link
-                        to={`/quotations?id=${r.dealNumber === 'Q-1042' ? 'd-1042' : 'd-1042'}`}
+                        to={`/quotations?id=${r.dealId}`}
                         className="font-mono font-semibold text-[#714B67] hover:underline"
                       >
                         {r.dealNumber}
@@ -309,24 +260,18 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell align="right">
                       <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
-                        r.score >= 80 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        (r.riskScore ?? 0) >= 60 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}>
-                        {r.score}/100
+                        {r.riskScore ?? '—'}{r.riskScore != null ? '/100' : ''}
                       </span>
                     </TableCell>
                     <TableCell align="right">
                       <span className="font-mono text-xs font-semibold text-slate-800">
-                        {margin}
+                        {r.healthScore ?? '—'}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-700">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                        <span>{nextAction}</span>
-                      </div>
-                    </TableCell>
                     <TableCell align="right">
-                      <Link to={`/quotations?id=d-1042`}>
+                      <Link to={`/quotations?id=${r.dealId}`}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -337,10 +282,10 @@ export default function DashboardPage() {
                       </Link>
                     </TableCell>
                   </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
     </div>

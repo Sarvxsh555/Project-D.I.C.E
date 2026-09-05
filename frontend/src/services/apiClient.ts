@@ -67,8 +67,17 @@ apiClient.interceptors.response.use(
 )
 
 /**
- * Resilient request executor: tries the real backend first, but if the endpoint
- * returns 404, 500, or network down, transparently executes the provided mock fallback.
+ * Calls the real backend. `mockFallback` only ever runs when VITE_USE_MOCK_API=true
+ * is set at build time — an explicit, opt-in demo mode, never a silent default.
+ *
+ * Previously this swallowed 404/500/502/503/network errors from the real
+ * backend and transparently substituted fake data — which meant a genuine
+ * server bug (wrong query, missing migration, whatever) rendered as a
+ * plausible-looking success instead of a visible failure. Price, discount,
+ * margin, risk, approval, stock, invoice and payment status must never come
+ * from the frontend; a masked backend error is exactly that, silently.
+ * Errors now propagate so the UI's real error state renders, per the actual
+ * API/backend failure.
  */
 export async function safeRequest<T>(
   backendCall: () => Promise<{ data: T }>,
@@ -78,21 +87,8 @@ export async function safeRequest<T>(
     return await mockFallback()
   }
 
-  try {
-    const res = await backendCall()
-    return res.data
-  } catch (err: unknown) {
-    const axiosErr = err as AxiosError<ProblemDetail>
-    const status = axiosErr.response?.status
-    // If backend doesn't have endpoint (404), server error (500), or server offline (ERR_NETWORK / ECONNREFUSED)
-    if (!status || status === 404 || status === 500 || status === 502 || status === 503 || axiosErr.code === 'ERR_NETWORK') {
-      console.warn(
-        `[Odoo X D.I.C.E. API] Backend status ${status ?? axiosErr.code}. Serving resilient mock fallback.`
-      )
-      return await mockFallback()
-    }
-    throw err
-  }
+  const res = await backendCall()
+  return res.data
 }
 
 export const api = apiClient

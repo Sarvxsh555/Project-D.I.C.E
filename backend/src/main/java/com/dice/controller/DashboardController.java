@@ -2,6 +2,7 @@ package com.dice.controller;
 
 import com.dice.domain.enums.ApprovalStatus;
 import com.dice.domain.enums.DealStatus;
+import com.dice.domain.enums.RiskLevel;
 import com.dice.repository.ApprovalRepository;
 import com.dice.repository.AuditEventRepository;
 import com.dice.repository.DealRepository;
@@ -77,6 +78,18 @@ public class DashboardController {
                 .toList();
     }
 
+    /** Same population {@link #summary}'s atRiskDeals count is drawn from, as a
+     *  list — deals whose health score has dropped below the attention threshold. */
+    @GetMapping("/at-risk")
+    public List<AtRiskDeal> atRiskDeals() {
+        return dealRepository.findAll().stream()
+                .filter(d -> d.getHealthScore() != null && d.getHealthScore() < AT_RISK_THRESHOLD)
+                .sorted(java.util.Comparator.comparing(com.dice.domain.Deal::getHealthScore))
+                .map(d -> new AtRiskDeal(d.getId(), d.getDealNumber(), d.getCustomer().getName(),
+                        d.getRiskScore(), d.getRiskLevel(), d.getHealthScore()))
+                .toList();
+    }
+
     public record Summary(
             long totalDeals,
             BigDecimal openPipelineValue,
@@ -92,5 +105,9 @@ public class DashboardController {
 
     public record ActivityItem(UUID id, UUID dealId, String eventType, String actor,
                                Instant occurredAt) {
+    }
+
+    public record AtRiskDeal(UUID dealId, String dealNumber, String customerName,
+                             Integer riskScore, RiskLevel riskLevel, Integer healthScore) {
     }
 }

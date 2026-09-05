@@ -1,83 +1,63 @@
-import { api, safeRequest } from './apiClient'
-import { mockAdapter } from '../mocks/mockAdapter'
-import type { ApprovalView } from '../types/approval'
+import { api } from './apiClient'
 
+/** Matches DashboardController.Summary exactly — no invented fields. */
 export interface DashboardSummary {
-  openQuotations: number
+  totalDeals: number
+  openPipelineValue: number
+  dealsByStatus: Record<string, number>
   pendingApprovals: number
+  overdueApprovals: number
   atRiskDeals: number
-  activeNegotiations: number
-  totalPipelineValue: number
-  totalDeals?: number
-  openPipelineValue?: number
-  dealsByStatus?: Record<string, number>
-  overdueApprovals?: number
 }
 
+/** Matches DashboardController.ActivityItem. */
 export interface ActivityItem {
   id: string
-  dealNumber: string
   dealId: string
-  customerName: string
-  action: string
-  severity: string
-  timeAgo: string
-  eventType?: string
-  actor?: string
-  occurredAt?: string
+  eventType: string
+  actor: string
+  occurredAt: string
 }
 
-export interface RiskActivityItem {
-  id: string
+/** Matches DashboardController.AtRiskDeal. */
+export interface AtRiskDeal {
+  dealId: string
   dealNumber: string
   customerName: string
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | string
-  score: number
-  trend: 'UP' | 'DOWN' | 'STABLE' | string
+  riskScore: number | null
+  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' | string
+  healthScore: number | null
+}
+
+/** Matches DashboardController.QueueItem. */
+export interface ApprovalQueueItem {
+  approvalId: string
+  dealNumber: string
+  requiredRole: string
+  requestedAt: string
+  slaDueAt: string | null
+  overdue: boolean
 }
 
 export const dashboardService = {
   getSummary: async (): Promise<DashboardSummary> => {
-    return safeRequest(
-      () => api.get<DashboardSummary>('/dashboard/summary'),
-      async () => {
-        const base = await mockAdapter.getDashboardSummary()
-        return {
-          ...base,
-          totalDeals: base.openQuotations,
-          openPipelineValue: base.totalPipelineValue,
-          dealsByStatus: {
-            DRAFT: 1,
-            SUBMITTED: 1,
-            APPROVAL_REQUIRED: 2,
-            APPROVED: 1,
-            CONFIRMED: 1,
-          },
-          overdueApprovals: 1,
-        }
-      }
-    )
+    const res = await api.get<DashboardSummary>('/dashboard/summary')
+    return res.data
   },
 
   getActivity: async (): Promise<ActivityItem[]> => {
-    return safeRequest(
-      () => api.get<ActivityItem[]>('/dashboard/activity'),
-      () => mockAdapter.getRecentActivity()
-    )
+    const res = await api.get<ActivityItem[]>('/dashboard/activity')
+    return res.data
   },
 
-  getRiskActivity: async (): Promise<RiskActivityItem[]> => {
-    return safeRequest(
-      () => api.get<RiskActivityItem[]>('/dashboard/risk-activity'),
-      () => mockAdapter.getRiskActivity()
-    )
+  getAtRiskDeals: async (): Promise<AtRiskDeal[]> => {
+    const res = await api.get<AtRiskDeal[]>('/dashboard/at-risk')
+    return res.data
   },
 
-  getApprovalQueue: async (): Promise<ApprovalView[]> => {
-    return safeRequest(
-      () => api.get<ApprovalView[]>('/dashboard/approval-queue'),
-      () => mockAdapter.listApprovals('PENDING')
-    )
+  getApprovalQueue: async (): Promise<ApprovalQueueItem[]> => {
+    const res = await api.get<ApprovalQueueItem[]>('/dashboard/approvals/queue')
+    return res.data
   },
 }
 

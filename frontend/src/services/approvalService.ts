@@ -49,9 +49,14 @@ export const approvalService = {
     )
   },
 
+  /** Real endpoint is POST /approvals/{id}/return (ApprovalController.returnForRevision)
+   *  — same "send back to the rep for revision" semantics, different name.
+   *  Backend requires a non-blank `reason`, not the DecisionRequest shape
+   *  every other action here uses. */
   requestChanges: async (id: string, request?: DecisionRequest): Promise<ApprovalView> => {
+    const reason = request?.changesRequested || request?.requestedChanges || request?.comment || ''
     return safeRequest(
-      () => api.post<ApprovalView>(`/approvals/${id}/request-changes`, request),
+      () => api.post<ApprovalView>(`/approvals/${id}/return`, { reason }),
       () => mockAdapter.requestChangesApproval(id, request)
     )
   },
