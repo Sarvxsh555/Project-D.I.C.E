@@ -45,7 +45,9 @@ public class SecurityConfig {
                         .accessDeniedHandler(forbiddenAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/quotations/*/approve", "/api/quotations/*/reject", "/api/quotations/*/return")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN", "SALES_MANAGER", "FINANCE")
+                        .requestMatchers("/api/quotations/*/customer-confirm")
+                        .hasRole("CUSTOMER")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

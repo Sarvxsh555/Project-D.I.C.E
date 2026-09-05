@@ -17,7 +17,7 @@ public enum PipelineStage {
     COMPLETED;
 
     private static final Map<PipelineStage, Set<PipelineStage>> ALLOWED_TRANSITIONS = Map.of(
-            DRAFT, Set.of(PENDING_APPROVAL),
+            DRAFT, Set.of(PENDING_APPROVAL, NEGOTIATION),
             PENDING_APPROVAL, Set.of(NEGOTIATION, APPROVED, DRAFT),
             NEGOTIATION, Set.of(PENDING_APPROVAL, APPROVED),
             APPROVED, Set.of(ORDERED, NEGOTIATION),

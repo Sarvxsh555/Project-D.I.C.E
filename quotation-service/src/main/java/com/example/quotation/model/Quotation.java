@@ -44,6 +44,9 @@ public class Quotation {
     private double marginPercent;
     private double riskScore;
 
+    /** Set when the customer confirms the live terms without (or after) a counter. */
+    private boolean customerAccepted;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getQuoteNo() { return quoteNo; }
@@ -78,4 +81,6 @@ public class Quotation {
     public void setMarginPercent(double marginPercent) { this.marginPercent = marginPercent; }
     public double getRiskScore() { return riskScore; }
     public void setRiskScore(double riskScore) { this.riskScore = riskScore; }
+    public boolean isCustomerAccepted() { return customerAccepted; }
+    public void setCustomerAccepted(boolean customerAccepted) { this.customerAccepted = customerAccepted; }
 }

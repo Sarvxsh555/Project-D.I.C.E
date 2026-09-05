@@ -38,10 +38,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Claims claims = jwtVerifier.parseClaims(header.substring(7));
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
+                Object rawCustomerId = claims.get("customerId");
+                Long customerId = rawCustomerId instanceof Number n ? n.longValue() : null;
                 var authorities = role != null
                         ? List.of(new SimpleGrantedAuthority("ROLE_" + role))
                         : List.<SimpleGrantedAuthority>of();
                 var authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
+                authentication.setDetails(java.util.Map.of(
+                        "role", role != null ? role : "",
+                        "customerId", customerId != null ? customerId : -1L));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (JwtException | IllegalArgumentException ignored) {
                 // invalid/expired token -> leave unauthenticated, entry point handles the 401

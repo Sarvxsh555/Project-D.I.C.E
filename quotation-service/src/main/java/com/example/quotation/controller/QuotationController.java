@@ -5,6 +5,7 @@ import com.example.quotation.model.AuditEvent;
 import com.example.quotation.model.PipelineStage;
 import com.example.quotation.model.Quotation;
 import com.example.quotation.repository.QuotationRepository;
+import com.example.quotation.security.UserPrincipal;
 import com.example.quotation.service.QuotationService;
 import com.example.quotation.service.QuotationSpecifications;
 import com.example.quotation.web.ApprovalActionRequest;
@@ -48,16 +49,26 @@ public class QuotationController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") Sort.Direction direction,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
 
-        var spec = QuotationSpecifications.filter(status, customerId, rep, from, to, minAmount, maxAmount, q);
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        Long scopedCustomerId = customerId;
+        if (actor.isCustomer()) {
+            if (actor.customerId() == null) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "This customer login is not linked to an account");
+            }
+            scopedCustomerId = actor.customerId();
+        }
+        var spec = QuotationSpecifications.filter(status, scopedCustomerId, rep, from, to, minAmount, maxAmount, q);
         var pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         return quotationRepository.findAll(spec, pageable);
     }
 
     @GetMapping("/{id}")
-    public Quotation get(@PathVariable Long id) {
-        return quotationService.getOrThrow(id);
+    public Quotation get(@PathVariable Long id, Authentication authentication) {
+        return quotationService.getVisibleTo(id, UserPrincipal.from(authentication));
     }
 
     @PostMapping
@@ -97,18 +108,26 @@ public class QuotationController {
     @PostMapping("/{id}/approve")
     public Quotation approve(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
                               Authentication authentication) {
-        return quotationService.approve(id, authentication.getName(), request.getReason());
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.approve(id, actor.username(), actor.role(), request.getReason());
     }
 
     @PostMapping("/{id}/reject")
     public Quotation reject(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
                              Authentication authentication) {
-        return quotationService.reject(id, authentication.getName(), request.getReason());
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.reject(id, actor.username(), actor.role(), request.getReason());
     }
 
     @PostMapping("/{id}/return")
     public Quotation returnForRevision(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
                                         Authentication authentication) {
-        return quotationService.returnForRevision(id, authentication.getName(), request.getReason());
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.returnForRevision(id, actor.username(), actor.role(), request.getReason());
+    }
+
+    @PostMapping("/{id}/customer-confirm")
+    public Quotation customerConfirm(@PathVariable Long id, Authentication authentication) {
+        return quotationService.customerConfirm(id, UserPrincipal.from(authentication));
     }
 }
