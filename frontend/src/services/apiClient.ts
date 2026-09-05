@@ -15,7 +15,7 @@ export function setStoredToken(token: string): void {
   try {
     localStorage.setItem(TOKEN_KEY, token)
   } catch {
-    // Ignore in restrictive storage environments
+    // Ignore in restrictive environments
   }
 }
 
@@ -23,20 +23,25 @@ export function removeStoredToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY)
   } catch {
-    // Ignore in restrictive storage environments
+    // Ignore
   }
 }
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api',
+export const USE_MOCK_API =
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
+  !import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_USE_MOCK_API === undefined
+
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 15000,
 })
 
-// Request Interceptor: Attach JWT Bearer token
-api.interceptors.request.use(
+// Attach Bearer token
+apiClient.interceptors.request.use(
   (config) => {
     const token = getStoredToken()
     if (token && config.headers) {
@@ -47,12 +52,11 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response Interceptor: RFC 9457 ProblemDetail extraction
-api.interceptors.response.use(
+// Response Interceptor
+apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ProblemDetail>) => {
     if (error.response?.status === 401) {
-      // Clear expired token on unauthorized
       removeStoredToken()
     }
     return Promise.reject(error)
@@ -60,27 +64,33 @@ api.interceptors.response.use(
 )
 
 /**
- * Safe fetch wrapper that handles fallback to mock adapter if the backend is offline.
+ * Execute request with automatic fallback to mock adapter if VITE_USE_MOCK_API is true
+ * or if the real backend server is unavailable.
  */
 export async function safeRequest<T>(
   apiFn: () => Promise<{ data: T }>,
   mockFallbackFn: () => Promise<T>
 ): Promise<T> {
+  if (USE_MOCK_API) {
+    return await mockFallbackFn()
+  }
+
   try {
     const response = await apiFn()
     return response.data
   } catch (err) {
-    const isNetworkError =
+    const isNetwork =
       (err as AxiosError).code === 'ERR_NETWORK' ||
       (err as AxiosError).code === 'ECONNABORTED' ||
       !(err as AxiosError).response
 
-    if (isNetworkError) {
-      console.warn('[DealFlow360] Backend unreachable. Serving response via mock resilience layer.')
+    if (isNetwork) {
+      console.warn('[DealFlow360 API] Backend not reachable. Transparently serving mock data.')
       return await mockFallbackFn()
     }
     throw err
   }
 }
 
-export default api
+export const api = apiClient
+export default apiClient
