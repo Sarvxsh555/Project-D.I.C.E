@@ -165,6 +165,14 @@ public class InvoiceService {
         return invoiceRepository.findByDealId(dealId);
     }
 
+    /** The cross-deal ledger view. {@code status} null means every invoice. */
+    @Transactional(readOnly = true)
+    public List<Invoice> list(InvoiceStatus status) {
+        return status == null
+                ? invoiceRepository.findAllWithLines()
+                : invoiceRepository.findByStatus(status);
+    }
+
     private Deal requireDeal(UUID dealId) {
         return dealRepository.findWithLinesById(dealId)
                 .orElseThrow(() -> new IllegalArgumentException("No deal with id " + dealId));

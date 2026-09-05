@@ -14,7 +14,6 @@ import {
   Shield,
   MapPin,
   Building,
-  Key,
   FileText,
   AlertCircle,
   Check,
@@ -42,7 +41,7 @@ const ROLE_OPTIONS: RoleOption[] = [
 export default function SignupPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { register, getDefaultDashboard } = useAuth()
+  const { register } = useAuth()
 
   // Pre-select role from search query or default to SALES_REP
   const initialRole = (searchParams.get('role') as Role) || 'SALES_REP'
@@ -61,7 +60,6 @@ export default function SignupPage() {
   const [territory, setTerritory] = useState('North India Commercial')
   const [departmentOrCompany, setDepartmentOrCompany] = useState('')
   const [warehouseDepot, setWarehouseDepot] = useState('WH-A (Mumbai Central)')
-  const [adminCode, setAdminCode] = useState('')
   const [customerGstin, setCustomerGstin] = useState('27AABCA1234F1Z5')
 
   const [loading, setLoading] = useState(false)
@@ -78,13 +76,8 @@ export default function SignupPage() {
       return
     }
 
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.')
-      return
-    }
-
-    if (selectedRole === 'ADMIN' && adminCode !== 'DICE-ADMIN-ROOT' && adminCode !== 'DF360-ADMIN-ROOT' && adminCode.trim() === '') {
-      setErrorMessage('Admin master provisioning requires an authorization code (e.g. DICE-ADMIN-ROOT).')
+    if (password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters.')
       return
     }
 
@@ -106,9 +99,10 @@ export default function SignupPage() {
       }
 
       const resp = await register(payload)
-      const userRole = resp.roles?.[0] || selectedRole
-      const targetDashboard = getDefaultDashboard(userRole)
-      navigate(targetDashboard, { replace: true })
+      // Register and authenticate are two different actions — the backend
+      // deliberately issues no token here. Send the new user to /login to
+      // sign in with the credentials they just created.
+      navigate(`/login?role=${resp.role}&registered=1`, { replace: true })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Registration failed. Please try a different username.'
       setErrorMessage(msg)
@@ -449,30 +443,6 @@ export default function SignupPage() {
                           className="w-full px-2.5 py-1.5 border border-emerald-300 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                         />
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedRole === 'ADMIN' && (
-                  <div className="p-3.5 bg-rose-50/60 border border-rose-200 rounded-lg space-y-2">
-                    <span className="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">
-                      Master Administrator Authorization
-                    </span>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                        <Key className="w-3.5 h-3.5 text-rose-700" />
-                        Admin Master Key / Passcode:
-                      </label>
-                      <input
-                        type="password"
-                        value={adminCode}
-                        onChange={(e) => setAdminCode(e.target.value)}
-                        placeholder="DICE-ADMIN-ROOT"
-                        className="w-full px-2.5 py-1.5 border border-rose-300 rounded bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-                      />
-                      <span className="text-[10px] text-slate-500 mt-1 block">
-                        Hint for evaluation: <code className="text-[#714B67] font-semibold font-mono">DICE-ADMIN-ROOT</code>
-                      </span>
                     </div>
                   </div>
                 )}

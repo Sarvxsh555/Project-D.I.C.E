@@ -1,55 +1,44 @@
-import { api, safeRequest } from './apiClient'
-import { mockAdapter } from '../mocks/mockAdapter'
-import type { Invoice } from '../types/billing'
+import { api } from './apiClient'
+import type { Invoice, InvoiceStatus, Payment } from '../types/billing'
 
 export const invoiceService = {
-  list: async (status?: string): Promise<Invoice[]> => {
-    return safeRequest(
-      () => api.get<Invoice[]>('/invoices', { params: { status } }),
-      () => mockAdapter.listInvoices(status)
-    )
+  /** GET /api/invoices — cross-deal ledger (InvoiceController.list). */
+  list: async (status?: InvoiceStatus): Promise<Invoice[]> => {
+    const res = await api.get<Invoice[]>('/invoices', { params: { status } })
+    return res.data
   },
 
-  listInvoices: async (status?: string): Promise<Invoice[]> => {
-    return invoiceService.list(status)
+  listForDeal: async (dealId: string): Promise<Invoice[]> => {
+    const res = await api.get<Invoice[]>(`/deals/${dealId}/invoices`)
+    return res.data
   },
 
   get: async (id: string): Promise<Invoice> => {
-    return safeRequest(
-      () => api.get<Invoice>(`/invoices/${id}`),
-      () => mockAdapter.getInvoice(id)
-    )
-  },
-
-  getInvoice: async (id: string): Promise<Invoice> => {
-    return invoiceService.get(id)
+    const res = await api.get<Invoice>(`/invoices/${id}`)
+    return res.data
   },
 
   issue: async (id: string): Promise<Invoice> => {
-    return safeRequest(
-      () => api.post<Invoice>(`/invoices/${id}/issue`),
-      () => mockAdapter.issueInvoice(id)
-    )
+    const res = await api.post<Invoice>(`/invoices/${id}/issue`)
+    return res.data
   },
 
-  markPaid: async (id: string): Promise<Invoice> => {
-    return safeRequest(
-      () => api.post<Invoice>(`/invoices/${id}/mark-paid`),
-      () => mockAdapter.markPaidInvoice(id)
-    )
+  /** There is no direct "mark paid" endpoint — status only ever changes as a
+   *  side effect of a real payment (PaymentService), never from a caller-
+   *  supplied target status. This records one. */
+  recordPayment: async (invoiceId: string, amount: number, idempotencyKey: string): Promise<Payment> => {
+    const res = await api.post<Payment>(`/invoices/${invoiceId}/payments`, { amount, idempotencyKey })
+    return res.data
   },
 
-  cancel: async (id: string): Promise<Invoice> => {
-    return safeRequest(
-      () => api.post<Invoice>(`/invoices/${id}/cancel`),
-      () => mockAdapter.cancelInvoice(id)
-    )
+  listPayments: async (invoiceId: string): Promise<Payment[]> => {
+    const res = await api.get<Payment[]>(`/invoices/${invoiceId}/payments`)
+    return res.data
   },
 
-  exportInvoicePdf: async (invoiceId: string): Promise<{ downloadUrl: string }> => {
-    return {
-      downloadUrl: `#export-${invoiceId}.pdf`,
-    }
+  refundPayment: async (paymentId: string): Promise<Payment> => {
+    const res = await api.post<Payment>(`/payments/${paymentId}/refund`)
+    return res.data
   },
 }
 

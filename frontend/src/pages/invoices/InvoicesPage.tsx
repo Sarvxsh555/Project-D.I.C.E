@@ -1,27 +1,37 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ErrorState } from '../../components/ui/ErrorState'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { invoiceService } from '../../services/invoiceService'
 import { formatCurrency } from '../../utils/currency'
-import type { Invoice } from '../../types/billing'
-import { ArrowLeft, Ban, DollarSign, Download, Printer } from 'lucide-react'
+import type { Invoice, InvoiceStatus } from '../../types/billing'
+import { ArrowLeft, DollarSign, Printer } from 'lucide-react'
+
+const STATUS_FILTERS: Array<InvoiceStatus | 'ALL'> = ['ALL', 'DRAFT', 'ISSUED', 'PAID', 'VOID']
+
+function statusVariant(status: InvoiceStatus): 'success' | 'warning' | 'neutral' {
+  if (status === 'PAID') return 'success'
+  if (status === 'ISSUED') return 'warning'
+  return 'neutral'
+}
 
 export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const invoiceIdParam = searchParams.get('id')
 
   const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'ALL'>('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Detail State
+  // Detail state
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const loadInvoices = async () => {
     setLoading(true)
@@ -38,6 +48,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     loadInvoices()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter])
 
   useEffect(() => {
@@ -67,40 +78,49 @@ export default function InvoicesPage() {
 
   const handleIssue = async () => {
     if (!activeInvoice) return
-    const updated = await invoiceService.issue(activeInvoice.id)
-    setActiveInvoice(updated)
-    loadInvoices()
+    setActionError(null)
+    try {
+      const updated = await invoiceService.issue(activeInvoice.id)
+      setActiveInvoice(updated)
+      loadInvoices()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to issue invoice')
+    }
   }
 
-  const handleMarkPaid = async () => {
+  /** There is no direct "mark paid" endpoint — an invoice's status only ever
+   *  changes as a side effect of a real recorded payment (PaymentService).
+   *  This records one for the invoice's remaining balance. */
+  const handleRecordPayment = async () => {
     if (!activeInvoice) return
-    const updated = await invoiceService.markPaid(activeInvoice.id)
-    setActiveInvoice(updated)
-    loadInvoices()
-  }
-
-  const handleCancel = async () => {
-    if (!activeInvoice) return
-    const updated = await invoiceService.cancel(activeInvoice.id)
-    setActiveInvoice(updated)
-    loadInvoices()
+    const amountStr = window.prompt(
+      `Record a payment for this invoice (total ${formatCurrency(activeInvoice.totalAmount, activeInvoice.currency)}). Amount:`,
+      String(activeInvoice.totalAmount)
+    )
+    if (!amountStr) return
+    const amount = Number(amountStr)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setActionError('Enter a valid positive amount')
+      return
+    }
+    setActionError(null)
+    try {
+      await invoiceService.recordPayment(activeInvoice.id, amount, crypto.randomUUID())
+      const updated = await invoiceService.get(activeInvoice.id)
+      setActiveInvoice(updated)
+      loadInvoices()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Payment failed')
+    }
   }
 
   // ==========================================
-  // RENDER: INVOICE DETAIL (ENTERPRISE RECORD)
+  // RENDER: INVOICE DETAIL
   // ==========================================
   if (invoiceIdParam) {
     if (detailLoading || !activeInvoice) {
-      return <LoadingState message="Loading tax invoice statement..." rows={6} />
+      return <LoadingState message="Loading invoice..." rows={6} />
     }
-
-    const isOverdue = activeInvoice.status === 'OVERDUE'
-    const statusVariant =
-      activeInvoice.status === 'PAID'
-        ? 'success'
-        : activeInvoice.status === 'OVERDUE'
-        ? 'danger'
-        : 'warning'
 
     return (
       <div className="space-y-4">
@@ -115,45 +135,42 @@ export default function InvoicesPage() {
             <span>Back to Invoices Ledger</span>
           </Button>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.print()}
-              className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => alert(`Downloading official PDF statement for ${activeInvoice.invoiceNumber}...`)}
-              className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Tax Invoice (PDF)</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print</span>
+          </Button>
         </div>
 
-        {/* Invoice Statement Sheet */}
+        {actionError && (
+          <div className="p-3 rounded bg-rose-50 border border-rose-200 text-xs text-rose-800">
+            {actionError}
+          </div>
+        )}
+
+        {/* Invoice Statement — every field below is a real Invoice column */}
         <div className="bg-white border border-slate-200 rounded p-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                  Tax Invoice
+                  Invoice
                 </span>
-                <Badge variant={statusVariant} size="sm">
+                <Badge variant={statusVariant(activeInvoice.status)} size="sm">
                   {activeInvoice.status}
                 </Badge>
               </div>
-              <h1 className="text-2xl font-bold font-mono text-slate-900 mt-1">
-                {activeInvoice.invoiceNumber}
+              <h1 className="text-lg font-bold font-mono text-slate-900 mt-1">
+                {activeInvoice.id}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Client: <strong className="text-slate-900">{activeInvoice.customerName}</strong> • Quotation: <strong className="font-mono text-[#5E2A52]">{activeInvoice.dealNumber}</strong>
+                <Link to={`/quotations?id=${activeInvoice.dealId}`} className="font-mono text-[#5E2A52] hover:underline">
+                  View deal {activeInvoice.dealId}
+                </Link>
               </p>
             </div>
 
@@ -164,105 +181,65 @@ export default function InvoicesPage() {
                 </Button>
               )}
               {activeInvoice.status === 'ISSUED' && (
-                <Button variant="primary" size="sm" onClick={handleMarkPaid} className="bg-emerald-700 hover:bg-emerald-800 text-xs flex items-center gap-1">
+                <Button variant="primary" size="sm" onClick={handleRecordPayment} className="bg-emerald-700 hover:bg-emerald-800 text-xs flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5" />
-                  Mark as Paid
-                </Button>
-              )}
-              {activeInvoice.status !== 'PAID' && activeInvoice.status !== 'CANCELLED' && (
-                <Button variant="outline" size="sm" onClick={handleCancel} className="text-xs text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1">
-                  <Ban className="w-3.5 h-3.5" />
-                  Cancel Invoice
+                  Record Payment
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Tax Invoice Parties */}
-          <div className="grid grid-cols-2 gap-6 text-xs border-b border-slate-100 pb-4">
+          {/* Dates */}
+          <div className="grid grid-cols-3 gap-4 text-xs border-b border-slate-100 pb-4">
             <div>
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Billed By:</span>
-              <strong className="text-slate-900 block text-sm">Odoo X D.I.C.E. Enterprise Operations Pvt Ltd</strong>
-              <p className="text-slate-600 mt-0.5">BKC Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra 400051</p>
-              <span className="font-mono text-slate-500 text-[11px] block mt-1">GSTIN: 27AAACD1234F1Z8</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Billed To:</span>
-              <strong className="text-slate-900 block text-sm">{activeInvoice.customerName}</strong>
-              <p className="text-slate-600 mt-0.5">Plot 45, MIDC Industrial Area, Andheri East, Mumbai 400093</p>
-              <span className="font-mono text-slate-500 text-[11px] block mt-1">GSTIN: 27AABCA1234F1Z5 • Payment Terms: Net-30</span>
-            </div>
-          </div>
-
-          {/* Dates & Reference Grid */}
-          <div className="grid grid-cols-4 gap-4 text-xs border-b border-slate-100 pb-4">
-            <div>
-              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Invoice Date</span>
-              <span className="font-mono text-slate-900">{activeInvoice.issueDate || '2026-03-01'}</span>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Issued</span>
+              <span className="font-mono text-slate-900">{activeInvoice.issuedAt ? new Date(activeInvoice.issuedAt).toLocaleDateString() : '—'}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase text-slate-400 font-semibold block">Due Date</span>
-              <span className={`font-mono font-bold ${isOverdue ? 'text-rose-700' : 'text-slate-900'}`}>
-                {activeInvoice.dueDate || '2026-03-31'}
-              </span>
+              <span className="font-mono font-bold text-slate-900">{activeInvoice.dueDate || '—'}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Milestone Trigger</span>
-              <span className="text-slate-700">Kickoff Advance (50%)</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Currency</span>
-              <span className="font-mono text-slate-900">INR (₹)</span>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold block">Paid</span>
+              <span className="font-mono text-slate-900">{activeInvoice.paidAt ? new Date(activeInvoice.paidAt).toLocaleDateString() : '—'}</span>
             </div>
           </div>
 
-          {/* Billed Items Table */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">#</TableHead>
-                <TableHead>Description of Goods / Services</TableHead>
-                <TableHead className="w-20" align="right">Qty</TableHead>
-                <TableHead className="w-32" align="right">Unit Price</TableHead>
-                <TableHead className="w-28" align="right">Tax (18%)</TableHead>
-                <TableHead className="w-32" align="right">Total Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-mono text-slate-400">01</TableCell>
-                <TableCell className="font-medium text-slate-900">
-                  <div>Enterprise Cloud Platform (Core) — Kickoff Milestone</div>
-                  <div className="text-[10px] text-slate-400 font-mono">HSN/SAC: 998313 (Software as a Service)</div>
-                </TableCell>
-                <TableCell align="right">20</TableCell>
-                <TableCell align="right">₹20,000</TableCell>
-                <TableCell align="right" className="text-slate-500">₹33,102</TableCell>
-                <TableCell align="right" className="font-bold text-slate-900 font-mono">
-                  {formatCurrency(activeInvoice.amount)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {/* Real line items */}
+          {activeInvoice.lines.length === 0 ? (
+            <EmptyState title="No line items" description="This invoice has no billed lines." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-20" align="right">Qty</TableHead>
+                  <TableHead className="w-28" align="right">Unit Price</TableHead>
+                  <TableHead className="w-32" align="right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeInvoice.lines.map((line, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="font-mono text-slate-400">{line.sku || '—'}</TableCell>
+                    <TableCell className="font-medium text-slate-900">{line.description}</TableCell>
+                    <TableCell align="right">{line.quantity}</TableCell>
+                    <TableCell align="right" className="font-mono">{formatCurrency(line.unitPrice, activeInvoice.currency)}</TableCell>
+                    <TableCell align="right" className="font-bold text-slate-900 font-mono">
+                      {formatCurrency(line.amount, activeInvoice.currency)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
 
-          {/* Financial Breakdown Total */}
           <div className="flex justify-end pt-2 text-xs">
             <div className="w-72 space-y-1.5 text-slate-700">
-              <div className="flex justify-between">
-                <span>Taxable Subtotal:</span>
-                <span className="font-mono">{formatCurrency(activeInvoice.amount / 1.18)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>CGST (9.0%):</span>
-                <span className="font-mono">{formatCurrency((activeInvoice.amount / 1.18) * 0.09)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>SGST (9.0%):</span>
-                <span className="font-mono">{formatCurrency((activeInvoice.amount / 1.18) * 0.09)}</span>
-              </div>
               <div className="flex justify-between font-bold text-slate-900 text-sm pt-2 border-t border-slate-200">
-                <span>Total Invoice Value:</span>
-                <span className="font-mono text-base">{formatCurrency(activeInvoice.amount)}</span>
+                <span>Total:</span>
+                <span className="font-mono text-base">{formatCurrency(activeInvoice.totalAmount, activeInvoice.currency)}</span>
               </div>
             </div>
           </div>
@@ -272,23 +249,22 @@ export default function InvoicesPage() {
   }
 
   // ==========================================
-  // RENDER: INVOICES LEDGER (TABLE-FIRST)
+  // RENDER: INVOICES LEDGER
   // ==========================================
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Invoices & Accounts Receivable
+            Invoices Ledger
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Audit billed quotation milestones, track Net-30 aging, and monitor cash reconciliation
+            Every invoice across every deal
           </p>
         </div>
 
-        {/* Filter Controls */}
         <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200 text-xs">
-          {['ALL', 'PAID', 'ISSUED', 'DRAFT'].map((filter) => (
+          {STATUS_FILTERS.map((filter) => (
             <button
               key={filter}
               type="button"
@@ -306,18 +282,18 @@ export default function InvoicesPage() {
       </div>
 
       {loading ? (
-        <LoadingState message="Loading accounts receivable ledger..." rows={6} />
+        <LoadingState message="Loading invoices..." rows={6} />
       ) : error ? (
         <ErrorState title="Error" message={error} onRetry={loadInvoices} />
+      ) : invoices.length === 0 ? (
+        <EmptyState title="No invoices" description="No invoices match this filter yet." />
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-32">Invoice #</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="w-28 font-mono">Quotation</TableHead>
+              <TableHead className="w-64">Invoice ID</TableHead>
+              <TableHead className="w-64">Deal</TableHead>
               <TableHead className="w-32" align="right">Amount</TableHead>
-              <TableHead className="w-28">Issue Date</TableHead>
               <TableHead className="w-28">Due Date</TableHead>
               <TableHead className="w-28">Status</TableHead>
               <TableHead className="w-24" align="right">Action</TableHead>
@@ -330,37 +306,22 @@ export default function InvoicesPage() {
                   <button
                     type="button"
                     onClick={() => setSearchParams({ id: inv.id })}
-                    className="font-mono font-bold text-[#5E2A52] hover:underline cursor-pointer text-left"
+                    className="font-mono text-xs text-[#5E2A52] hover:underline cursor-pointer text-left"
                   >
-                    {inv.invoiceNumber}
+                    {inv.id}
                   </button>
                 </TableCell>
-                <TableCell className="font-medium text-slate-900">
-                  {inv.customerName}
-                </TableCell>
                 <TableCell className="font-mono text-slate-600 text-xs">
-                  {inv.dealNumber}
+                  {inv.dealId}
                 </TableCell>
                 <TableCell align="right" className="font-bold font-mono text-slate-900">
-                  {formatCurrency(inv.amount)}
-                </TableCell>
-                <TableCell className="font-mono text-slate-500 text-xs">
-                  {inv.issueDate || inv.issuedDate || '2026-03-01'}
+                  {formatCurrency(inv.totalAmount, inv.currency)}
                 </TableCell>
                 <TableCell className="font-mono text-slate-800 text-xs">
-                  {inv.dueDate}
+                  {inv.dueDate || '—'}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      inv.status === 'PAID'
-                        ? 'success'
-                        : inv.status === 'OVERDUE'
-                        ? 'danger'
-                        : 'warning'
-                    }
-                    size="sm"
-                  >
+                  <Badge variant={statusVariant(inv.status)} size="sm">
                     {inv.status}
                   </Badge>
                 </TableCell>
@@ -370,7 +331,7 @@ export default function InvoicesPage() {
                     onClick={() => setSearchParams({ id: inv.id })}
                     className="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700 hover:bg-slate-100 cursor-pointer"
                   >
-                    Statement
+                    View
                   </button>
                 </TableCell>
               </TableRow>

@@ -39,7 +39,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { login, switchUser, getDefaultDashboard } = useAuth()
+  const { login, getDefaultDashboard } = useAuth()
 
   // Pre-select role from search query or default to SALES_REP
   const initialRole = (searchParams.get('role') as Role) || 'SALES_REP'
@@ -51,7 +51,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('dice-demo')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [forgotSent, setForgotSent] = useState(false)
+  const justRegistered = searchParams.get('registered') === '1'
 
   // Populate username when stakeholder role changes
   useEffect(() => {
@@ -94,10 +94,9 @@ export default function LoginPage() {
         await login({ username: targetDemo.username, password: 'dice-demo' })
         const targetDashboard = getDefaultDashboard(role)
         navigate(targetDashboard, { replace: true })
-      } catch {
-        // Fallback to switchUser
-        switchUser(targetDemo.username)
-        navigate(getDefaultDashboard(role), { replace: true })
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Demo login failed — the backend may be unreachable.'
+        setErrorMessage(msg)
       } finally {
         setLoading(false)
       }
@@ -256,6 +255,13 @@ export default function LoginPage() {
                 )}
               </div>
 
+              {justRegistered && !errorMessage && (
+                <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800">
+                  <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Account created. Sign in with your new credentials below.</span>
+                </div>
+              )}
+
               {errorMessage && (
                 <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
                   <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
@@ -263,13 +269,6 @@ export default function LoginPage() {
                     <span className="font-semibold block">Authentication Notice</span>
                     <span>{errorMessage}</span>
                   </div>
-                </div>
-              )}
-
-              {forgotSent && (
-                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Password reset token dispatched to {demoAccount?.email || 'registered corporate mailbox'}.</span>
                 </div>
               )}
 
@@ -303,18 +302,9 @@ export default function LoginPage() {
                     <label className="block text-xs font-semibold text-slate-700">
                       Security Password:
                     </label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-                        password: dice-demo
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setForgotSent(true)}
-                        className="text-[11px] text-[#714B67] hover:underline cursor-pointer"
-                      >
-                        Reset?
-                      </button>
-                    </div>
+                    <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                      password: dice-demo
+                    </span>
                   </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -368,10 +358,10 @@ export default function LoginPage() {
                       }`}
                     >
                       <div className="font-bold text-slate-800 text-[11px] truncate">
-                        {acc.name}
+                        {meta.title}
                       </div>
                       <div className="text-[10px] text-[#714B67] font-mono truncate font-medium mt-0.5">
-                        {meta.title.split(' ')[0]}
+                        {acc.username}
                       </div>
                     </button>
                   )

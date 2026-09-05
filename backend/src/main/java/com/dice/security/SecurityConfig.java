@@ -22,11 +22,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -38,12 +35,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Stateless JWT security.
- *
- * <p>The user store is in-memory and seeded with one account per {@link Role} —
- * enough for the demo, and the seam to replace when real identity arrives.
- * Swap {@link #userDetailsService} for a DB- or SSO-backed implementation and
- * nothing else here has to change.
+ * Stateless JWT security. The user store is {@link DiceUserDetailsService},
+ * backed by the real {@code users} table — see that class for how the demo
+ * accounts fit in.
  */
 @Configuration
 @EnableWebSecurity
@@ -96,23 +90,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * Demo accounts. Username is the lowercased role, password is
-     * {@code dice-demo} for every one of them — see docs/demo-flow.md.
-     */
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
-        String password = encoder.encode("dice-demo");
-        var users = java.util.Arrays.stream(Role.values())
-                .map(role -> User.withUsername(role.name().toLowerCase())
-                        .password(password)
-                        .authorities(new SimpleGrantedAuthority(role.authority()))
-                        .build())
-                .toList();
-        log.info("Seeded {} in-memory demo accounts (password: dice-demo)", users.size());
-        return new InMemoryUserDetailsManager(users);
     }
 
     @Bean

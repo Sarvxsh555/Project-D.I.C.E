@@ -25,7 +25,7 @@ import type { DealSummary, DealDetail, DealStatus, DealLineItem } from '../../ty
 import type { DiceDecision } from '../../types/dice'
 import type { ApprovalView } from '../../types/approval'
 import type { FulfillmentPlan, WarehouseStock } from '../../types/fulfillment'
-import type { HybridBillingDetail } from '../../types/billing'
+import type { BillingSchedule } from '../../types/billing'
 import type { Product, Customer } from '../../types/product'
 import { approvalService } from '../../services/approvalService'
 import {
@@ -62,7 +62,7 @@ export default function QuotationsPage() {
   const [approval, setApproval] = useState<ApprovalView | null>(null)
   const [fulfillment, setFulfillment] = useState<FulfillmentPlan | null>(null)
   const [stock, setStock] = useState<WarehouseStock[]>([])
-  const [billing, setBilling] = useState<HybridBillingDetail | null>(null)
+  const [billing, setBilling] = useState<BillingSchedule | null>(null)
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
 
   // Simulation Drawer
@@ -114,7 +114,7 @@ export default function QuotationsPage() {
             approvalService.get(dealParam).catch(() => null),
             fulfillmentService.get(dealParam).catch(() => null),
             fulfillmentService.getStock().catch(() => []),
-            billingService.get(dealParam).catch(() => null),
+            billingService.getSchedule(dealParam).catch(() => null),
           ])
 
         setActiveDeal(dealData)

@@ -27,11 +27,15 @@ export interface TokenResponse {
   username: string
   roles: Role[]
   expiresInMs: number
+  fullName: string | null
+  email: string | null
 }
 
 export interface CurrentUser {
   username: string
   roles: Role[]
+  fullName: string | null
+  email: string | null
 }
 
 export interface UserSession {

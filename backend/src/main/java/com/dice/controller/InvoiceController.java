@@ -30,6 +30,14 @@ public class InvoiceController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    /** The cross-deal ledger view (InvoicesPage) needs this — every other
+     *  read here is scoped to one deal. */
+    @GetMapping("/api/invoices")
+    @PreAuthorize("hasAnyRole('FINANCE', 'ADMIN')")
+    public List<InvoiceView> list(@RequestParam(required = false) InvoiceStatus status) {
+        return invoiceService.list(status).stream().map(InvoiceView::from).toList();
+    }
+
     @GetMapping("/api/deals/{dealId}/invoices")
     public List<InvoiceView> forDeal(@PathVariable UUID dealId) {
         return invoiceService.forDeal(dealId).stream().map(InvoiceView::from).toList();

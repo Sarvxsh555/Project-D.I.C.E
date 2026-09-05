@@ -1,41 +1,39 @@
-import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { formatCurrency } from '../../utils/currency'
-import type { HybridBillingDetail } from '../../types/billing'
+import type { BillingSchedule } from '../../types/billing'
 import { FileText, Calendar, CreditCard } from 'lucide-react'
 
 interface HybridBillingViewProps {
-  billing: HybridBillingDetail
+  billing: BillingSchedule
   onGenerateInvoice?: () => void
 }
 
 export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingViewProps) {
   return (
     <div className="space-y-6">
-      {/* Hybrid Charge Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
-            One-Time Capital Charges
+            Total Amount
           </span>
           <div className="text-xl font-bold text-slate-900">
-            {formatCurrency(billing.oneTimeTotal)}
+            {formatCurrency(billing.totalAmount, billing.currency)}
           </div>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Hardware batch delivery & license fees
+            Payment terms: Net-{billing.paymentTermsDays} days
           </span>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs">
           <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1">
-            Recurring Operating Retainer
+            Installments
           </span>
           <div className="text-xl font-bold text-[#5E2A52]">
-            {formatCurrency(billing.recurringMonthlyTotal)}
-            <span className="text-xs text-slate-400 font-normal"> / month</span>
+            {billing.installments.length}
           </div>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Premium Support 24/7 dedicated SLA
+            {billing.installments.length > 1 ? 'Milestone billing schedule' : 'One-time billing'}
           </span>
         </div>
 
@@ -45,7 +43,7 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
               Billing Action
             </span>
             <span className="text-xs text-slate-700">
-              Trigger instant automated invoice creation against scheduled milestones.
+              Trigger invoice generation against this deal's billing schedule.
             </span>
           </div>
           {onGenerateInvoice && (
@@ -56,41 +54,37 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
               className="mt-3 bg-[#5E2A52] hover:bg-[#4d2243] flex items-center gap-1.5 self-start"
             >
               <FileText className="w-3.5 h-3.5" />
-              Generate Milestone Invoice
+              Generate Invoice
             </Button>
           )}
         </div>
       </div>
 
-      {/* Charge Breakdown Table */}
+      {/* Line Items */}
       <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
         <h4 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-3 flex items-center gap-1.5">
           <CreditCard className="w-4 h-4 text-slate-500" />
-          Itemized Hybrid Line Charges
+          Line Items
         </h4>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left text-slate-700">
             <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
               <tr>
+                <th className="py-2.5 px-3">SKU</th>
                 <th className="py-2.5 px-3">Description</th>
-                <th className="py-2.5 px-3">Billing Cadence</th>
-                <th className="py-2.5 px-3 text-right">Charge Amount</th>
+                <th className="py-2.5 px-3 text-right">Qty</th>
+                <th className="py-2.5 px-3 text-right">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {billing.charges.map((charge) => (
-                <tr key={charge.id} className="hover:bg-slate-50/50">
-                  <td className="py-3 px-3 font-medium text-slate-900">{charge.description}</td>
-                  <td className="py-3 px-3">
-                    <Badge variant={charge.type === 'RECURRING' ? 'info' : 'neutral'}>
-                      {charge.type === 'RECURRING'
-                        ? `Recurring (${charge.interval || 'Monthly'})`
-                        : 'One-Time Capital'}
-                    </Badge>
-                  </td>
+              {billing.lineItems.map((item) => (
+                <tr key={item.sku} className="hover:bg-slate-50/50">
+                  <td className="py-3 px-3 font-mono text-slate-500">{item.sku}</td>
+                  <td className="py-3 px-3 font-medium text-slate-900">{item.description}</td>
+                  <td className="py-3 px-3 text-right">{item.quantity}</td>
                   <td className="py-3 px-3 text-right font-bold text-slate-900">
-                    {formatCurrency(charge.amount)}
+                    {formatCurrency(item.amount, billing.currency)}
                   </td>
                 </tr>
               ))}
@@ -99,35 +93,29 @@ export function HybridBillingView({ billing, onGenerateInvoice }: HybridBillingV
         </div>
       </div>
 
-      {/* Billing Schedule Timeline */}
+      {/* Installment Schedule */}
       <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
         <h4 className="text-xs uppercase tracking-wider font-bold text-slate-700 mb-4 flex items-center gap-1.5">
           <Calendar className="w-4 h-4 text-slate-500" />
-          Projected Billing Schedule Timeline
+          Installment Schedule
         </h4>
 
         <div className="space-y-3">
-          {billing.timeline.map((entry) => (
+          {billing.installments.map((inst) => (
             <div
-              key={entry.id}
+              key={inst.code}
               className="flex items-center justify-between p-3 rounded-md border border-slate-100 bg-slate-50/40 text-xs hover:bg-slate-50"
             >
               <div className="flex items-center gap-3">
                 <span className="font-mono text-slate-500 text-[11px] w-24">
-                  {entry.date}
+                  {inst.dueDate}
                 </span>
-                <span className="font-medium text-slate-900">{entry.description}</span>
-                <Badge variant={entry.chargeType === 'RECURRING' ? 'info' : 'neutral'}>
-                  {entry.chargeType === 'RECURRING' ? 'Recurring' : 'One-Time'}
-                </Badge>
+                <span className="font-medium text-slate-900">{inst.label}</span>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-slate-900 font-mono">
-                  {formatCurrency(entry.amount)}
-                </span>
-                <Badge variant="warning">{entry.status}</Badge>
-              </div>
+              <span className="font-bold text-slate-900 font-mono">
+                {formatCurrency(inst.amount, billing.currency)}
+              </span>
             </div>
           ))}
         </div>

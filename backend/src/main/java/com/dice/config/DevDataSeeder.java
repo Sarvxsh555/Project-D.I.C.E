@@ -1,5 +1,6 @@
 package com.dice.config;
 
+import com.dice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -7,6 +8,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -14,7 +16,8 @@ import java.sql.Connection;
 import java.util.List;
 
 /**
- * Loads {@code database/seed/*.sql} on startup under the {@code dev} profile.
+ * Loads {@code database/seed/*.sql} on startup under the {@code dev} profile,
+ * then backfills the demo accounts' login passwords.
  *
  * <p>Kept out of Flyway on purpose: seed data is demo scaffolding, not schema,
  * and mixing the two makes it impossible to stand up a clean production
@@ -40,35 +43,62 @@ public class DevDataSeeder implements CommandLineRunner {
             "db/seed/co_purchase_pairs.sql",
             "db/seed/demo_deals.sql");
 
+    /** Every demo account's password — see docs/demo-flow.md. */
+    private static final String DEMO_PASSWORD = "dice-demo";
+
     private final DataSource dataSource;
     private final JdbcTemplate jdbcTemplate;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         if (alreadySeeded()) {
             log.info("Seed data already present — skipping");
-            return;
+        } else {
+            try (Connection connection = dataSource.getConnection()) {
+                for (String script : SCRIPTS) {
+                    ClassPathResource resource = new ClassPathResource(script);
+                    if (!resource.exists()) {
+                        log.warn("Seed script {} not found on the classpath — skipping", script);
+                        continue;
+                    }
+                    ScriptUtils.executeSqlScript(connection, resource);
+                    log.info("Applied seed script {}", script);
+                }
+            } catch (Exception e) {
+                // A broken seed must not stop the app: the schema is still valid and
+                // an empty database is a recoverable state.
+                log.error("Seeding failed; continuing with whatever loaded", e);
+            }
         }
 
-        try (Connection connection = dataSource.getConnection()) {
-            for (String script : SCRIPTS) {
-                ClassPathResource resource = new ClassPathResource(script);
-                if (!resource.exists()) {
-                    log.warn("Seed script {} not found on the classpath — skipping", script);
-                    continue;
-                }
-                ScriptUtils.executeSqlScript(connection, resource);
-                log.info("Applied seed script {}", script);
-            }
-        } catch (Exception e) {
-            // A broken seed must not stop the app: the schema is still valid and
-            // an empty database is a recoverable state.
-            log.error("Seeding failed; continuing with whatever loaded", e);
-        }
+        backfillDemoPasswords();
     }
 
     private boolean alreadySeeded() {
         Long count = jdbcTemplate.queryForObject("select count(*) from customers", Long.class);
         return count != null && count > 0;
+    }
+
+    /**
+     * users.sql seeds the six demo profile rows but has no way to set a real
+     * BCrypt hash from raw SQL — that needs the actual encoder bean. Runs
+     * every boot, not just on first seed, and only touches rows that still
+     * have no password so it never overwrites a password a demo user (or a
+     * test) has since changed.
+     */
+    private void backfillDemoPasswords() {
+        int updated = 0;
+        for (var user : userRepository.findAll()) {
+            if (user.getPasswordHash() == null) {
+                user.setPasswordHash(passwordEncoder.encode(DEMO_PASSWORD));
+                userRepository.save(user);
+                updated++;
+            }
+        }
+        if (updated > 0) {
+            log.info("Backfilled password hashes for {} demo account(s) (password: {})", updated, DEMO_PASSWORD);
+        }
     }
 }

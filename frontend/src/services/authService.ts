@@ -1,68 +1,49 @@
-import { api, setStoredToken, removeStoredToken, safeRequest } from './api'
-import { mockAdapter } from '../mocks/mockAdapter'
+import { api } from './apiClient'
 import type { LoginRequest, RegisterRequest, TokenResponse, CurrentUser, StakeholderDefinition } from '../types/auth'
-import { DEMO_ACCOUNTS } from '../constants/roles'
 import { STAKEHOLDER_DEFINITIONS } from '../types/auth'
+
+export interface RegisteredUser {
+  id: string
+  username: string
+  email: string
+  role: string
+}
 
 export const authService = {
   login: async (request: LoginRequest): Promise<TokenResponse> => {
-    return safeRequest(
-      () => api.post<TokenResponse>('/auth/login', request),
-      async () => {
-        const existing = await mockAdapter.findUser(request.username)
-        const demoUser = existing || DEMO_ACCOUNTS.find(
-          (u) => u.username.toLowerCase() === request.username.toLowerCase()
-        )
-        const role = demoUser ? demoUser.role : 'SALES_REP'
-        const mockToken: TokenResponse = {
-          token: demoUser?.token || `mock-jwt-${request.username}`,
-          username: request.username,
-          roles: [role],
-          expiresInMs: 86400000,
-        }
-        setStoredToken(mockToken.token)
-        return mockToken
-      }
-    )
+    const res = await api.post<TokenResponse>('/auth/login', request)
+    return res.data
   },
 
-  register: async (request: RegisterRequest): Promise<TokenResponse> => {
-    return safeRequest(
-      () => api.post<TokenResponse>('/auth/register', request),
-      async () => {
-        const tokenResp = await mockAdapter.registerUser(request)
-        setStoredToken(tokenResp.token)
-        return tokenResp
-      }
-    )
+  /** Does not log the new user in — the backend deliberately issues no token
+   *  on register (see AuthController). Caller navigates to /login on success. */
+  register: async (request: RegisterRequest): Promise<RegisteredUser> => {
+    const res = await api.post<RegisteredUser>('/auth/register', request)
+    return res.data
   },
 
   getCurrentUser: async (): Promise<CurrentUser> => {
-    return safeRequest(
-      () => api.get<CurrentUser>('/auth/me'),
-      async () => {
-        return {
-          username: 'sales_rep',
-          roles: ['SALES_REP'],
-        }
-      }
-    )
+    const res = await api.get<CurrentUser>('/auth/me')
+    return res.data
   },
 
   getStakeholders: async (): Promise<StakeholderDefinition[]> => {
-    return safeRequest(
-      () => api.get<StakeholderDefinition[]>('/auth/stakeholders'),
-      async () => Object.values(STAKEHOLDER_DEFINITIONS)
-    )
+    try {
+      const res = await api.get<StakeholderDefinition[]>('/auth/stakeholders')
+      return res.data
+    } catch {
+      // Static reference data with a real backend endpoint that mirrors it
+      // exactly (AuthController.getStakeholders) — safe to fall back to the
+      // same constants the backend would return, not fabricated data.
+      return Object.values(STAKEHOLDER_DEFINITIONS)
+    }
   },
 
   logout: async (): Promise<void> => {
     try {
       await api.post('/auth/logout')
     } catch {
-      // safe fallback
-    } finally {
-      removeStoredToken()
+      // Stateless JWT — logout is a client-side token discard either way.
     }
   },
 }

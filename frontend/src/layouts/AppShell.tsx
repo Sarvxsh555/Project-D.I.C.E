@@ -39,7 +39,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const handleRoleSwitch = (role: Role) => {
-    switchRole(role)
+    switchRole(role).catch(() => {})
     const newDef = STAKEHOLDER_DEFINITIONS[role]
     const isStillAllowed = newDef.allowedRoutes.some((r) =>
       r === '/' ? location.pathname === '/' || location.pathname === '/dashboard' : location.pathname.startsWith(r)

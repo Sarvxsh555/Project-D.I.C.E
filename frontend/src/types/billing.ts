@@ -1,74 +1,78 @@
 export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'EXPIRED'
-export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED'
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'VOID'
 
+/** Matches SubscriptionController.SubscriptionView exactly. */
 export interface Subscription {
   id: string
+  customerId: string
   dealId: string
-  dealNumber: string
-  customerName: string
-  planName: string
-  amount: number
-  billingInterval: 'Monthly' | 'Quarterly' | 'Annual'
+  dealLineId: string
+  planId: string
   startDate: string
   nextBillingDate: string
   status: SubscriptionStatus
 }
 
-export interface BillingChargeItem {
-  id: string
-  description: string
-  type: 'ONE_TIME' | 'RECURRING'
+/** Matches BillingEngine.Installment. */
+export interface BillingInstallment {
+  code: string
+  label: string
   amount: number
-  interval?: string
+  dueDate: string
 }
 
-export interface BillingTimelineEntry {
-  id: string
-  date: string
-  amount: number
-  chargeType: 'ONE_TIME' | 'RECURRING'
+/** Matches BillingEngine.LineItem. */
+export interface BillingLineItem {
+  sku: string
   description: string
-  status: 'PENDING' | 'INVOICED' | 'PAID'
+  quantity: number
+  unitPrice: number
+  amount: number
 }
 
-export interface HybridBillingDetail {
-  id: string
+/** Matches BillingEngine.BillingSchedule exactly — GET /api/billing/{dealId}/schedule. */
+export interface BillingSchedule {
   dealId: string
-  dealNumber: string
-  customerName: string
-  oneTimeTotal: number
-  recurringMonthlyTotal: number
-  discountAmount: number
-  taxAmount: number
-  netTotal: number
-  charges: BillingChargeItem[]
-  timeline: BillingTimelineEntry[]
+  currency: string
+  totalAmount: number
+  paymentTermsDays: number
+  installments: BillingInstallment[]
+  lineItems: BillingLineItem[]
 }
 
-export type BillingSchedule = HybridBillingDetail
+/** Matches InvoiceController.InvoiceLineView. */
+export interface InvoiceLine {
+  sku: string | null
+  description: string
+  quantity: number
+  unitPrice: number
+  amount: number
+}
 
+/** Matches InvoiceController.InvoiceView exactly. */
 export interface Invoice {
   id: string
-  invoiceNumber: string
   dealId: string
-  dealNumber: string
-  customerName: string
-  amount: number
-  issueDate: string
-  issuedDate?: string
-  dueDate: string
-  paidDate?: string | null
+  customerId: string
+  subscriptionId: string | null
   status: InvoiceStatus
-  currency?: string
-  lines: Array<{
-    description: string
-    quantity: number
-    unitPrice: number
-    total: number
-  }>
-  subtotal: number
-  tax: number
-  discount: number
-  total: number
+  currency: string
+  totalAmount: number
+  dueDate: string | null
+  issuedAt: string | null
+  paidAt: string | null
+  lines: InvoiceLine[]
 }
 
+/** Matches PaymentController.PaymentView. */
+export interface Payment {
+  id: string
+  invoiceId: string
+  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
+  amount: number
+  currency: string
+  transactionReference: string | null
+  failureReason: string | null
+  createdAt: string
+  updatedAt: string
+}

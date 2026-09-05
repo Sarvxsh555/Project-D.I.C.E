@@ -9,13 +9,10 @@ import java.util.UUID;
 
 /**
  * A DICE user account — the canonical identity behind {@link Deal#getOwnerUsername()}
- * and every other {@code *_username} audit column.
- *
- * <p>Authentication itself still runs on the in-memory demo store in
- * {@code SecurityConfig}; this table is the durable profile record (name,
- * email, role) that the sales UI and audit trail read from. Deliberately not
- * foreign-keyed from {@code deals.owner_username} yet — Odoo-synced deals can
- * carry a username DICE has not provisioned a record for.
+ * and every other {@code *_username} audit column, and (via {@code passwordHash})
+ * the real, DB-backed authentication record {@link com.dice.security.DiceUserDetailsService}
+ * loads. Deliberately not foreign-keyed from {@code deals.owner_username} yet —
+ * Odoo-synced deals can carry a username DICE has not provisioned a record for.
  */
 @Entity
 @Table(name = "users")
@@ -35,6 +32,12 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    /** BCrypt hash. Null means the row predates real auth and cannot log in
+     *  until one is set — {@link com.dice.security.DiceUserDetailsService}
+     *  fails closed on a null hash rather than treating it as no-password-required. */
+    @Column(name = "password_hash")
+    private String passwordHash;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;

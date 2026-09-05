@@ -10,7 +10,6 @@ import {
   MOCK_WAREHOUSE_STOCK,
   MOCK_BILLING_DETAILS,
   MOCK_SUBSCRIPTIONS,
-  MOCK_INVOICES,
   MOCK_HEALTH_BREAKDOWNS,
   MOCK_ANOMALIES,
   MOCK_HEALTH_SUMMARY,
@@ -25,7 +24,7 @@ import type { DealSummary, DealDetail, CreateDealRequest, DealStatus } from '../
 import type { ApprovalView, DecisionRequest, ApprovalSnapshot } from '../types/approval'
 import type { DiceDecision, SimulationResponse } from '../types/dice'
 import type { FulfillmentPlan, WarehouseStock } from '../types/fulfillment'
-import type { BillingSchedule, Invoice, Subscription } from '../types/billing'
+import type { BillingSchedule, Subscription } from '../types/billing'
 import type { HealthScoreBreakdown } from '../types/health'
 import type { NegotiationDetail, PortalQuoteView, CounterofferPayload } from '../types/negotiation'
 import type { Product, PricelistItem, DiscountRule, Customer, Policy } from '../types/product'
@@ -50,7 +49,6 @@ const fulfillmentStore: Record<string, FulfillmentPlan> = JSON.parse(JSON.string
 const warehouseStockStore: WarehouseStock[] = JSON.parse(JSON.stringify(MOCK_WAREHOUSE_STOCK))
 const billingStore: Record<string, BillingSchedule> = JSON.parse(JSON.stringify(MOCK_BILLING_DETAILS))
 const subscriptionsStore: Subscription[] = JSON.parse(JSON.stringify(MOCK_SUBSCRIPTIONS))
-const invoicesStore: Invoice[] = JSON.parse(JSON.stringify(MOCK_INVOICES))
 const diceStore: Record<string, DiceDecision> = JSON.parse(JSON.stringify(MOCK_DICE_DECISIONS))
 const negotiationsStore: Record<string, NegotiationDetail> = JSON.parse(JSON.stringify(MOCK_NEGOTIATIONS))
 const portalQuotesStore: Record<string, PortalQuoteView> = JSON.parse(JSON.stringify(MOCK_PORTAL_QUOTES))
@@ -82,6 +80,8 @@ export const mockAdapter = {
       username: req.username,
       roles: [req.role],
       expiresInMs: 86400000,
+      fullName: newUser.name,
+      email: newUser.email,
     }
   },
 
@@ -544,36 +544,6 @@ export const mockAdapter = {
     return sub || subscriptionsStore[0]
   },
 
-  generateInvoiceFromBilling: async (dealId: string): Promise<Invoice> => {
-    await delay()
-    const deal = await mockAdapter.getDeal(dealId)
-    const newInv: Invoice = {
-      id: `inv-${Date.now()}`,
-      invoiceNumber: `INV-${1045 + invoicesStore.length}`,
-      dealId: deal.id,
-      dealNumber: deal.dealNumber,
-      customerName: deal.customerName,
-      amount: deal.totalAmount,
-      issueDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
-      paidDate: null,
-      status: 'ISSUED',
-      currency: 'INR',
-      subtotal: deal.subtotal,
-      tax: 0,
-      discount: deal.discountAmount,
-      total: deal.totalAmount,
-      lines: deal.lines.map((l) => ({
-        description: l.productName || l.product,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        total: l.netAmount,
-      })),
-    }
-    invoicesStore.unshift(newInv)
-    return newInv
-  },
-
   // NEGOTIATIONS
   getNegotiation: async (dealId: string): Promise<NegotiationDetail> => {
     await delay()
@@ -652,43 +622,6 @@ export const mockAdapter = {
     quote.status = 'NEGOTIATION'
     await mockAdapter.submitNegotiationCounteroffer('d-1042', payload)
     return quote
-  },
-
-  // INVOICES
-  listInvoices: async (status?: string): Promise<Invoice[]> => {
-    await delay()
-    if (!status || status === 'ALL') return invoicesStore
-    return invoicesStore.filter((i) => i.status === status)
-  },
-
-  getInvoice: async (id: string): Promise<Invoice> => {
-    await delay()
-    const inv = invoicesStore.find((i) => i.id === id || i.invoiceNumber === id)
-    if (!inv) return invoicesStore[0]
-    return inv
-  },
-
-  issueInvoice: async (id: string): Promise<Invoice> => {
-    await delay()
-    const inv = await mockAdapter.getInvoice(id)
-    inv.status = 'ISSUED'
-    inv.issueDate = new Date().toISOString().split('T')[0]
-    return inv
-  },
-
-  markPaidInvoice: async (id: string): Promise<Invoice> => {
-    await delay()
-    const inv = await mockAdapter.getInvoice(id)
-    inv.status = 'PAID'
-    inv.paidDate = new Date().toISOString().split('T')[0]
-    return inv
-  },
-
-  cancelInvoice: async (id: string): Promise<Invoice> => {
-    await delay()
-    const inv = await mockAdapter.getInvoice(id)
-    inv.status = 'CANCELLED'
-    return inv
   },
 
   // DEAL HEALTH & ANOMALIES

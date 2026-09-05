@@ -25,37 +25,49 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Customer Portal Isolated Experience */}
+        {/* Customer Portal Isolated Experience — CUSTOMER role only. Every
+            underlying API call is also independently enforced server-side
+            (CustomerPortalService derives ownership from the JWT, never from
+            a client-supplied id), but the route itself must not render for
+            an unauthenticated or wrong-role visitor either. */}
         <Route
           path="/portal"
           element={
-            <PortalLayout>
-              <PortalPage />
-            </PortalLayout>
+            <RequireRole allowedRoles={['CUSTOMER']}>
+              <PortalLayout>
+                <PortalPage />
+              </PortalLayout>
+            </RequireRole>
           }
         />
         <Route
           path="/portal/quotes/:token"
           element={
-            <PortalLayout>
-              <PortalPage />
-            </PortalLayout>
+            <RequireRole allowedRoles={['CUSTOMER']}>
+              <PortalLayout>
+                <PortalPage />
+              </PortalLayout>
+            </RequireRole>
           }
         />
         <Route
           path="/portal/quotes/:token/negotiate"
           element={
-            <PortalLayout>
-              <PortalPage />
-            </PortalLayout>
+            <RequireRole allowedRoles={['CUSTOMER']}>
+              <PortalLayout>
+                <PortalPage />
+              </PortalLayout>
+            </RequireRole>
           }
         />
         <Route
           path="/portal/*"
           element={
-            <PortalLayout>
-              <PortalPage />
-            </PortalLayout>
+            <RequireRole allowedRoles={['CUSTOMER']}>
+              <PortalLayout>
+                <PortalPage />
+              </PortalLayout>
+            </RequireRole>
           }
         />
 

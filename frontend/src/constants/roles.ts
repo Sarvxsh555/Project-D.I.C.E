@@ -1,4 +1,4 @@
-import type { Role, UserSession } from '../types/auth'
+import type { Role } from '../types/auth'
 
 export const ROLES: Record<Role, { label: string; description: string }> = {
   SALES_REP: {
@@ -27,47 +27,25 @@ export const ROLES: Record<Role, { label: string; description: string }> = {
   },
 }
 
-export const DEMO_ACCOUNTS: UserSession[] = [
-  {
-    username: 'sales_rep',
-    role: 'SALES_REP',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@odoo-dice.internal',
-    token: 'mock-jwt-sales-rep',
-  },
-  {
-    username: 'sales_manager',
-    role: 'SALES_MANAGER',
-    name: 'Marcus Vance',
-    email: 'marcus.v@odoo-dice.internal',
-    token: 'mock-jwt-sales-mgr',
-  },
-  {
-    username: 'finance',
-    role: 'FINANCE',
-    name: 'Elena Rostova',
-    email: 'elena.r@odoo-dice.internal',
-    token: 'mock-jwt-finance',
-  },
-  {
-    username: 'operations',
-    role: 'OPERATIONS',
-    name: 'David Chen',
-    email: 'david.c@odoo-dice.internal',
-    token: 'mock-jwt-operations',
-  },
-  {
-    username: 'admin',
-    role: 'ADMIN',
-    name: 'System Admin',
-    email: 'admin@odoo-dice.internal',
-    token: 'mock-jwt-admin',
-  },
-  {
-    username: 'customer',
-    role: 'CUSTOMER',
-    name: 'Apex Corp Lead',
-    email: 'buyer@apexcorp.com',
-    token: 'mock-jwt-customer',
-  },
+/**
+ * The six seeded demo accounts (see DevDataSeeder / docs/demo-flow.md) — just
+ * enough to drive the "quick switch stakeholder" UI. Deliberately carries no
+ * name/email/token: those are real profile fields that only the backend
+ * knows, fetched fresh on every login/switch rather than hardcoded here.
+ */
+export interface DemoAccountRef {
+  username: string
+  role: Role
+}
+
+export const DEMO_ACCOUNTS: DemoAccountRef[] = [
+  { username: 'sales_rep', role: 'SALES_REP' },
+  { username: 'sales_manager', role: 'SALES_MANAGER' },
+  { username: 'finance', role: 'FINANCE' },
+  { username: 'operations', role: 'OPERATIONS' },
+  { username: 'admin', role: 'ADMIN' },
+  { username: 'customer', role: 'CUSTOMER' },
 ]
+
+/** Every demo account shares this password — see docs/demo-flow.md. */
+export const DEMO_PASSWORD = 'dice-demo'

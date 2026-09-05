@@ -14,9 +14,16 @@ export interface RequireRoleProps {
 }
 
 export const RequireRole: React.FC<RequireRoleProps> = ({ allowedRoles, children }) => {
-  const { currentUser, isAuthenticated, getDefaultDashboard, switchRole } = useAuth()
+  const { currentUser, isAuthenticated, isLoading, getDefaultDashboard, switchRole } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // A stored token is still being verified against the backend — render
+  // nothing rather than redirect, or a refresh with a perfectly valid
+  // session would flash a redirect to /login before it settles.
+  if (isLoading) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
@@ -88,7 +95,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ allowedRoles, children
                   variant="outline"
                   size="sm"
                   className="w-full sm:w-auto text-xs"
-                  onClick={() => switchRole(allowedRoles[0])}
+                  onClick={() => { switchRole(allowedRoles[0]).catch(() => {}) }}
                   title={`Fast-switch to ${allowedRoles[0]} for evaluation`}
                 >
                   <UserCheck className="w-3.5 h-3.5 mr-1.5" />

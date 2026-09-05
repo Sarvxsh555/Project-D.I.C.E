@@ -2,7 +2,7 @@ import type { DealSummary, DealDetail, DealLineItem } from '../types/deal'
 import type { DiceDecision } from '../types/dice'
 import type { ApprovalView } from '../types/approval'
 import type { FulfillmentOrder, WarehouseStock } from '../types/fulfillment'
-import type { HybridBillingDetail, Subscription, Invoice } from '../types/billing'
+import type { BillingSchedule, Subscription, Invoice } from '../types/billing'
 import type { NegotiationDetail, PortalQuoteView } from '../types/negotiation'
 import type { Product, PricelistItem, DiscountRule, Customer, Policy } from '../types/product'
 import type { HealthScoreBreakdown } from '../types/health'
@@ -500,93 +500,47 @@ export const MOCK_FULFILLMENT_ORDERS: Record<string, FulfillmentOrder> = {
   },
 }
 
-// 9. SUBSCRIPTIONS & HYBRID BILLING
+// 9. SUBSCRIPTIONS & HYBRID BILLING — shapes match SubscriptionController /
+// BillingEngine / InvoiceController exactly, since this is the fallback the
+// real API's shape must not silently diverge from.
 export const MOCK_SUBSCRIPTIONS: Subscription[] = [
   {
     id: 'sub-1042',
+    customerId: 'cust-acme',
     dealId: 'd-1042',
-    dealNumber: 'Q-1042',
-    customerName: 'Acme Corporation',
-    planName: 'Gold 24/7 Enterprise Care',
-    amount: 10000,
-    billingInterval: 'Monthly',
+    dealLineId: 'line-1042-1',
+    planId: 'plan-gold-247',
     startDate: '2026-10-01',
     nextBillingDate: '2026-11-01',
     status: 'ACTIVE',
   },
   {
     id: 'sub-1035',
+    customerId: 'cust-stark',
     dealId: 'd-1035',
-    dealNumber: 'Q-1035',
-    customerName: 'Stark Systems',
-    planName: 'Platinum Cloud Telemetry',
-    amount: 25000,
-    billingInterval: 'Monthly',
+    dealLineId: 'line-1035-1',
+    planId: 'plan-platinum-telemetry',
     startDate: '2026-09-01',
     nextBillingDate: '2026-10-01',
     status: 'ACTIVE',
   },
 ]
 
-export const MOCK_BILLING_DETAILS: Record<string, HybridBillingDetail> = {
+export const MOCK_BILLING_DETAILS: Record<string, BillingSchedule> = {
   'd-1042': {
-    id: 'bill-1042',
     dealId: 'd-1042',
-    dealNumber: 'Q-1042',
-    customerName: 'Acme Corporation',
-    oneTimeTotal: 352000,
-    recurringMonthlyTotal: 10000,
-    discountAmount: 66000,
-    taxAmount: 0,
-    netTotal: 434000,
-    charges: [
-      {
-        id: 'ch-1',
-        description: 'Enterprise Server (20 units hardware)',
-        type: 'ONE_TIME',
-        amount: 352000,
-      },
-      {
-        id: 'ch-2',
-        description: 'Premium Support 24/7 Plan',
-        type: 'RECURRING',
-        amount: 10000,
-        interval: 'Monthly',
-      },
+    currency: 'USD',
+    totalAmount: 434000,
+    paymentTermsDays: 30,
+    installments: [
+      { code: 'DEPOSIT', label: 'Hardware Shipment Deposit', amount: 352000, dueDate: '2026-10-01' },
+      { code: 'MONTH_1', label: 'Premium Support — Billing Month 1', amount: 10000, dueDate: '2026-10-01' },
+      { code: 'MONTH_2', label: 'Premium Support — Billing Month 2', amount: 10000, dueDate: '2026-11-01' },
+      { code: 'MONTH_3', label: 'Premium Support — Billing Month 3', amount: 10000, dueDate: '2026-12-01' },
     ],
-    timeline: [
-      {
-        id: 'bt-1',
-        date: '2026-10-01',
-        amount: 352000,
-        chargeType: 'ONE_TIME',
-        description: 'Hardware Shipment Delivery (Enterprise Server x 20)',
-        status: 'PENDING',
-      },
-      {
-        id: 'bt-2',
-        date: '2026-10-01',
-        amount: 10000,
-        chargeType: 'RECURRING',
-        description: 'Premium Support — Billing Month 1',
-        status: 'PENDING',
-      },
-      {
-        id: 'bt-3',
-        date: '2026-11-01',
-        amount: 10000,
-        chargeType: 'RECURRING',
-        description: 'Premium Support — Billing Month 2',
-        status: 'PENDING',
-      },
-      {
-        id: 'bt-4',
-        date: '2026-12-01',
-        amount: 10000,
-        chargeType: 'RECURRING',
-        description: 'Premium Support — Billing Month 3',
-        status: 'PENDING',
-      },
+    lineItems: [
+      { sku: 'SKU-1001', description: 'Enterprise Server (20 units hardware)', quantity: 20, unitPrice: 17600, amount: 352000 },
+      { sku: 'SVC-247', description: 'Premium Support 24/7 Plan', quantity: 1, unitPrice: 10000, amount: 10000 },
     ],
   },
 }
@@ -595,80 +549,47 @@ export const MOCK_BILLING_DETAILS: Record<string, HybridBillingDetail> = {
 export const MOCK_INVOICES: Invoice[] = [
   {
     id: 'inv-1042',
-    invoiceNumber: 'INV-1042',
     dealId: 'd-1042',
-    dealNumber: 'Q-1042',
-    customerName: 'Acme Corporation',
-    amount: 400000,
-    issueDate: '2026-09-01',
-    issuedDate: '2026-09-01',
-    dueDate: '2026-09-15',
-    paidDate: '2026-09-12',
+    customerId: 'cust-acme',
+    subscriptionId: null,
     status: 'PAID',
-    currency: 'INR',
-    subtotal: 400000,
-    tax: 0,
-    discount: 0,
-    total: 400000,
+    currency: 'USD',
+    totalAmount: 400000,
+    dueDate: '2026-09-15',
+    issuedAt: '2026-09-01T00:00:00Z',
+    paidAt: '2026-09-12T00:00:00Z',
     lines: [
-      {
-        description: 'Advance Deposit for Enterprise Server Hardware Batch',
-        quantity: 20,
-        unitPrice: 20000,
-        total: 400000,
-      },
+      { sku: 'SKU-1001', description: 'Advance Deposit for Enterprise Server Hardware Batch', quantity: 20, unitPrice: 20000, amount: 400000 },
     ],
   },
   {
     id: 'inv-1043',
-    invoiceNumber: 'INV-1043',
     dealId: 'd-1038',
-    dealNumber: 'Q-1038',
-    customerName: 'Globex Industries',
-    amount: 185000,
-    issueDate: '2026-09-05',
-    issuedDate: '2026-09-05',
-    dueDate: '2026-09-20',
-    paidDate: null,
+    customerId: 'cust-globex',
+    subscriptionId: null,
     status: 'ISSUED',
-    currency: 'INR',
-    subtotal: 185000,
-    tax: 0,
-    discount: 0,
-    total: 185000,
+    currency: 'USD',
+    totalAmount: 185000,
+    dueDate: '2026-09-20',
+    issuedAt: '2026-09-05T00:00:00Z',
+    paidAt: null,
     lines: [
-      {
-        description: 'Full Fulfillment Invoice for System Expansion',
-        quantity: 1,
-        unitPrice: 185000,
-        total: 185000,
-      },
+      { sku: null, description: 'Full Fulfillment Invoice for System Expansion', quantity: 1, unitPrice: 185000, amount: 185000 },
     ],
   },
   {
     id: 'inv-1044',
-    invoiceNumber: 'INV-1044',
     dealId: 'd-1035',
-    dealNumber: 'Q-1035',
-    customerName: 'Stark Systems',
-    amount: 350000,
-    issueDate: '2026-09-10',
-    issuedDate: '2026-09-10',
-    dueDate: '2026-09-25',
-    paidDate: null,
+    customerId: 'cust-stark',
+    subscriptionId: null,
     status: 'DRAFT',
-    currency: 'INR',
-    subtotal: 350000,
-    tax: 0,
-    discount: 0,
-    total: 350000,
+    currency: 'USD',
+    totalAmount: 350000,
+    dueDate: '2026-09-25',
+    issuedAt: null,
+    paidAt: null,
     lines: [
-      {
-        description: 'Initial Phase Milestone Invoice',
-        quantity: 1,
-        unitPrice: 350000,
-        total: 350000,
-      },
+      { sku: null, description: 'Initial Phase Milestone Invoice', quantity: 1, unitPrice: 350000, amount: 350000 },
     ],
   },
 ]
