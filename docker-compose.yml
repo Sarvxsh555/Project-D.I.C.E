@@ -1,0 +1,30 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      JWT_SECRET: change-this-demo-secret-key-please-32-bytes-min
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5175
+      REDIS_URL: redis://redis:6379
+      SERVICE_LOGIN: http://host.docker.internal:8080
+      SERVICE_QUOTATION: http://host.docker.internal:8082
+      SERVICE_DEAL: http://host.docker.internal:8083
+      SERVICE_GOVERNANCE: http://host.docker.internal:8084
+      SERVICE_APPROVAL: http://host.docker.internal:8085
+      SERVICE_NEGOTIATION: http://host.docker.internal:8086
+      SERVICE_INVENTORY: http://host.docker.internal:8087
+      SERVICE_FULFILLMENT: http://host.docker.internal:8088
+      SERVICE_RECOMMENDATION: http://host.docker.internal:8089
+      SERVICE_DEAL_HEALTH: http://host.docker.internal:8090
+      SERVICE_BILLING: http://host.docker.internal:8091
+      SERVICE_OEEG: http://host.docker.internal:8092
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
