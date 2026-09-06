@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * D.I.C.E. — Deal Intelligence & Control Engine.
@@ -28,7 +30,23 @@ public class DiceEngine {
             boolean autoApprove,
             RequiredLevel requiredLevel,
             List<String> chain,
-            List<String> reasons
+            List<String> reasons,
+            List<CategoryRisk> categoryBreakdown
+    ) {}
+
+    /**
+     * Blended risk for one product category: line values within the category are weighted
+     * by their own subtotal so a few thin-margin lines can't hide behind a big low-risk one,
+     * and a single wild outlier line can't dominate a category that's mostly fine either.
+     */
+    public record CategoryRisk(
+            String category,
+            double lineCount,
+            double blendedDiscountPercent,
+            double ceiling,
+            double overage,
+            double categoryRiskScore,
+            boolean breached
     ) {}
 
     private static final double AUTO_APPROVE_RISK = 40.0;
@@ -64,32 +82,55 @@ public class DiceEngine {
         reasons.add("BASELINE_DISCOUNT: overall discount " + round(overallDiscount) + "% contributes "
                 + round(overallDiscount * 1.2) + " risk");
 
+        Map<String, double[]> valueByCategory = new LinkedHashMap<>(); // [weightedDiscountSum, valueSum, lineCount]
+        Map<String, String> categoryDisplay = new LinkedHashMap<>();
+
         for (QuotationLine line : quotation.getLines()) {
             Product product = products.findById(line.getProductId()).orElse(null);
             String category = product != null ? product.getCategory() : "General";
+            String key = category == null ? "General" : category.toLowerCase(Locale.ROOT);
+            categoryDisplay.putIfAbsent(key, category == null ? "General" : category);
+            double lineValue = Math.max(line.getSubtotal(), 0.01);
+            double[] acc = valueByCategory.computeIfAbsent(key, k -> new double[3]);
+            acc[0] += line.getDiscountPercent() * lineValue;
+            acc[1] += lineValue;
+            acc[2] += 1;
+        }
+
+        List<CategoryRisk> categoryBreakdown = new ArrayList<>();
+        for (Map.Entry<String, double[]> entry : valueByCategory.entrySet()) {
+            String category = categoryDisplay.get(entry.getKey());
+            double[] acc = entry.getValue();
+            double blendedDiscount = acc[1] > 0 ? acc[0] / acc[1] : 0;
             double ceiling = lineCeiling(customer.getTier(), category);
-            double over = line.getDiscountPercent() - ceiling;
-            if (over > 0) {
+            double over = blendedDiscount - ceiling;
+            boolean breached = over > 0;
+            double categoryRisk = breached ? over * 2.0 : 0;
+
+            if (breached) {
                 anyLineOver = true;
                 blendedOverage += over;
-                risk += over * 2.0;
+                risk += categoryRisk;
                 required = highest(required, RequiredLevel.SALES_MANAGER);
-                reasons.add("LINE_CEILING: " + line.getProductName() + " at " + round(line.getDiscountPercent())
-                        + "% exceeds " + customer.getTier() + "/" + category + " ceiling " + ceiling + "%");
-                if (isService(category) && over > 0) {
+                reasons.add("CATEGORY_BLEND: " + category + " blended discount " + round(blendedDiscount)
+                        + "% across " + (int) acc[2] + " item(s) exceeds " + customer.getTier() + " ceiling " + ceiling + "%");
+                if (isService(category)) {
                     serviceOver = true;
                     required = highest(required, RequiredLevel.SALES_MANAGER);
                 }
             }
+
+            categoryBreakdown.add(new CategoryRisk(category, acc[2], round2(blendedDiscount), ceiling,
+                    round2(Math.max(over, 0)), round2(categoryRisk), breached));
         }
 
         if (blendedOverage > 0 && blendedOverage < 8 && anyLineOver) {
-            reasons.add("BLENDED_OVERAGE: stacked overages total " + round(blendedOverage)
-                    + " points — pattern cannot slip as 'each line is almost fine'");
+            reasons.add("BLENDED_OVERAGE: stacked category overages total " + round(blendedOverage)
+                    + " points — pattern cannot slip as 'each category is almost fine'");
         }
 
         if (serviceOver) {
-            reasons.add("SERVICE_LINE_STRICT: a thin-margin service line broke its own ceiling");
+            reasons.add("SERVICE_LINE_STRICT: a thin-margin service category broke its own ceiling");
         }
 
         if (quotation.getMarginPercent() < MARGIN_FLOOR) {
@@ -154,7 +195,7 @@ public class DiceEngine {
                     + " and policy allow the quote to skip the human queue");
         }
 
-        return new Decision(Math.min(risk, 100), autoApprove, required, chain, reasons);
+        return new Decision(Math.min(risk, 100), autoApprove, required, chain, reasons, categoryBreakdown);
     }
 
     private static boolean isPremiumTier(String tier) {
@@ -187,5 +228,9 @@ public class DiceEngine {
 
     private static String round(double v) {
         return String.format(Locale.ROOT, "%.1f", v);
+    }
+
+    private static double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 }

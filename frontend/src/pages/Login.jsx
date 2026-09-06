@@ -23,7 +23,7 @@ function Login() {
       const data = await api.login({ username, password });
       login(data.accessToken);
       const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
-      if (payload.role === 'CUSTOMER') navigate('/customer-portal');
+      if (payload.role === 'CUSTOMER') navigate('/customer/dashboard');
       else if (payload.role === 'SALES_REP') navigate('/workspace');
       else navigate('/admin'); // ADMIN, SALES_MANAGER, FINANCE all land in the admin console
     } catch (err) {

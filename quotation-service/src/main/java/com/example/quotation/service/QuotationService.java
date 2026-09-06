@@ -1,5 +1,6 @@
 package com.example.quotation.service;
 
+import com.example.quotation.client.DealEngineClient;
 import com.example.quotation.model.*;
 import com.example.quotation.repository.ApprovalStepRepository;
 import com.example.quotation.repository.AuditEventRepository;
@@ -32,12 +33,13 @@ public class QuotationService {
     private final ApprovalStepRepository approvalSteps;
     private final AuditEventRepository auditEvents;
     private final DiceEngine diceEngine;
+    private final DealEngineClient dealEngineClient;
     private final AtomicInteger quoteSequence = new AtomicInteger(1000);
 
     public QuotationService(QuotationRepository quotations, CustomerRepository customers,
                              ProductRepository products, CustomerPriceRepository customerPrices,
                              ApprovalStepRepository approvalSteps, AuditEventRepository auditEvents,
-                             DiceEngine diceEngine) {
+                             DiceEngine diceEngine, DealEngineClient dealEngineClient) {
         this.quotations = quotations;
         this.customers = customers;
         this.products = products;
@@ -45,6 +47,20 @@ public class QuotationService {
         this.approvalSteps = approvalSteps;
         this.auditEvents = auditEvents;
         this.diceEngine = diceEngine;
+        this.dealEngineClient = dealEngineClient;
+    }
+
+    /**
+     * Fires exactly once a quotation actually becomes an order: opens the deal in deal-engine
+     * and immediately converts it, so ORDERED quotations always have a real Deal + Order
+     * behind them instead of leaving those deal-engine endpoints orphaned. Runs inside the
+     * same transaction as the stage flip - if deal-engine rejects it, the ORDERED transition
+     * rolls back too, so the two services never disagree about whether an order exists.
+     */
+    private void openAndConvertDeal(Quotation quotation, String bearerToken) {
+        if (bearerToken == null) return;
+        Long dealId = dealEngineClient.createDeal(quotation.getId(), bearerToken);
+        dealEngineClient.convertToOrder(dealId, bearerToken);
     }
 
     public Quotation create(QuotationRequest request, String repUsername) {
@@ -63,7 +79,10 @@ public class QuotationService {
         return quotations.save(quotation);
     }
 
-    public Quotation update(Long id, QuotationRequest request) {
+    public Quotation update(Long id, QuotationRequest request, UserPrincipal actor) {
+        if (actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Customers cannot edit quotations");
+        }
         Quotation quotation = getOrThrow(id);
         if (quotation.getStage() != PipelineStage.DRAFT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only draft quotations can be edited");
@@ -79,8 +98,9 @@ public class QuotationService {
         return quotations.save(quotation);
     }
 
-    public Quotation transition(Long id, PipelineStage toStage, String username) {
+    public Quotation transition(Long id, PipelineStage toStage, String username, UserPrincipal actor, String bearerToken) {
         Quotation quotation = getOrThrow(id);
+        assertCustomerAccess(quotation, actor);
         PipelineStage from = quotation.getStage();
 
         if (!from.canTransitionTo(toStage)) {
@@ -99,7 +119,7 @@ public class QuotationService {
         }
 
         if (toStage == PipelineStage.PENDING_APPROVAL) {
-            return submitForApproval(quotation, username, from);
+            return submitForApproval(quotation, username, from, bearerToken);
         }
 
         quotation.setStage(toStage);
@@ -121,7 +141,7 @@ public class QuotationService {
      * auto-approve and move toward order; high-risk quotes enter the internal chain
      * already marked as customer-accepted.
      */
-    public Quotation customerConfirm(Long id, UserPrincipal actor) {
+    public Quotation customerConfirm(Long id, UserPrincipal actor, String bearerToken) {
         if (!actor.isCustomer()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the customer can confirm these terms");
         }
@@ -144,6 +164,7 @@ public class QuotationService {
             Quotation saved = quotations.save(quotation);
             logAudit(saved, actor.username(), "TRANSITION", "Customer confirmed — proceeding to order",
                     PipelineStage.APPROVED, PipelineStage.ORDERED);
+            openAndConvertDeal(saved, bearerToken);
             return saved;
         }
 
@@ -152,13 +173,35 @@ public class QuotationService {
             return quotations.save(quotation);
         }
 
-        return submitForApproval(quotation, actor.username(), from);
+        return submitForApproval(quotation, actor.username(), from, bearerToken);
     }
 
     public Quotation getVisibleTo(Long id, UserPrincipal actor) {
         Quotation quotation = getOrThrow(id);
         assertCustomerAccess(quotation, actor);
         return quotation;
+    }
+
+    public List<DiceEngine.CategoryRisk> getRiskBreakdown(Long id, UserPrincipal actor) {
+        Quotation quotation = getVisibleTo(id, actor);
+        if (actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Internal risk data is not customer-visible");
+        }
+        return diceEngine.evaluate(quotation).categoryBreakdown();
+    }
+
+    /**
+     * Live blended-risk preview while a rep is still building a quote in the browser —
+     * mirrors create()'s math but never touches the database, so it's safe to call on every edit.
+     */
+    public DiceEngine.Decision previewRisk(QuotationRequest request) {
+        Customer customer = customers.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
+
+        Quotation quotation = new Quotation();
+        quotation.setCustomerId(customer.getId());
+        applyLines(quotation, request.getLines(), customer);
+        return diceEngine.evaluate(quotation);
     }
 
     public void assertCustomerAccess(Quotation quotation, UserPrincipal actor) {
@@ -282,8 +325,10 @@ public class QuotationService {
      * can change. The stage flip to NEGOTIATION is what makes the change externally visible
      * as "this approval is now stale" - approval-engine's version hash will no longer match.
      */
-    public Quotation applyCounterDiscount(Long id, Long lineId, double proposedDiscountPercent, String username, String reason) {
+    public Quotation applyCounterDiscount(Long id, Long lineId, double proposedDiscountPercent, String reason, UserPrincipal actor) {
         Quotation quotation = getOrThrow(id);
+        assertCustomerAccess(quotation, actor);
+        String username = actor.username();
         PipelineStage from = quotation.getStage();
 
         if (from != PipelineStage.APPROVED && from != PipelineStage.NEGOTIATION
@@ -322,12 +367,33 @@ public class QuotationService {
         return saved;
     }
 
-    public List<ApprovalStep> getApprovalChain(Long id) {
-        return approvalSteps.findByQuotationIdOrderByStepOrderAsc(id);
+    public List<ApprovalStep> getApprovalChain(Long id, UserPrincipal actor) {
+        Quotation quotation = getVisibleTo(id, actor);
+        if (actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Internal approval details are not customer-visible");
+        }
+        return approvalSteps.findByQuotationIdOrderByStepOrderAsc(quotation.getId());
     }
 
-    public List<AuditEvent> getAuditHistory(Long id) {
-        return auditEvents.findByQuotationIdOrderByCreatedAtAsc(id);
+    public List<AuditEvent> getAuditHistory(Long id, UserPrincipal actor) {
+        Quotation quotation = getVisibleTo(id, actor);
+        if (actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Internal audit history is not customer-visible");
+        }
+        return auditEvents.findByQuotationIdOrderByCreatedAtAsc(quotation.getId());
+    }
+
+    /** Removes internal margin/risk data from a response object bound for a customer-role caller. Never persisted. */
+    public Quotation sanitizeForCustomer(Quotation quotation, UserPrincipal actor) {
+        if (actor.isCustomer()) {
+            quotation.setGrossMargin(0);
+            quotation.setMarginPercent(0);
+            quotation.setRiskScore(0);
+            for (QuotationLine line : quotation.getLines()) {
+                line.setMargin(0);
+            }
+        }
+        return quotation;
     }
 
     public Quotation getOrThrow(Long id) {

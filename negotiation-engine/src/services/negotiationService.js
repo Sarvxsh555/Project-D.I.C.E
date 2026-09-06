@@ -36,12 +36,23 @@ export async function listEvents(quotationId) {
   return rows.rows;
 }
 
-export async function listVersions(quotationId) {
+export async function listVersions(quotationId, redactInternal = false) {
   const rows = await pool.query(
     `SELECT * FROM quote_negotiation_version WHERE quotation_id = $1 ORDER BY created_at ASC`,
     [quotationId]
   );
-  return rows.rows;
+  if (!redactInternal) return rows.rows;
+  return rows.rows.map((row) => {
+    const { margin_percent, snapshot, ...rest } = row;
+    const cleanSnapshot = { ...snapshot };
+    delete cleanSnapshot.grossMargin;
+    delete cleanSnapshot.marginPercent;
+    delete cleanSnapshot.riskScore;
+    if (Array.isArray(cleanSnapshot.lines)) {
+      cleanSnapshot.lines = cleanSnapshot.lines.map(({ margin, ...line }) => line);
+    }
+    return { ...rest, snapshot: cleanSnapshot };
+  });
 }
 
 /**

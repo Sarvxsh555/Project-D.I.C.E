@@ -1,5 +1,6 @@
 package com.example.fulfillment.controller;
 
+import com.example.fulfillment.client.ExternalServicesClient;
 import com.example.fulfillment.model.FulfillmentPlan;
 import com.example.fulfillment.service.FulfillmentService;
 import com.example.fulfillment.web.OverrideRequest;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 public class FulfillmentController {
 
     private final FulfillmentService fulfillmentService;
+    private final ExternalServicesClient externalServicesClient;
 
-    public FulfillmentController(FulfillmentService fulfillmentService) {
+    public FulfillmentController(FulfillmentService fulfillmentService, ExternalServicesClient externalServicesClient) {
         this.fulfillmentService = fulfillmentService;
+        this.externalServicesClient = externalServicesClient;
     }
 
     @PostMapping("/orders/{orderId}/propose")
@@ -24,13 +27,18 @@ public class FulfillmentController {
     }
 
     @GetMapping("/orders/{orderId}")
-    public FulfillmentPlan getByOrder(@PathVariable Long orderId) {
+    public FulfillmentPlan getByOrder(@PathVariable Long orderId, @RequestHeader("Authorization") String auth) {
+        // Delegates ownership enforcement to deal-engine, which already verifies the caller
+        // owns this order (or rejects with 403/404) before this plan is returned.
+        externalServicesClient.fetchOrder(orderId, bearer(auth));
         return fulfillmentService.getByOrder(orderId);
     }
 
     @GetMapping("/plans/{id}")
-    public FulfillmentPlan get(@PathVariable Long id) {
-        return fulfillmentService.getOrThrow(id);
+    public FulfillmentPlan get(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
+        FulfillmentPlan plan = fulfillmentService.getOrThrow(id);
+        externalServicesClient.fetchOrder(plan.getOrderId(), bearer(auth));
+        return plan;
     }
 
     @PostMapping("/plans/{id}/accept")

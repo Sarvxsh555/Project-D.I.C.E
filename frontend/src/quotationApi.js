@@ -45,6 +45,7 @@ export const quotationApi = {
   get: (token, id) => request(`/quotations/${id}`, { token }),
   create: (token, body) => request('/quotations', { method: 'POST', token, body }),
   update: (token, id, body) => request(`/quotations/${id}`, { method: 'PUT', token, body }),
+  riskPreview: (token, body) => request('/quotations/risk-preview', { method: 'POST', token, body }),
   transition: (token, id, toStage) =>
     request(`/quotations/${id}/transition`, { method: 'POST', token, body: { toStage } }),
   products: (token, params) => request(`/products${toQuery(params)}`, { token }),

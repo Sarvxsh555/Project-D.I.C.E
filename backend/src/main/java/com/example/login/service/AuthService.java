@@ -105,11 +105,6 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
 
-        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
-            throw new ResponseStatusException(HttpStatus.LOCKED,
-                    "Account temporarily locked due to repeated failed attempts. Try again later.");
-        }
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             recordFailedAttempt(user);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");

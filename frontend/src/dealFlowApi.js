@@ -32,6 +32,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
 
 export const dealApi = {
   getOrder: (token, orderId) => request(`/orders/${orderId}`, { token }),
+  listMine: (token) => request('/orders', { token }),
 };
 
 export const fulfillmentApi = {

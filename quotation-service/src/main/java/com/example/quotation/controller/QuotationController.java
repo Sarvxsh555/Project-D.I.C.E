@@ -63,12 +63,15 @@ public class QuotationController {
         }
         var spec = QuotationSpecifications.filter(status, scopedCustomerId, rep, from, to, minAmount, maxAmount, q);
         var pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        return quotationRepository.findAll(spec, pageable);
+        Page<Quotation> results = quotationRepository.findAll(spec, pageable);
+        results.forEach(q2 -> quotationService.sanitizeForCustomer(q2, actor));
+        return results;
     }
 
     @GetMapping("/{id}")
     public Quotation get(@PathVariable Long id, Authentication authentication) {
-        return quotationService.getVisibleTo(id, UserPrincipal.from(authentication));
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.sanitizeForCustomer(quotationService.getVisibleTo(id, actor), actor);
     }
 
     @PostMapping
@@ -78,31 +81,46 @@ public class QuotationController {
     }
 
     @PutMapping("/{id}")
-    public Quotation update(@PathVariable Long id, @Valid @RequestBody QuotationRequest request) {
-        return quotationService.update(id, request);
+    public Quotation update(@PathVariable Long id, @Valid @RequestBody QuotationRequest request,
+                             Authentication authentication) {
+        return quotationService.update(id, request, UserPrincipal.from(authentication));
     }
 
     @PostMapping("/{id}/transition")
     public Quotation transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request,
                                  Authentication authentication) {
-        return quotationService.transition(id, request.getToStage(), authentication.getName());
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.transition(id, request.getToStage(), authentication.getName(), actor);
     }
 
     @GetMapping("/{id}/approval-chain")
-    public List<ApprovalStep> approvalChain(@PathVariable Long id) {
-        return quotationService.getApprovalChain(id);
+    public List<ApprovalStep> approvalChain(@PathVariable Long id, Authentication authentication) {
+        return quotationService.getApprovalChain(id, UserPrincipal.from(authentication));
+    }
+
+    @GetMapping("/{id}/risk-breakdown")
+    public List<com.example.quotation.service.DiceEngine.CategoryRisk> riskBreakdown(
+            @PathVariable Long id, Authentication authentication) {
+        return quotationService.getRiskBreakdown(id, UserPrincipal.from(authentication));
+    }
+
+    @PostMapping("/risk-preview")
+    public com.example.quotation.service.DiceEngine.Decision riskPreview(@Valid @RequestBody QuotationRequest request) {
+        return quotationService.previewRisk(request);
     }
 
     @GetMapping("/{id}/audit")
-    public List<AuditEvent> audit(@PathVariable Long id) {
-        return quotationService.getAuditHistory(id);
+    public List<AuditEvent> audit(@PathVariable Long id, Authentication authentication) {
+        return quotationService.getAuditHistory(id, UserPrincipal.from(authentication));
     }
 
     @PostMapping("/{id}/counter-discount")
     public Quotation counterDiscount(@PathVariable Long id, @Valid @RequestBody CounterDiscountRequest request,
                                       Authentication authentication) {
-        return quotationService.applyCounterDiscount(id, request.getLineId(), request.getProposedDiscountPercent(),
-                authentication.getName(), request.getReason());
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        Quotation saved = quotationService.applyCounterDiscount(id, request.getLineId(),
+                request.getProposedDiscountPercent(), request.getReason(), actor);
+        return quotationService.sanitizeForCustomer(saved, actor);
     }
 
     @PostMapping("/{id}/approve")
@@ -128,6 +146,7 @@ public class QuotationController {
 
     @PostMapping("/{id}/customer-confirm")
     public Quotation customerConfirm(@PathVariable Long id, Authentication authentication) {
-        return quotationService.customerConfirm(id, UserPrincipal.from(authentication));
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        return quotationService.sanitizeForCustomer(quotationService.customerConfirm(id, actor), actor);
     }
 }

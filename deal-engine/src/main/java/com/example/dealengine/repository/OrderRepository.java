@@ -10,4 +10,5 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByDealId(Long dealId);
     Optional<Order> findByQuotationId(Long quotationId);
     boolean existsByOrderNo(String orderNo);
+    List<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 }

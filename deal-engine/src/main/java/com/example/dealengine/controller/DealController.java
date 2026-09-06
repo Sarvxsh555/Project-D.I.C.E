@@ -3,6 +3,7 @@ package com.example.dealengine.controller;
 import com.example.dealengine.model.Deal;
 import com.example.dealengine.model.Order;
 import com.example.dealengine.model.QuoteVersion;
+import com.example.dealengine.security.UserPrincipal;
 import com.example.dealengine.service.DealService;
 import com.example.dealengine.web.CreateDealRequest;
 import com.example.dealengine.web.ReasonRequest;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -25,13 +27,17 @@ public class DealController {
     }
 
     @GetMapping
-    public List<Deal> list() {
+    public List<Deal> list(Authentication authentication) {
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        if (actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Customers cannot list all deals");
+        }
         return dealService.list();
     }
 
     @GetMapping("/{id}")
-    public Deal get(@PathVariable Long id) {
-        return dealService.getOrThrow(id);
+    public Deal get(@PathVariable Long id, Authentication authentication) {
+        return dealService.getDealVisibleTo(id, UserPrincipal.from(authentication));
     }
 
     @PostMapping
@@ -49,8 +55,8 @@ public class DealController {
     }
 
     @GetMapping("/{id}/versions")
-    public List<QuoteVersion> versions(@PathVariable Long id) {
-        return dealService.getVersions(id);
+    public List<QuoteVersion> versions(@PathVariable Long id, Authentication authentication) {
+        return dealService.getVersions(id, UserPrincipal.from(authentication));
     }
 
     @PostMapping("/{id}/lost")
@@ -65,8 +71,8 @@ public class DealController {
     }
 
     @GetMapping("/{id}/orders")
-    public List<Order> ordersForDeal(@PathVariable Long id) {
-        return dealService.getOrdersForDeal(id);
+    public List<Order> ordersForDeal(@PathVariable Long id, Authentication authentication) {
+        return dealService.getOrdersForDeal(id, UserPrincipal.from(authentication));
     }
 
     private String bearer(String authHeader) {

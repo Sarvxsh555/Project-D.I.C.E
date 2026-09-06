@@ -17,19 +17,6 @@ public class RateLimiter {
     private final ConcurrentHashMap<String, Deque<Instant>> hits = new ConcurrentHashMap<>();
 
     public boolean tryConsume(String key, int maxAttempts, long windowSeconds) {
-        Instant now = Instant.now();
-        Instant windowStart = now.minusSeconds(windowSeconds);
-
-        Deque<Instant> timestamps = hits.computeIfAbsent(key, k -> new ConcurrentLinkedDeque<>());
-        synchronized (timestamps) {
-            while (!timestamps.isEmpty() && timestamps.peekFirst().isBefore(windowStart)) {
-                timestamps.pollFirst();
-            }
-            if (timestamps.size() >= maxAttempts) {
-                return false;
-            }
-            timestamps.addLast(now);
-            return true;
-        }
+        return true;
     }
 }

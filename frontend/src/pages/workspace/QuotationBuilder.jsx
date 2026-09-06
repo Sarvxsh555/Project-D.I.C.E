@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Flame, X, FileText, ShoppingCart, PackageSearch } from 'lucide-react';
+import { Flame, X, FileText, ShoppingCart, PackageSearch, Gauge, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, stageLabel, formatInr } from '../../quotationApi.js';
 
@@ -51,6 +51,8 @@ export default function QuotationBuilder() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
+  const [riskPreview, setRiskPreview] = useState(null);
+  const [riskPreviewError, setRiskPreviewError] = useState('');
 
   useEffect(() => {
     quotationApi.customers(token).then(setCustomers).catch((err) => setError(err.message));
@@ -94,6 +96,27 @@ export default function QuotationBuilder() {
       .then(setRecommendations)
       .catch(() => setRecommendations([]));
   }, [lines.map((l) => l.productId).join(','), token]);
+
+  useEffect(() => {
+    if (stage !== 'DRAFT' || !customerId || lines.length === 0) {
+      setRiskPreview(null);
+      return;
+    }
+    const handle = setTimeout(() => {
+      quotationApi
+        .riskPreview(token, {
+          customerId: Number(customerId),
+          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, discountPercent: l.discountPercent })),
+        })
+        .then((decision) => {
+          setRiskPreview(decision);
+          setRiskPreviewError('');
+        })
+        .catch((err) => setRiskPreviewError(err.message));
+    }, 400);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId, JSON.stringify(lines.map((l) => [l.productId, l.quantity, l.discountPercent])), token, stage]);
 
   const filteredProducts = products.filter(
     (p) =>
@@ -364,6 +387,61 @@ export default function QuotationBuilder() {
           </div>
         </div>
 
+        <div className="flex flex-col gap-5">
+        <div className="panel">
+          <h2 className="font-bold text-odooink mb-3 flex items-center gap-1.5">
+            <Gauge size={17} className="text-odoo-600" />
+            Blended Risk by Category
+          </h2>
+          {riskPreviewError && <p className="status-banner-error mb-3 text-xs">{riskPreviewError}</p>}
+          {!riskPreview ? (
+            <div className="empty-state py-6">
+              <p className="text-xs text-gray-400">Pick a customer and add products to see live risk.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3 rounded-lg bg-odoo-50 px-3 py-2">
+                <span className="text-xs font-medium text-odoo-700">Overall risk score</span>
+                <span className="text-lg font-extrabold text-odoo-700">{Math.round(riskPreview.riskScore)}</span>
+              </div>
+              {riskPreview.categoryBreakdown.length === 0 ? (
+                <p className="text-xs text-gray-400">No categories to blend yet.</p>
+              ) : (
+                <div className="space-y-2.5 mb-2">
+                  {riskPreview.categoryBreakdown.map((c) => (
+                    <div
+                      key={c.category}
+                      className={`rounded-lg border p-2.5 text-xs ${
+                        c.breached ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-semibold text-odooink">
+                        <span className="flex items-center gap-1">
+                          {c.breached && <AlertTriangle size={13} className="text-red-500" />}
+                          {c.category}
+                        </span>
+                        <span>{c.lineCount} item{c.lineCount === 1 ? '' : 's'}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-500 mt-1">
+                        <span>Blended discount: {c.blendedDiscountPercent}%</span>
+                        <span>Ceiling: {c.ceiling}%</span>
+                      </div>
+                      {c.breached && (
+                        <div className="text-red-600 font-medium mt-1">
+                          Over by {c.overage}% — +{c.categoryRiskScore} risk
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {riskPreview.chain.length > 0 && (
+                <p className="text-xs text-gray-500">Approval needed: {riskPreview.chain.join(' → ')}</p>
+              )}
+            </>
+          )}
+        </div>
+
         <div className="panel">
           <h2 className="font-bold text-odooink mb-3 flex items-center gap-1.5">
             <Flame size={17} className="text-amber-500" />
@@ -402,6 +480,7 @@ export default function QuotationBuilder() {
                 ))}
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

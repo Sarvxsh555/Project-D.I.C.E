@@ -28,7 +28,13 @@ import Pipeline from './pages/workspace/Pipeline.jsx';
 import Customers from './pages/workspace/Customers.jsx';
 import Tasks from './pages/workspace/Tasks.jsx';
 import Notifications from './pages/workspace/Notifications.jsx';
-import CustomerPortal from './pages/portal/CustomerPortal.jsx';
+import CustomerLayout from './pages/customer/CustomerLayout.jsx';
+import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
+import CustomerQuotations from './pages/customer/CustomerQuotations.jsx';
+import CustomerQuotationDetail from './pages/customer/CustomerQuotationDetail.jsx';
+import CustomerOrders from './pages/customer/CustomerOrders.jsx';
+import CustomerOrderDetail from './pages/customer/CustomerOrderDetail.jsx';
+import CustomerProfile from './pages/customer/CustomerProfile.jsx';
 import ToastContainer from './components/ToastContainer.jsx';
 
 function App() {
@@ -52,13 +58,21 @@ function App() {
             }
           />
           <Route
-            path="/customer-portal"
+            path="/customer"
             element={
               <ProtectedRoute roles={['CUSTOMER']}>
-                <CustomerPortal />
+                <CustomerLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<CustomerDashboard />} />
+            <Route path="quotations" element={<CustomerQuotations />} />
+            <Route path="quotations/:id" element={<CustomerQuotationDetail />} />
+            <Route path="orders" element={<CustomerOrders />} />
+            <Route path="orders/:id" element={<CustomerOrderDetail />} />
+            <Route path="profile" element={<CustomerProfile />} />
+          </Route>
           <Route
             path="/admin"
             element={

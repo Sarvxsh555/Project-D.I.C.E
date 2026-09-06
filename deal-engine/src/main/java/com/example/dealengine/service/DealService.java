@@ -6,6 +6,7 @@ import com.example.dealengine.model.*;
 import com.example.dealengine.repository.DealRepository;
 import com.example.dealengine.repository.OrderRepository;
 import com.example.dealengine.repository.QuoteVersionRepository;
+import com.example.dealengine.security.UserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -129,11 +130,13 @@ public class DealService {
         return order;
     }
 
-    public List<QuoteVersion> getVersions(Long dealId) {
+    public List<QuoteVersion> getVersions(Long dealId, UserPrincipal actor) {
+        assertOwnsDeal(getOrThrow(dealId), actor);
         return quoteVersions.findByDealIdOrderByVersionNumberAsc(dealId);
     }
 
-    public List<Order> getOrdersForDeal(Long dealId) {
+    public List<Order> getOrdersForDeal(Long dealId, UserPrincipal actor) {
+        assertOwnsDeal(getOrThrow(dealId), actor);
         return orders.findByDealId(dealId);
     }
 
@@ -142,13 +145,44 @@ public class DealService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
     }
 
+    public Order getOrderVisibleTo(Long id, UserPrincipal actor) {
+        Order order = getOrderOrThrow(id);
+        assertOwnsOrder(order, actor);
+        return order;
+    }
+
+    public List<Order> listMine(UserPrincipal actor) {
+        if (!actor.isCustomer() || actor.customerId() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This account is not linked to a customer");
+        }
+        return orders.findByCustomerIdOrderByCreatedAtDesc(actor.customerId());
+    }
+
     public Deal getOrThrow(Long id) {
         return deals.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deal not found"));
     }
 
+    public Deal getDealVisibleTo(Long id, UserPrincipal actor) {
+        Deal deal = getOrThrow(id);
+        assertOwnsDeal(deal, actor);
+        return deal;
+    }
+
     public List<Deal> list() {
         return deals.findAll();
+    }
+
+    public void assertOwnsOrder(Order order, UserPrincipal actor) {
+        if (actor.isCustomer() && (actor.customerId() == null || !actor.customerId().equals(order.getCustomerId()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This order belongs to another account");
+        }
+    }
+
+    public void assertOwnsDeal(Deal deal, UserPrincipal actor) {
+        if (actor.isCustomer() && (actor.customerId() == null || !actor.customerId().equals(deal.getCustomerId()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This deal belongs to another account");
+        }
     }
 
     private QuoteVersion takeSnapshot(Deal deal, QuoteSnapshotDto snapshot, String reason) {

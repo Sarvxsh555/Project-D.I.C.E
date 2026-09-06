@@ -11,9 +11,11 @@ function readCookie(name) {
 
 async function request(path, { method = 'GET', body, token, withCsrf = false } = {}) {
   const headers = {
-    'Content-Type': 'application/json',
     'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
   };
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) headers.Authorization = `Bearer ${token}`;
   if (withCsrf) {
     const csrfToken = readCookie('XSRF-TOKEN');

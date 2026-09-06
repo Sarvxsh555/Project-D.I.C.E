@@ -31,6 +31,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
 
 export const negotiationApi = {
   events: (token, quotationId) => request(`/${quotationId}/events`, { token }),
+  versions: (token, quotationId) => request(`/${quotationId}/versions`, { token }),
   comment: (token, quotationId, lineId, message) =>
     request(`/${quotationId}/comments`, { method: 'POST', token, body: { lineId, message } }),
   changeRequest: (token, quotationId, message) =>
