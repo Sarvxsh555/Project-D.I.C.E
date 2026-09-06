@@ -88,9 +88,9 @@ public class QuotationController {
 
     @PostMapping("/{id}/transition")
     public Quotation transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request,
-                                 Authentication authentication) {
+                                 @RequestHeader("Authorization") String authHeader, Authentication authentication) {
         UserPrincipal actor = UserPrincipal.from(authentication);
-        return quotationService.transition(id, request.getToStage(), authentication.getName(), actor);
+        return quotationService.transition(id, request.getToStage(), authentication.getName(), actor, bearer(authHeader));
     }
 
     @GetMapping("/{id}/approval-chain")
@@ -125,9 +125,9 @@ public class QuotationController {
 
     @PostMapping("/{id}/approve")
     public Quotation approve(@PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request,
-                              Authentication authentication) {
+                              @RequestHeader("Authorization") String authHeader, Authentication authentication) {
         UserPrincipal actor = UserPrincipal.from(authentication);
-        return quotationService.approve(id, actor.username(), actor.role(), request.getReason());
+        return quotationService.approve(id, actor.username(), actor.role(), request.getReason(), bearer(authHeader));
     }
 
     @PostMapping("/{id}/reject")
@@ -145,8 +145,14 @@ public class QuotationController {
     }
 
     @PostMapping("/{id}/customer-confirm")
-    public Quotation customerConfirm(@PathVariable Long id, Authentication authentication) {
+    public Quotation customerConfirm(@PathVariable Long id, @RequestHeader("Authorization") String authHeader,
+                                      Authentication authentication) {
         UserPrincipal actor = UserPrincipal.from(authentication);
-        return quotationService.sanitizeForCustomer(quotationService.customerConfirm(id, actor), actor);
+        Quotation saved = quotationService.customerConfirm(id, actor, bearer(authHeader));
+        return quotationService.sanitizeForCustomer(saved, actor);
+    }
+
+    private String bearer(String authHeader) {
+        return authHeader.replaceFirst("^Bearer ", "");
     }
 }
