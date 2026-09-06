@@ -51,3 +51,4 @@ coverage/
 
 # ---- Postgres volume (if bind-mounted locally) ----
 .data/
+logs/

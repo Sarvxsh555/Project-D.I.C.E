@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Sparkles,
   BarChart3,
+  FileBarChart,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { to: '/admin/subscription-plans', label: 'Subscription Plans', icon: RefreshCw, roles: ['ADMIN'] },
   { to: '/admin/recommendation-rules', label: 'Recommendation Rules', icon: Sparkles, roles: ['ADMIN'] },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3, roles: ['ADMIN', 'SALES_MANAGER'] },
+  { to: '/admin/reports', label: 'Reports', icon: FileBarChart, roles: ['ADMIN', 'SALES_MANAGER', 'FINANCE'] },
 ];
 
 const ROLE_LABEL = {

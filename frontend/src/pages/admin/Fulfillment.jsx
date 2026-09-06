@@ -5,6 +5,54 @@ import { fulfillmentApi, dealApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
 import Badge from '../../components/Badge.jsx';
 
+const PLAN_STAGES = ['PROPOSED', 'ACCEPTED', 'SHIPPED'];
+const PLAN_STAGE_LABEL = { PROPOSED: 'Proposed', ACCEPTED: 'Accepted', SHIPPED: 'Shipped' };
+
+function PlanStepper({ status }) {
+  const currentIdx = PLAN_STAGES.indexOf(status);
+  return (
+    <div className="card p-3 mb-4 flex items-center gap-1 overflow-x-auto">
+      {PLAN_STAGES.map((stage, i) => {
+        const done = i <= currentIdx;
+        return (
+          <div key={stage} className="flex items-center">
+            <div
+              className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                i === currentIdx
+                  ? 'bg-odoo-600 text-white'
+                  : done
+                  ? 'bg-odoo-50 text-odoo-700'
+                  : 'bg-gray-100 text-gray-400'
+              }`}
+            >
+              {PLAN_STAGE_LABEL[stage]}
+            </div>
+            {i < PLAN_STAGES.length - 1 && <div className="w-4 h-px bg-gray-200 mx-1" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ShipmentProgressBar({ shipped, backorder }) {
+  const total = shipped + backorder;
+  if (total === 0) return null;
+  const shippedPct = Math.round((shipped / total) * 100);
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{shippedPct}% ready to ship</span>
+        <span>{shipped} / {total} units</span>
+      </div>
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex">
+        <div className="h-full bg-odoo-500" style={{ width: `${shippedPct}%` }} />
+        <div className="h-full bg-red-300" style={{ width: `${100 - shippedPct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function Fulfillment() {
   const { token } = useAuth();
   const [orderIdInput, setOrderIdInput] = useState('');
@@ -166,6 +214,8 @@ export default function Fulfillment() {
             </button>
           ) : (
             <>
+              <PlanStepper status={plan.status} />
+              <ShipmentProgressBar shipped={shippedQty} backorder={backorderQty} />
               <div className="table-wrap">
                 <table className="table-base">
                   <thead>
@@ -203,10 +253,6 @@ export default function Fulfillment() {
                 <div className="stat-card">
                   <div className="stat-label">Backorder</div>
                   <div className="stat-value text-lg">{backorderQty}</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Status</div>
-                  <div className="stat-value text-lg">{plan.status}</div>
                 </div>
               </div>
 

@@ -21,6 +21,7 @@ import Warehouses from './pages/admin/Warehouses.jsx';
 import SubscriptionPlans from './pages/admin/SubscriptionPlans.jsx';
 import RecommendationRules from './pages/admin/RecommendationRules.jsx';
 import Analytics from './pages/admin/Analytics.jsx';
+import Reports from './pages/admin/Reports.jsx';
 import WorkspaceLayout from './pages/workspace/WorkspaceLayout.jsx';
 import Quotations from './pages/workspace/Quotations.jsx';
 import QuotationBuilder from './pages/workspace/QuotationBuilder.jsx';
@@ -95,6 +96,7 @@ function App() {
             <Route path="subscription-plans" element={<SubscriptionPlans />} />
             <Route path="recommendation-rules" element={<RecommendationRules />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
           <Route
             path="/workspace"

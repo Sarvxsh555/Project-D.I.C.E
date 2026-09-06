@@ -5,6 +5,14 @@ import { billingApi, dealApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
 import Badge from '../../components/Badge.jsx';
 
+const CYCLE_TO_MONTHLY = { MONTHLY: 1, QUARTERLY: 1 / 3, ANNUAL: 1 / 12 };
+
+function StatusDot({ active }) {
+  return (
+    <span className={`inline-block h-1.5 w-1.5 rounded-full ${active ? 'bg-green-500' : 'bg-gray-300'}`} />
+  );
+}
+
 export default function Billing() {
   const { token } = useAuth();
   const [orderIdInput, setOrderIdInput] = useState('');
@@ -38,6 +46,11 @@ export default function Billing() {
   };
 
   const oneTime = billing?.invoices.filter((i) => i.type === 'ONE_TIME') ?? [];
+  const activeSubs = billing?.subscriptions.filter((s) => s.status === 'ACTIVE') ?? [];
+  const mrr = activeSubs.reduce(
+    (sum, s) => sum + s.quantity * s.unit_price * (CYCLE_TO_MONTHLY[s.billing_cycle] ?? 1),
+    0
+  );
 
   const changeQuantity = async (subscriptionId) => {
     const newQuantity = prompt('New quantity?');
@@ -153,6 +166,23 @@ export default function Billing() {
             </button>
           </div>
 
+          <div className="stat-grid mb-4">
+            <div className="stat-card">
+              <div className="stat-label">MRR</div>
+              <div className="stat-value text-lg">{formatInr(mrr)}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Active subscriptions</div>
+              <div className="stat-value text-lg">{activeSubs.length}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">One-time invoiced</div>
+              <div className="stat-value text-lg">
+                {formatInr(oneTime.flatMap((inv) => inv.lines).reduce((s, l) => s + l.amount, 0))}
+              </div>
+            </div>
+          </div>
+
           <div className="panel">
             <h3 className="font-semibold text-odooink mb-3">One-time</h3>
             {oneTime.length === 0 ? (
@@ -194,7 +224,10 @@ export default function Billing() {
                         <td>{formatInr(s.quantity * s.unit_price)}/{s.billing_cycle.toLowerCase()}</td>
                         <td>{s.billing_cycle}</td>
                         <td>
-                          <Badge tone={s.status === 'ACTIVE' ? 'green' : 'gray'}>{s.status}</Badge>
+                          <span className="inline-flex items-center gap-1.5">
+                            <StatusDot active={s.status === 'ACTIVE'} />
+                            <Badge tone={s.status === 'ACTIVE' ? 'green' : 'gray'}>{s.status}</Badge>
+                          </span>
                         </td>
                         <td>
                           {s.status === 'ACTIVE' && (
