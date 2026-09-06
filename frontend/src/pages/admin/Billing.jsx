@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Receipt } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
-import { billingApi } from '../../dealFlowApi.js';
+import { billingApi, dealApi } from '../../dealFlowApi.js';
 import { formatInr } from '../../quotationApi.js';
 import Badge from '../../components/Badge.jsx';
 
 export default function Billing() {
   const { token } = useAuth();
   const [orderIdInput, setOrderIdInput] = useState('');
+  const [orders, setOrders] = useState(null);
+  const [ordersError, setOrdersError] = useState('');
   const [orderId, setOrderId] = useState(null);
   const [billing, setBilling] = useState(null);
   const [error, setError] = useState('');
@@ -15,11 +17,20 @@ export default function Billing() {
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
 
+  useEffect(() => {
+    dealApi
+      .listMine(token)
+      .then(setOrders)
+      .catch((err) => setOrdersError(err.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const load = async (id) => {
     setError('');
     try {
       setBilling(await billingApi.getOrderBilling(token, id));
       setOrderId(id);
+      setOrderIdInput(String(id));
     } catch (err) {
       setError(err.message);
       setBilling(null);
@@ -102,9 +113,45 @@ export default function Billing() {
 
       {error && <p className="status-banner-error mb-4">{error}</p>}
 
+      {!billing && (
+        <div className="panel mb-4">
+          <h2 className="font-bold text-odooink mb-3">Orders</h2>
+          {ordersError && <p className="status-banner-error mb-3">{ordersError}</p>}
+          {!ordersError && orders === null && <div className="empty-state py-4">Loading orders...</div>}
+          {orders && orders.length === 0 && <div className="empty-state py-4">No orders yet.</div>}
+          {orders && orders.length > 0 && (
+            <div className="space-y-2">
+              {orders.map((o) => (
+                <button
+                  key={o.id}
+                  className="w-full text-left rounded-lg border border-gray-100 hover:border-odoo-200 p-3 text-sm flex items-center justify-between"
+                  onClick={() => load(o.id)}
+                >
+                  <span className="font-semibold text-odooink">{o.orderNo}</span>
+                  <span className="text-gray-500">{o.customerName}</span>
+                  <Badge tone="gray">{o.status}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {billing && (
         <>
-          <h2 className="text-lg font-bold text-odooink mb-4">Order #{billing.orderId}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-odooink">Order #{billing.orderId}</h2>
+            <button
+              className="link-action"
+              onClick={() => {
+                setBilling(null);
+                setOrderId(null);
+                setOrderIdInput('');
+              }}
+            >
+              Back to orders
+            </button>
+          </div>
 
           <div className="panel">
             <h3 className="font-semibold text-odooink mb-3">One-time</h3>

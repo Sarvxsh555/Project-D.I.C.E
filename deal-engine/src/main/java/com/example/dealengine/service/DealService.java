@@ -152,10 +152,15 @@ public class DealService {
     }
 
     public List<Order> listMine(UserPrincipal actor) {
-        if (!actor.isCustomer() || actor.customerId() == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This account is not linked to a customer");
+        if (actor.isCustomer()) {
+            if (actor.customerId() == null) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This account is not linked to a customer");
+            }
+            return orders.findByCustomerIdOrderByCreatedAtDesc(actor.customerId());
         }
-        return orders.findByCustomerIdOrderByCreatedAtDesc(actor.customerId());
+        // Staff roles (admin, sales rep, sales manager, finance) see every order —
+        // they need to look one up for fulfillment/billing without knowing its id upfront.
+        return orders.findAllByOrderByCreatedAtDesc();
     }
 
     public Deal getOrThrow(Long id) {

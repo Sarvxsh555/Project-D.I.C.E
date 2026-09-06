@@ -36,6 +36,7 @@ export function AuthProvider({ children }) {
   const [initializing, setInitializing] = useState(true);
   const refreshTimer = useRef(null);
   const hadSession = useRef(false);
+  const initialRefreshStarted = useRef(false);
 
   const clearRefreshTimer = () => {
     if (refreshTimer.current) {
@@ -68,6 +69,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    // Guard against React 18 StrictMode's double-invoke of this effect in dev:
+    // firing /auth/refresh twice with the same rotating refresh cookie makes the
+    // second call look like token reuse, which revokes every session for the user.
+    if (initialRefreshStarted.current) return;
+    initialRefreshStarted.current = true;
     silentRefresh().finally(() => setInitializing(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

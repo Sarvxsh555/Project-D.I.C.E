@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Plus, Truck } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { fulfillmentApi, dealApi } from '../../dealFlowApi.js';
@@ -8,6 +8,8 @@ import Badge from '../../components/Badge.jsx';
 export default function Fulfillment() {
   const { token } = useAuth();
   const [orderIdInput, setOrderIdInput] = useState('');
+  const [orders, setOrders] = useState(null);
+  const [ordersError, setOrdersError] = useState('');
   const [order, setOrder] = useState(null);
   const [plan, setPlan] = useState(null);
   const [error, setError] = useState('');
@@ -15,14 +17,24 @@ export default function Fulfillment() {
   const [overrideLines, setOverrideLines] = useState([{ productId: '', warehouseId: '', quantity: '' }]);
   const [showOverride, setShowOverride] = useState(false);
 
-  const loadOrder = async () => {
-    if (!orderIdInput) return;
+  useEffect(() => {
+    dealApi
+      .listMine(token)
+      .then(setOrders)
+      .catch((err) => setOrdersError(err.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadOrder = async (idOverride) => {
+    const id = idOverride ?? orderIdInput;
+    if (!id) return;
     setError('');
     try {
-      const o = await dealApi.getOrder(token, orderIdInput);
+      const o = await dealApi.getOrder(token, id);
       setOrder(o);
+      setOrderIdInput(String(id));
       try {
-        setPlan(await fulfillmentApi.getByOrder(token, orderIdInput));
+        setPlan(await fulfillmentApi.getByOrder(token, id));
       } catch {
         setPlan(null);
       }
@@ -105,11 +117,47 @@ export default function Fulfillment() {
 
       {error && <p className="status-banner-error mb-4">{error}</p>}
 
+      {!order && (
+        <div className="panel mb-4">
+          <h2 className="font-bold text-odooink mb-3">Orders</h2>
+          {ordersError && <p className="status-banner-error mb-3">{ordersError}</p>}
+          {!ordersError && orders === null && <div className="empty-state py-4">Loading orders...</div>}
+          {orders && orders.length === 0 && <div className="empty-state py-4">No orders yet.</div>}
+          {orders && orders.length > 0 && (
+            <div className="space-y-2">
+              {orders.map((o) => (
+                <button
+                  key={o.id}
+                  className="w-full text-left rounded-lg border border-gray-100 hover:border-odoo-200 p-3 text-sm flex items-center justify-between"
+                  onClick={() => loadOrder(o.id)}
+                >
+                  <span className="font-semibold text-odooink">{o.orderNo}</span>
+                  <span className="text-gray-500">{o.customerName}</span>
+                  <Badge tone="gray">{o.status}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {order && (
         <div className="panel">
-          <h2 className="font-bold text-odooink mb-1">
-            {order.orderNo} - {order.customerName}
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-bold text-odooink">
+              {order.orderNo} - {order.customerName}
+            </h2>
+            <button
+              className="link-action"
+              onClick={() => {
+                setOrder(null);
+                setPlan(null);
+                setOrderIdInput('');
+              }}
+            >
+              Back to orders
+            </button>
+          </div>
           <p className="text-sm text-gray-500 mb-4">Required: {requiredQty}</p>
 
           {!plan ? (
