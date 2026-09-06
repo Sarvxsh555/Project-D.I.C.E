@@ -212,7 +212,7 @@ public class QuotationService {
         }
     }
 
-    private Quotation submitForApproval(Quotation quotation, String username, PipelineStage from) {
+    private Quotation submitForApproval(Quotation quotation, String username, PipelineStage from, String bearerToken) {
         DiceEngine.Decision decision = diceEngine.evaluate(quotation);
         quotation.setRiskScore(decision.riskScore());
         for (String reason : decision.reasons()) {
@@ -234,6 +234,7 @@ public class QuotationService {
                 saved = quotations.save(saved);
                 logAudit(saved, username, "TRANSITION", "Customer already accepted — auto-approved terms become an order",
                         PipelineStage.APPROVED, PipelineStage.ORDERED);
+                openAndConvertDeal(saved, bearerToken);
             }
             return saved;
         }
@@ -250,7 +251,7 @@ public class QuotationService {
     }
 
     /** Approves the next pending step in the chain. Once every step is done, the quotation moves to APPROVED. */
-    public Quotation approve(Long id, String username, String role, String reason) {
+    public Quotation approve(Long id, String username, String role, String reason, String bearerToken) {
         if (!List.of("ADMIN", "SALES_MANAGER", "FINANCE").contains(role)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have approval authority");
         }
@@ -278,6 +279,7 @@ public class QuotationService {
                 quotations.save(quotation);
                 logAudit(quotation, username, "TRANSITION", "Customer already accepted — moving to order",
                         PipelineStage.APPROVED, PipelineStage.ORDERED);
+                openAndConvertDeal(quotation, bearerToken);
             }
         }
         return getOrThrow(id);
