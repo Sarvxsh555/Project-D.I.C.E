@@ -54,6 +54,8 @@ export const quotationApi = {
   recommendations: (token, productIds) =>
     request(`/recommendations${toQuery({ productIds: productIds.join(',') })}`, { token }),
   approvalChain: (token, id) => request(`/quotations/${id}/approval-chain`, { token }),
+  // Why each queued quote is waiting, for a whole page of the queue in one call.
+  diceDecisions: (token, ids) => request(`/dice/decisions${toQuery({ ids: ids.join(',') })}`, { token }),
   audit: (token, id) => request(`/quotations/${id}/audit`, { token }),
   approve: (token, id, reason) => request(`/quotations/${id}/approve`, { method: 'POST', token, body: { reason } }),
   reject: (token, id, reason) => request(`/quotations/${id}/reject`, { method: 'POST', token, body: { reason } }),

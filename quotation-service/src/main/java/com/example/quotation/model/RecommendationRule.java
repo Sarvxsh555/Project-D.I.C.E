@@ -1,5 +1,6 @@
 package com.example.quotation.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,6 +17,9 @@ public class RecommendationRule {
     private Long productBId;
     private double coPurchaseScore;
     private String promotion;
+    // login-service owns this table and calls the column minimum_margin; this entity kept its
+    // own name for it, which meant every read here failed with "column does not exist".
+    @Column(name = "minimum_margin")
     private double marginImpactPercent;
     private int priority;
 
