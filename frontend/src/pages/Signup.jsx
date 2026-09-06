@@ -9,6 +9,8 @@ function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accountType, setAccountType] = useState('SALES_REP');
+  const [companyName, setCompanyName] = useState('');
   const [status, setStatus] = useState({ type: null, message: '' });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -20,9 +22,12 @@ function Signup() {
     setStatus({ type: null, message: '' });
 
     try {
-      const data = await api.signup({ username, email, password });
+      const payload = { username, email, password, accountType };
+      if (accountType === 'CUSTOMER') payload.companyName = companyName;
+      const data = await api.signup(payload);
       login(data.accessToken);
-      navigate('/portal');
+      const payloadClaims = JSON.parse(atob(data.accessToken.split('.')[1]));
+      navigate(payloadClaims.role === 'CUSTOMER' ? '/customer/dashboard' : '/portal');
     } catch (err) {
       setStatus({ type: 'error', message: err.message });
     } finally {
@@ -45,6 +50,42 @@ function Signup() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <span className="label">I am signing up as a</span>
+          <div className="flex gap-2 mt-1">
+            <button
+              type="button"
+              className={accountType === 'SALES_REP' ? 'btn-primary flex-1' : 'btn-secondary flex-1'}
+              onClick={() => setAccountType('SALES_REP')}
+            >
+              Sales rep
+            </button>
+            <button
+              type="button"
+              className={accountType === 'CUSTOMER' ? 'btn-primary flex-1' : 'btn-secondary flex-1'}
+              onClick={() => setAccountType('CUSTOMER')}
+            >
+              Customer
+            </button>
+          </div>
+        </div>
+
+        {accountType === 'CUSTOMER' && (
+          <div>
+            <label htmlFor="companyName" className="label">
+              Company name
+            </label>
+            <input
+              id="companyName"
+              type="text"
+              className="input"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
         <div>
           <label htmlFor="username" className="label">
             Username

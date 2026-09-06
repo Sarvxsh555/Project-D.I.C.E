@@ -47,4 +47,26 @@ public class CustomerController {
         }
         return repository.save(customer);
     }
+
+    /**
+     * Called once, right after signup, by login-service on behalf of a brand-new CUSTOMER
+     * account that isn't linked to a customer record yet. Only usable by a token that is
+     * already CUSTOMER-role and not yet linked - closes the "signup produces an unusable
+     * customer login" gap without opening a general-purpose self-service creation endpoint.
+     */
+    @PostMapping("/self-register")
+    public Customer selfRegister(@RequestBody java.util.Map<String, String> body, Authentication authentication) {
+        UserPrincipal actor = UserPrincipal.from(authentication);
+        if (!actor.isCustomer()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a customer-role login can self-register");
+        }
+        if (actor.customerId() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This login is already linked to a customer account");
+        }
+        Customer customer = new Customer();
+        customer.setName(body.getOrDefault("name", actor.username()));
+        customer.setEmail(body.get("email"));
+        customer.setTier("STANDARD");
+        return repository.save(customer);
+    }
 }

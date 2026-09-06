@@ -21,6 +21,29 @@ public class SignupRequest {
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain at least one letter and one number")
     private String password;
 
+    /** "CUSTOMER" or "SALES_REP" (default). Any other value is rejected - this is public
+     *  signup, so ADMIN/SALES_MANAGER/FINANCE can never be self-assigned here. */
+    private String accountType;
+
+    /** Required when accountType=CUSTOMER: becomes the linked Customer record's name. */
+    private String companyName;
+
+    public String getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(String accountType) {
+        this.accountType = accountType;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
     public String getUsername() {
         return username;
     }

@@ -46,6 +46,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final RateLimiter rateLimiter;
     private final MailerClient mailerClient;
+    private final QuotationServiceClient quotationServiceClient;
     private final String frontendBaseUrl;
 
     public AuthService(
@@ -57,7 +58,9 @@ public class AuthService {
             RefreshTokenService refreshTokenService,
             RateLimiter rateLimiter,
             MailerClient mailerClient,
+            QuotationServiceClient quotationServiceClient,
             @Value("${app.frontend.base-url}") String frontendBaseUrl) {
+        this.quotationServiceClient = quotationServiceClient;
         this.userRepository = userRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.revokedTokenRepository = revokedTokenRepository;
@@ -83,14 +86,32 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
 
+        boolean wantsCustomer = "CUSTOMER".equalsIgnoreCase(request.getAccountType());
+        if (wantsCustomer && (request.getCompanyName() == null || request.getCompanyName().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "companyName is required for a customer account");
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         if (userRepository.count() == 0) {
             user.setRole("ADMIN");
+        } else if (wantsCustomer) {
+            user.setRole("CUSTOMER");
         }
         userRepository.save(user);
+
+        if (wantsCustomer) {
+            // Mint a short-lived token carrying role=CUSTOMER/customerId=null purely to make
+            // the internal self-register call, then re-mint the real token once linked -
+            // customerId is a JWT claim, so the session has to start from a fresh token.
+            String bootstrapToken = jwtService.generateAccessToken(user.getUsername(), user.getRole(), null);
+            Long customerId = quotationServiceClient.selfRegisterCustomer(
+                    bootstrapToken, request.getCompanyName(), user.getEmail());
+            user.setCustomerId(customerId);
+            userRepository.save(user);
+        }
 
         String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole(), user.getCustomerId());
         String refreshToken = refreshTokenService.issue(user.getId());
