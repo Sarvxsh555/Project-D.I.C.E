@@ -31,6 +31,7 @@ public class DiceController {
         body.put("quotationId", id);
         body.put("riskScore", d.riskScore());
         body.put("autoApprove", d.autoApprove());
+        body.put("band", d.band());
         body.put("requiredLevel", d.requiredLevel());
         body.put("chain", d.chain());
         body.put("reasons", d.reasons());

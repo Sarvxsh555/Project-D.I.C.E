@@ -1,35 +1,28 @@
 package com.example.governance.service;
 
-import com.example.governance.client.CustomerDto;
+import com.example.governance.client.DiceDecisionDto;
 import com.example.governance.client.GovernanceDataClient;
-import com.example.governance.client.ProductDto;
-import com.example.governance.client.QuoteDto;
 import com.example.governance.model.GovernanceEvaluation;
 import com.example.governance.repository.GovernanceEvaluationRepository;
-import com.example.governance.rules.*;
+import com.example.governance.rules.RequiredLevel;
 import com.example.governance.web.EvaluationResponse;
-import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.api.Rules;
-import org.jeasy.rules.api.RulesEngine;
-import org.jeasy.rules.core.DefaultRulesEngine;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
+/**
+ * Governance previously re-implemented the scoring rules that D.I.C.E. already owned, so the
+ * two could (and did) disagree about the same quote. There is now one brain: quotation-service
+ * scores the quote, and this service is responsible for turning that decision into an approval
+ * chain, persisting the evaluation, and serving the contract approval-engine depends on.
+ */
 @Service
 public class GovernanceService {
 
-    /** Risk score at/above this line always requires approval, even if no single rule fired. */
-    private static final double RISK_APPROVAL_THRESHOLD = 40.0;
-
     private final GovernanceDataClient dataClient;
     private final GovernanceEvaluationRepository evaluations;
-    private final RulesEngine rulesEngine = new DefaultRulesEngine();
 
     public GovernanceService(GovernanceDataClient dataClient, GovernanceEvaluationRepository evaluations) {
         this.dataClient = dataClient;
@@ -37,54 +30,46 @@ public class GovernanceService {
     }
 
     public EvaluationResponse evaluate(Long quotationId, String bearerToken) {
-        QuoteDto quote = dataClient.fetchQuote(quotationId, bearerToken);
-        if (quote.lines == null || quote.lines.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quote has no line items to evaluate");
+        DiceDecisionDto decision = dataClient.fetchDiceDecision(quotationId, bearerToken);
+        if (decision == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "D.I.C.E. returned no decision");
         }
 
-        List<CustomerDto> customers = dataClient.fetchCustomers(bearerToken);
-        String customerTier = customers.stream()
-                .filter(c -> c.id.equals(quote.customerId))
-                .map(c -> c.tier)
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
+        double riskScore = clamp(decision.riskScore);
+        RequiredLevel requiredLevel = parseLevel(decision.requiredLevel);
+        boolean approvalRequired = !decision.autoApprove;
 
-        List<ProductDto> products = dataClient.fetchProducts(bearerToken);
-        Map<Long, String> categoryById = products.stream()
-                .collect(Collectors.toMap(p -> p.id, p -> p.category, (a, b) -> a));
+        // A quote that needs a human but carries no explicit level still routes to the manager.
+        if (approvalRequired && requiredLevel == RequiredLevel.NONE) {
+            requiredLevel = RequiredLevel.SALES_MANAGER;
+        }
+        if (!approvalRequired) {
+            requiredLevel = RequiredLevel.NONE;
+        }
 
-        List<com.example.governance.client.DiscountRuleDto> discountRules = dataClient.fetchDiscountRules(bearerToken);
-
-        GovernanceContext ctx = new GovernanceContext(quote, customerTier, categoryById, discountRules);
-        runRules(ctx);
-
-        double riskScore = ctx.clampedRiskScore();
-        boolean approvalRequired = ctx.requiredLevel != RequiredLevel.NONE || riskScore >= RISK_APPROVAL_THRESHOLD;
-        RequiredLevel requiredLevel = approvalRequired
-                ? RequiredLevel.highestOf(ctx.requiredLevel, RequiredLevel.SALES_MANAGER)
-                : RequiredLevel.NONE;
-
+        List<String> reasons = decision.reasons == null ? List.of() : decision.reasons;
         List<RequiredLevel> approvalChain = buildChain(requiredLevel);
 
-        persist(quotationId, riskScore, approvalRequired, requiredLevel, ctx.reasons);
+        persist(quotationId, riskScore, approvalRequired, requiredLevel, reasons);
 
-        return new EvaluationResponse(riskScore, approvalRequired, requiredLevel, approvalChain, ctx.reasons);
+        return new EvaluationResponse(riskScore, approvalRequired, requiredLevel, approvalChain, reasons);
     }
 
     public List<GovernanceEvaluation> history(Long quotationId) {
         return evaluations.findByQuotationIdOrderByCreatedAtDesc(quotationId);
     }
 
-    private void runRules(GovernanceContext ctx) {
-        Rules rules = new Rules();
-        rules.register(new BaselineDiscountRiskRule());
-        rules.register(new DiscountCeilingRule());
-        rules.register(new MarginFloorRule());
-        rules.register(new DealValueRule());
+    private static RequiredLevel parseLevel(String raw) {
+        if (raw == null) return RequiredLevel.NONE;
+        try {
+            return RequiredLevel.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return RequiredLevel.fromAdminLabel(raw);
+        }
+    }
 
-        Facts facts = new Facts();
-        facts.put("ctx", ctx);
-        rulesEngine.fire(rules, facts);
+    private static double clamp(double score) {
+        return Math.max(0, Math.min(100, Math.round(score * 100.0) / 100.0));
     }
 
     private List<RequiredLevel> buildChain(RequiredLevel requiredLevel) {

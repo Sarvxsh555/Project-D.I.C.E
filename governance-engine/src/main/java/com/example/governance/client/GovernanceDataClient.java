@@ -39,6 +39,22 @@ public class GovernanceDataClient {
                 .body(QuoteDto.class);
     }
 
+    /**
+     * Asks D.I.C.E. for the decision instead of recomputing it here. quotation-service owns
+     * the scoring policy; governance-engine owns persistence, the approval chain and the
+     * response contract that approval-engine consumes.
+     */
+    public DiceDecisionDto fetchDiceDecision(Long quotationId, String bearerToken) {
+        return quotationServiceClient.get()
+                .uri("/dice/quotes/{id}/decision", quotationId)
+                .header("Authorization", "Bearer " + bearerToken)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                    throw new ResponseStatusException(res.getStatusCode(), "quotation-service: D.I.C.E. decision not accessible");
+                })
+                .body(DiceDecisionDto.class);
+    }
+
     public List<CustomerDto> fetchCustomers(String bearerToken) {
         return quotationServiceClient.get()
                 .uri("/customers")
