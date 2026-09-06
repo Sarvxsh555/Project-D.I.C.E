@@ -251,3 +251,27 @@ CREATE TABLE IF NOT EXISTS quote_negotiation_version (
 CREATE INDEX IF NOT EXISTS idx_task_username ON task(username);
 CREATE INDEX IF NOT EXISTS idx_notification_username ON notification(username);
 CREATE INDEX IF NOT EXISTS idx_negotiation_event_quotation ON negotiation_event(quotation_id);
+
+-- Tunable D.I.C.E. policy numbers. The engine falls back to compiled-in defaults for any key
+-- that is absent, so these rows are purely an override surface - seeding them at the current
+-- defaults just makes the knobs discoverable and editable without a redeploy.
+CREATE TABLE IF NOT EXISTS governance_threshold (
+  threshold_key VARCHAR(64) PRIMARY KEY,
+  threshold_value DOUBLE PRECISION NOT NULL,
+  description VARCHAR(255)
+);
+
+INSERT INTO governance_threshold (threshold_key, threshold_value, description) VALUES
+  ('auto_approve_risk',       40,      'Risk at/above this always needs a human'),
+  ('margin_floor',            20,      'Gross margin % below this escalates to Finance'),
+  ('deal_value_finance',      5000000, 'Deal total above this escalates to Finance'),
+  ('blended_overage_finance', 8,       'Stacked category overage points requiring Finance'),
+  ('anomaly_discount',        25,      'Overall discount % treated as an anomaly'),
+  ('audit_band_width',        10,      'Width of the post-hoc audit band below auto_approve_risk'),
+  ('ceiling_bronze',          5,       'Default max discount % for Bronze'),
+  ('ceiling_silver',          10,      'Default max discount % for Silver'),
+  ('ceiling_gold',            15,      'Default max discount % for Gold'),
+  ('ceiling_platinum',        20,      'Default max discount % for Platinum'),
+  ('ceiling_default',         10,      'Max discount % for an unknown tier'),
+  ('ceiling_service_cap',     10,      'Hard cap for thin-margin service categories')
+ON CONFLICT (threshold_key) DO NOTHING;
