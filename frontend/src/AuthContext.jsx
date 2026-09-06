@@ -24,6 +24,10 @@ function decodeCustomerId(token) {
   return decodePayload(token)?.customerId ?? null;
 }
 
+function decodeUsername(token) {
+  return decodePayload(token)?.sub ?? null;
+}
+
 export function AuthProvider({ children }) {
   // Access token lives only in memory (never localStorage) to limit XSS blast radius.
   // Session continuity across reloads comes from the httpOnly refresh cookie via silent refresh below.
@@ -31,6 +35,7 @@ export function AuthProvider({ children }) {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const refreshTimer = useRef(null);
+  const hadSession = useRef(false);
 
   const clearRefreshTimer = () => {
     if (refreshTimer.current) {
@@ -41,20 +46,26 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     clearRefreshTimer();
+    hadSession.current = false;
+    setSessionExpired(false);
     setToken(null);
   }, []);
 
   const silentRefresh = useCallback(async () => {
     try {
       const data = await api.refresh();
+      hadSession.current = true;
       setToken(data.accessToken);
       return data.accessToken;
     } catch {
-      setSessionExpired(true);
-      logout();
+      const expired = hadSession.current;
+      clearRefreshTimer();
+      hadSession.current = false;
+      setToken(null);
+      if (expired) setSessionExpired(true);
       return null;
     }
-  }, [logout]);
+  }, []);
 
   useEffect(() => {
     silentRefresh().finally(() => setInitializing(false));
@@ -76,6 +87,7 @@ export function AuthProvider({ children }) {
   }, [token, silentRefresh]);
 
   const login = useCallback((newToken) => {
+    hadSession.current = true;
     setSessionExpired(false);
     setToken(newToken);
   }, []);
@@ -87,6 +99,7 @@ export function AuthProvider({ children }) {
       value={{
         token,
         role: token ? decodeRole(token) : null,
+        username: token ? decodeUsername(token) : null,
         customerId: token ? decodeCustomerId(token) : null,
         isAuthenticated: Boolean(token),
         initializing,

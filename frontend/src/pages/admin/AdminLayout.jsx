@@ -51,7 +51,7 @@ export default function AdminLayout() {
       await api.logout(token);
     } finally {
       logout();
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
 

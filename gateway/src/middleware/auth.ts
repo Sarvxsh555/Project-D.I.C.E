@@ -19,6 +19,7 @@ const PUBLIC_EXACT = new Set([
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/refresh',
+  '/api/auth/logout',
 ]);
 
 function isPublic(url: string, method: string): boolean {

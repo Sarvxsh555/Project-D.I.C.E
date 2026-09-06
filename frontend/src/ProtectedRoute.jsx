@@ -5,7 +5,7 @@ function ProtectedRoute({ children, roles }) {
   const { isAuthenticated, initializing, role } = useAuth();
 
   if (initializing) return null;
-  if (!isAuthenticated) return <Navigate to="/unauthorized" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(role)) return <Navigate to="/unauthorized" replace />;
   return children;
 }

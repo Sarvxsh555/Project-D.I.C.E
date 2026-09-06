@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext.jsx';
 import AuthShell, { StatusMessage } from '../components/AuthShell.jsx';
 
 function Portal() {
-  const { token, logout } = useAuth();
+  const { token, role, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ function Portal() {
       .catch((err) => {
         if (err instanceof UnauthorizedError) {
           logout();
-          navigate('/unauthorized');
+          navigate('/login', { replace: true });
         } else {
           setError(err.message);
         }
@@ -29,16 +29,22 @@ function Portal() {
       await api.logout(token);
     } finally {
       logout();
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
 
   return (
     <AuthShell
       title={
-        <>
-          Customer <span className="accent-script text-[1.3em]">portal</span>
-        </>
+        role === 'CUSTOMER' ? (
+          <>
+            Customer <span className="accent-script text-[1.3em]">portal</span>
+          </>
+        ) : (
+          <>
+            Your <span className="accent-script text-[1.3em]">account</span>
+          </>
+        )
       }
     >
       <StatusMessage status={error ? { type: 'error', message: error } : null} />

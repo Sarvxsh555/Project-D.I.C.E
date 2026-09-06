@@ -9,10 +9,11 @@ import Badge from '../../components/Badge.jsx';
 import { quotationStatusLabel, orderStatusLabel, needsCustomerAction } from '../../lib/customerStatus.js';
 
 export default function CustomerDashboard() {
-  const { token, customerId } = useAuth();
+  const { token, customerId, username } = useAuth();
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState(null);
   const [orders, setOrders] = useState(null);
+  const [companyName, setCompanyName] = useState('');
   const [error, setError] = useState('');
 
   const load = () => {
@@ -22,10 +23,15 @@ export default function CustomerDashboard() {
     Promise.all([
       quotationApi.list(token, { customerId, size: 50, sortBy: 'createdAt', direction: 'DESC' }),
       dealApi.listMine(token),
+      quotationApi.customers(token).catch(() => []),
     ])
-      .then(([quoteData, orderData]) => {
+      .then(([quoteData, orderData, customerRows]) => {
+        const rows = Array.isArray(customerRows) ? customerRows : [];
         setQuotes(quoteData.content);
         setOrders(orderData);
+        setCompanyName(
+          rows[0]?.name || quoteData.content[0]?.customerName || orderData[0]?.customerName || ''
+        );
       })
       .catch((err) => setError(err.message || 'Unable to load your dashboard.'));
   };
@@ -37,7 +43,7 @@ export default function CustomerDashboard() {
   const activeQuotes = (quotes || []).filter((q) => !['ORDERED', 'FULFILLMENT', 'COMPLETED'].includes(q.stage));
   const inFulfillment = (orders || []).filter((o) => o.status === 'FULFILLING');
   const completedOrders = (orders || []).filter((o) => o.status === 'COMPLETED');
-  const companyName = quotes?.[0]?.customerName || orders?.[0]?.customerName || 'there';
+  const greeting = companyName || username;
 
   const cards = [
     { label: 'Active Quotations', value: activeQuotes.length, icon: FileText },
@@ -49,7 +55,7 @@ export default function CustomerDashboard() {
 
   return (
     <div>
-      <h1 className="page-title">Welcome back, {companyName}</h1>
+      <h1 className="page-title">{greeting ? `Welcome back, ${greeting}` : 'Welcome back'}</h1>
       <p className="page-subtitle">
         {actionable.length > 0
           ? `You have ${actionable.length} quotation${actionable.length > 1 ? 's' : ''} that need your attention.`

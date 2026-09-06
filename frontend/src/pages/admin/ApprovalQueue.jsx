@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CheckSquare, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../AuthContext.jsx';
 import { quotationApi, formatInr } from '../../quotationApi.js';
@@ -18,6 +18,8 @@ export default function ApprovalQueue() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const openReview = (id) => navigate(`/admin/approvals/${id}`);
 
   return (
     <div>
@@ -50,23 +52,50 @@ export default function ApprovalQueue() {
                 <th>Amount</th>
                 <th>Discount %</th>
                 <th>Risk Score</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.content.map((q) => {
                 const discountPercent = q.subtotal > 0 ? ((q.discountTotal / q.subtotal) * 100).toFixed(1) : 0;
+                const href = `/admin/approvals/${q.id}`;
                 return (
                   <tr
                     key={q.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/admin/approvals/${q.id}`)}
+                    onClick={() => openReview(q.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openReview(q.id);
+                      }
+                    }}
                   >
-                    <td className="font-medium">{q.quoteNo}</td>
+                    <td className="font-medium">
+                      <Link
+                        to={href}
+                        className="text-odoo-700 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {q.quoteNo}
+                      </Link>
+                    </td>
                     <td>{q.customerName}</td>
                     <td>{q.repUsername}</td>
                     <td>{formatInr(q.total)}</td>
                     <td>{discountPercent}%</td>
                     <td>{Math.round(q.riskScore)} / 100</td>
+                    <td>
+                      <Link
+                        to={href}
+                        className="btn-secondary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Review
+                      </Link>
+                    </td>
                   </tr>
                 );
               })}

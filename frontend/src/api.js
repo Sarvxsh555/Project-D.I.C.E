@@ -9,7 +9,7 @@ function readCookie(name) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-async function request(path, { method = 'GET', body, token, withCsrf = false } = {}) {
+async function request(path, { method = 'GET', body, token, withCsrf = false, silent = false } = {}) {
   const headers = {
     'X-Request-ID': `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
   };
@@ -38,21 +38,37 @@ async function request(path, { method = 'GET', body, token, withCsrf = false } =
   const data = await response.json().catch(() => ({}));
 
   if (response.status === 401) {
-    throw new UnauthorizedError(data.error?.message || data.message || 'Unauthorized');
+    const err = new UnauthorizedError(data.error?.message || data.message || 'Unauthorized');
+    err.status = 401;
+    throw err;
   }
   if (!response.ok) {
     const message = describeHttpError(response.status, data);
-    toast.error(message);
-    throw new Error(message);
+    if (!silent) toast.error(message);
+    const err = new Error(message);
+    err.status = response.status;
+    throw err;
   }
   return data;
+}
+
+async function refreshSession() {
+  try {
+    return await request('/auth/refresh', { method: 'POST', withCsrf: true, silent: true });
+  } catch (err) {
+    // First hit after a cold load often mints the CSRF cookie on a 403; retry once.
+    if (err.status === 403 && readCookie('XSRF-TOKEN')) {
+      return request('/auth/refresh', { method: 'POST', withCsrf: true, silent: true });
+    }
+    throw err;
+  }
 }
 
 export const api = {
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
-  refresh: () => request('/auth/refresh', { method: 'POST', withCsrf: true }),
-  logout: (token) => request('/auth/logout', { method: 'POST', token, withCsrf: true }),
+  refresh: refreshSession,
+  logout: (token) => request('/auth/logout', { method: 'POST', token, withCsrf: true, silent: true }),
   forgotPassword: (payload) => request('/auth/forgot-password', { method: 'POST', body: payload }),
   resetPassword: (payload) => request('/auth/reset-password', { method: 'POST', body: payload }),
   me: (token) => request('/portal/me', { token }),

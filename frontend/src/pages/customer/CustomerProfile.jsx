@@ -4,15 +4,18 @@ import { quotationApi } from '../../quotationApi.js';
 import AsyncState from '../../components/AsyncState.jsx';
 
 export default function CustomerProfile() {
-  const { token, customerId } = useAuth();
+  const { token, customerId, username } = useAuth();
   const [customerName, setCustomerName] = useState(null);
   const [error, setError] = useState('');
 
   const load = () => {
     setError('');
     quotationApi
-      .list(token, { customerId, size: 1 })
-      .then((data) => setCustomerName(data.content[0]?.customerName || ''))
+      .customers(token)
+      .then((rows) => {
+        const list = Array.isArray(rows) ? rows : [];
+        setCustomerName(list[0]?.name || '');
+      })
       .catch((err) => setError(err.message || 'Unable to load your profile.'));
   };
 
@@ -28,6 +31,10 @@ export default function CustomerProfile() {
           <div>
             <div className="stat-label">Company</div>
             <div className="font-semibold text-odooink">{customerName || '—'}</div>
+          </div>
+          <div>
+            <div className="stat-label">Username</div>
+            <div className="font-semibold text-odooink">{username || '—'}</div>
           </div>
           <div>
             <div className="stat-label">Account ID</div>
